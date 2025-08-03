@@ -5,6 +5,40 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2025-08-03
+
+### Added
+- **Custom Configuration UI**: Brand new web-based configuration interface
+- **Integrated OAuth Flow**: Complete OAuth setup directly in Homebridge Config UI X
+- **Visual Setup Wizard**: Step-by-step guided configuration process
+- **One-Click Authorization**: Generate and handle OAuth URLs within the UI
+- **Real-time Validation**: Instant feedback on configuration inputs
+- **Token Management**: Secure refresh token generation and storage
+
+### Features
+- **Browser-Based Setup**: No more command-line OAuth setup required
+- **Visual Progress**: Clear step indicators for OAuth process
+- **Auto-Configuration**: Automatically saves settings to Homebridge config
+- **Error Handling**: User-friendly error messages and troubleshooting
+- **Mobile Friendly**: Responsive design works on all devices
+
+### Improved
+- **User Experience**: Eliminated need for SSH or terminal access
+- **Setup Process**: Reduced setup time from ~10 minutes to ~2 minutes
+- **Documentation**: Added custom UI guidance to configuration schema
+
+## [1.0.3] - 2025-08-03
+
+### Fixed
+- **OAuth Setup Compatibility**: Fixed "tsc: not found" error in Homebridge environments
+- **Build Dependencies**: OAuth setup no longer requires TypeScript compilation
+- **Runtime Compatibility**: Added pre-built JavaScript version of OAuth setup script
+
+### Changed
+- OAuth setup now uses `scripts/oauth-setup.js` instead of building TypeScript source
+- Removed build dependency from `npm run oauth-setup` command
+- Improved compatibility with restricted Homebridge environments
+
 ## [1.0.2] - 2025-08-03
 
 ### Improved

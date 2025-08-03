@@ -2,6 +2,9 @@
   "pluginAlias": "VolvoEX30",
   "pluginType": "platform",
   "singular": false,
+  "customUi": true,
+  "headerDisplay": "🚗 **Volvo EX30 Plugin** - Connect your EX30 to HomeKit with battery monitoring, charging status, and more. [Custom Configuration UI Available]",
+  "footerDisplay": "💡 **Tip**: Use the custom configuration interface above for easy OAuth setup, or configure manually using the form below.",
   "schema": {
     "type": "object",
     "properties": {

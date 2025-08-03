@@ -27,6 +27,23 @@ npm install -g homebridge-volvo-ex30
 
 ## Setup
 
+⚡ **NEW in v1.1.0**: **Custom Configuration UI** - Complete setup directly in Homebridge Config UI X!
+
+### Method 1: Custom Configuration UI (Recommended)
+
+1. **Install the plugin** via Homebridge Config UI X or command line
+2. **Go to Plugin Settings** in Homebridge Config UI X
+3. **Click "Settings"** on the Volvo EX30 plugin
+4. **Use the custom interface** to:
+   - Enter your API credentials
+   - Complete OAuth authorization with one-click
+   - Configure all settings visually
+   - Save directly to Homebridge
+
+The custom UI handles the entire OAuth flow in your browser - no SSH or command line needed!
+
+### Method 2: Manual Setup
+
 ### 1. Volvo Developer Portal Setup
 
 1. Go to [Volvo Developer Portal](https://developer.volvocars.com)
