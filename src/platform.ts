@@ -14,10 +14,26 @@ export class VolvoEX30Platform implements DynamicPlatformPlugin {
     public readonly config: PlatformConfig & VolvoEX30Config,
     public readonly api: API,
   ) {
-    this.log.debug('Finished initializing platform:', this.config.name);
+    this.log.info('Initializing VolvoEX30 platform...');
 
     if (!this.config.vin || !this.config.clientId || !this.config.clientSecret || !this.config.vccApiKey) {
       this.log.error('Missing required configuration: vin, clientId, clientSecret, or vccApiKey');
+      this.log.error('Please check your Homebridge configuration and ensure all required fields are provided.');
+      return;
+    }
+
+    if (!this.config.refreshToken) {
+      this.log.error('❌ Missing refreshToken in configuration!');
+      this.log.error('');
+      this.log.error('🔧 To get your refresh token, run the OAuth setup:');
+      this.log.error('   1. SSH into your Raspberry Pi');
+      this.log.error('   2. cd /usr/local/lib/node_modules/homebridge-volvo-ex30');
+      this.log.error('   3. npm run oauth-setup');
+      this.log.error('   4. Follow the prompts to get your refresh token');
+      this.log.error('   5. Add the refresh token to your Homebridge config');
+      this.log.error('');
+      this.log.error('📖 For detailed setup instructions, see:');
+      this.log.error('   https://github.com/jcfield-boop/homebridge-volvoEX30#setup');
       return;
     }
 
@@ -31,6 +47,15 @@ export class VolvoEX30Platform implements DynamicPlatformPlugin {
       this.config.vccApiKey,
       this.log,
     );
+
+    // Set the refresh token if provided
+    if (this.config.refreshToken) {
+      this.apiClient.setTokens({
+        accessToken: '', // Will be refreshed automatically
+        refreshToken: this.config.refreshToken,
+        expiresAt: Date.now(), // Force immediate refresh
+      });
+    }
 
     this.api.on('didFinishLaunching', () => {
       this.log.debug('Executed didFinishLaunching callback');
