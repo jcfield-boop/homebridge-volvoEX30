@@ -1,17 +1,129 @@
 const { HomebridgePluginUiServer, RequestError } = require('@homebridge/plugin-ui-utils');
 const axios = require('axios');
+const http = require('http');
 
 class VolvoEX30PluginUiServer extends HomebridgePluginUiServer {
     constructor() {
         super();
 
+        // OAuth callback server
+        this.oauthServer = null;
+        this.oauthCallbackData = null;
+
         // Handle OAuth token exchange
         this.onRequest('/oauth/token', this.handleTokenExchange.bind(this));
+        
+        // Handle OAuth callback server start/stop
+        this.onRequest('/oauth/start-server', this.startOAuthServer.bind(this));
+        this.onRequest('/oauth/stop-server', this.stopOAuthServer.bind(this));
+        this.onRequest('/oauth/check-callback', this.checkOAuthCallback.bind(this));
         
         // Handle configuration save/load
         this.onRequest('/config', this.handleConfig.bind(this));
 
         this.ready();
+    }
+
+    async startOAuthServer(request, response) {
+        if (request.method !== 'POST') {
+            throw new RequestError('Method not allowed', { status: 405 });
+        }
+
+        // Stop existing server if running
+        if (this.oauthServer) {
+            this.oauthServer.close();
+        }
+
+        this.oauthCallbackData = null;
+
+        return new Promise((resolve, reject) => {
+            // Create a simple HTTP server to catch the OAuth callback
+            this.oauthServer = http.createServer((req, res) => {
+                const url = new URL(req.url, 'http://localhost:3000');
+                
+                if (url.pathname === '/callback') {
+                    const code = url.searchParams.get('code');
+                    const state = url.searchParams.get('state');
+                    const error = url.searchParams.get('error');
+
+                    if (error) {
+                        this.oauthCallbackData = { error: error, error_description: url.searchParams.get('error_description') };
+                    } else if (code) {
+                        this.oauthCallbackData = { code, state };
+                    }
+
+                    // Send a success page
+                    res.writeHead(200, { 'Content-Type': 'text/html' });
+                    res.end(`
+                        <!DOCTYPE html>
+                        <html>
+                        <head>
+                            <title>Volvo EX30 OAuth - Authorization Complete</title>
+                            <style>
+                                body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; text-align: center; margin: 50px; }
+                                .success { color: #28a745; }
+                                .error { color: #dc3545; }
+                            </style>
+                        </head>
+                        <body>
+                            ${error ? `
+                                <h1 class="error">❌ Authorization Failed</h1>
+                                <p>Error: ${error}</p>
+                                <p>${url.searchParams.get('error_description') || ''}</p>
+                            ` : `
+                                <h1 class="success">✅ Authorization Complete!</h1>
+                                <p>You can now close this window and return to the Homebridge configuration.</p>
+                                <p>The authorization code has been captured automatically.</p>
+                            `}
+                            <hr>
+                            <p><small>Volvo EX30 Homebridge Plugin</small></p>
+                        </body>
+                        </html>
+                    `);
+
+                    // Notify the UI that callback was received
+                    this.pushEvent('oauth-callback-received', this.oauthCallbackData);
+                } else {
+                    res.writeHead(404, { 'Content-Type': 'text/plain' });
+                    res.end('Not Found');
+                }
+            });
+
+            this.oauthServer.listen(3000, 'localhost', (err) => {
+                if (err) {
+                    reject(new RequestError(`Failed to start OAuth server: ${err.message}`, { status: 500 }));
+                } else {
+                    resolve();
+                    response.send({ success: true, message: 'OAuth callback server started on port 3000' });
+                }
+            });
+
+            // Auto-stop server after 10 minutes
+            setTimeout(() => {
+                if (this.oauthServer) {
+                    this.oauthServer.close();
+                    this.oauthServer = null;
+                }
+            }, 10 * 60 * 1000);
+        });
+    }
+
+    async stopOAuthServer(request, response) {
+        if (this.oauthServer) {
+            this.oauthServer.close();
+            this.oauthServer = null;
+        }
+        response.send({ success: true, message: 'OAuth callback server stopped' });
+    }
+
+    async checkOAuthCallback(request, response) {
+        if (this.oauthCallbackData) {
+            const data = this.oauthCallbackData;
+            this.oauthCallbackData = null; // Clear after reading
+            response.send(data);
+        } else {
+            response.send({ waiting: true });
+        }
     }
 
     async handleTokenExchange(request, response) {

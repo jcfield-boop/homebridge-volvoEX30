@@ -145,31 +145,33 @@
 
                             <!-- Step 2: Browser Authorization -->
                             <div class="step" id="step2" style="display: none;">
-                                <h6>Step 2: Browser Authorization</h6>
-                                <p>Open this URL in your browser and sign in with your Volvo ID:</p>
+                                <h6>Step 2: Complete Authorization</h6>
+                                <div class="alert alert-info">
+                                    <strong>🚀 Automatic OAuth Flow!</strong> The callback server is now running on localhost:3000
+                                </div>
+                                
+                                <p><strong>Open this URL in your browser and sign in with your Volvo ID:</strong></p>
                                 <div class="auth-url" id="authUrl"></div>
                                 <div class="mt-2">
                                     <button type="button" class="btn btn-secondary btn-sm" id="copyUrl">📋 Copy URL</button>
                                     <button type="button" class="btn btn-primary btn-sm" id="openUrl">🌐 Open in Browser</button>
                                 </div>
+                                
+                                <div class="mt-4">
+                                    <div class="alert alert-success">
+                                        <strong>✨ What happens next:</strong>
+                                        <ol class="mb-0 mt-2">
+                                            <li>Click the URL above to authorize with Volvo</li>
+                                            <li>Sign in with your Volvo ID account</li>
+                                            <li>Grant permission to the application</li>
+                                            <li><strong>The rest happens automatically!</strong> ⚡</li>
+                                        </ol>
+                                    </div>
+                                </div>
+                                
                                 <div class="mt-3">
-                                    <p><strong>After authorization, you'll be redirected to a URL like:</strong></p>
-                                    <code>http://localhost:3000/callback?code=ABC123DEF456&state=xyz</code>
-                                    <p class="mt-2">Copy the <strong>code</strong> parameter value and paste it below:</p>
-                                </div>
-                            </div>
-
-                            <!-- Step 3: Enter Code -->
-                            <div class="step" id="step3" style="display: none;">
-                                <h6>Step 3: Enter Authorization Code</h6>
-                                <div class="form-group">
-                                    <label for="authCode">Authorization Code</label>
-                                    <input type="text" class="form-control" id="authCode" placeholder="Paste the code from the redirect URL">
-                                </div>
-                                <button type="button" class="btn btn-success" id="exchangeToken">🔄 Get Refresh Token</button>
-                                <div class="loading mt-2">
                                     <div class="spinner-border spinner-border-sm" role="status"></div>
-                                    <span class="ml-2">Exchanging code for tokens...</span>
+                                    <span class="ml-2">Waiting for authorization... (this page will update automatically)</span>
                                 </div>
                             </div>
 

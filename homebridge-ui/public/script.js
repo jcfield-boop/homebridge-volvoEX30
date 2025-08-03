@@ -45,6 +45,15 @@ class VolvoEX30ConfigUI {
         }
 
         try {
+            // Start the OAuth callback server
+            const serverResponse = await fetch('/oauth/start-server', {
+                method: 'POST'
+            });
+
+            if (!serverResponse.ok) {
+                throw new Error('Failed to start OAuth callback server');
+            }
+
             // Generate OAuth URL
             const redirectUri = 'http://localhost:3000/callback';
             this.oauthState = this.generateState();
@@ -64,10 +73,67 @@ class VolvoEX30ConfigUI {
             this.authUrl = authUrl;
             
             this.showStep(2);
-            this.showStep(3); // Show both steps 2 and 3
+            
+            // Start polling for callback
+            this.startCallbackPolling();
             
         } catch (error) {
-            this.showError(`Failed to generate OAuth URL: ${error.message}`);
+            this.showError(`Failed to start OAuth: ${error.message}`);
+        }
+    }
+
+    async startCallbackPolling() {
+        // Poll every 2 seconds for OAuth callback
+        this.callbackInterval = setInterval(async () => {
+            try {
+                const response = await fetch('/oauth/check-callback');
+                const data = await response.json();
+                
+                if (data.error) {
+                    clearInterval(this.callbackInterval);
+                    this.showError(`OAuth authorization failed: ${data.error} - ${data.error_description || ''}`);
+                } else if (data.code) {
+                    clearInterval(this.callbackInterval);
+                    // Automatically proceed with token exchange
+                    this.autoExchangeToken(data.code);
+                }
+            } catch (error) {
+                console.warn('Error polling for callback:', error);
+            }
+        }, 2000);
+
+        // Stop polling after 10 minutes
+        setTimeout(() => {
+            if (this.callbackInterval) {
+                clearInterval(this.callbackInterval);
+                this.showError('OAuth authorization timed out. Please try again.');
+            }
+        }, 10 * 60 * 1000);
+    }
+
+    async autoExchangeToken(code) {
+        const clientId = $('#clientId').val().trim();
+        const clientSecret = $('#clientSecret').val().trim();
+        const region = $('#region').val();
+
+        try {
+            $('#step2').removeClass('active').addClass('complete');
+            this.showStep(4); // Skip step 3, go directly to success
+            
+            $('.loading').show();
+            const response = await this.makeTokenRequest(code, clientId, clientSecret, region);
+            
+            if (response.refresh_token) {
+                $('#refreshToken').val(response.refresh_token);
+                $('#tokenDisplay').text(response.refresh_token);
+                $('.loading').hide();
+            } else {
+                throw new Error('No refresh token received');
+            }
+            
+        } catch (error) {
+            $('.loading').hide();
+            this.showError(`Token exchange failed: ${error.message}`);
         }
     }
 

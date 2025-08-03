@@ -5,6 +5,37 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2025-08-03
+
+### Added
+- **Automatic OAuth Callback Server**: Runs temporary localhost:3000 server during OAuth setup
+- **Zero-Click Token Capture**: Automatically captures authorization code without user intervention
+- **Real-time OAuth Status**: Live polling and automatic UI updates during authorization
+- **Beautiful Success Page**: Custom success page displayed after authorization
+- **Smart Error Handling**: Automatic detection and display of OAuth errors
+- **Auto-timeout Protection**: OAuth server automatically stops after 10 minutes
+
+### Improved
+- **User Experience**: Completely eliminates manual code copying and pasting
+- **Setup Flow**: Streamlined from 4 steps to 2 steps with automation
+- **Error Prevention**: No more "paste the wrong code" or "where do I find the URL" issues
+- **Mobile Friendly**: Works seamlessly with phone/tablet authorization
+- **Professional Feel**: Enterprise-grade OAuth flow experience
+
+### Technical Features
+- **Callback Server**: HTTP server on localhost:3000 for OAuth redirects
+- **Event-Driven Updates**: Real-time UI updates via server-sent events
+- **Polling Mechanism**: Checks for callback every 2 seconds
+- **Resource Management**: Automatic cleanup of servers and intervals
+- **Error Recovery**: Graceful handling of server conflicts and timeouts
+
+### User Flow (New)
+1. **Click "Start OAuth"** → Server starts automatically
+2. **Click authorization URL** → Authorize in browser
+3. **Done!** → Token appears automatically, no manual steps
+
+This release transforms the OAuth experience from a technical process requiring manual code extraction to a completely automated, professional-grade authorization flow.
+
 ## [1.1.1] - 2025-08-03
 
 ### Fixed
