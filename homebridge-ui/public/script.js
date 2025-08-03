@@ -60,11 +60,12 @@ class VolvoEX30ConfigUI {
             this.oauthState = this.generateState();
             
             const baseUrl = region === 'na' ? 'https://volvoid.volvocars.com' : 'https://volvoid.eu.volvocars.com';
+            console.log('Region:', region, 'Base URL:', baseUrl); // Debug log
             const params = new URLSearchParams({
                 response_type: 'code',
                 client_id: clientId,
                 redirect_uri: redirectUri,
-                scope: 'openid profile care:read vehicle:read energy:read connected_vehicle:read extended_vehicle:read',
+                scope: 'openid energy:state:read energy:capability:read',
                 state: this.oauthState
             });
 
