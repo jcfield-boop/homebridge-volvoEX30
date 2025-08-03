@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.1] - 2025-08-03
+
+### Fixed
+- **Changelog Detection**: Added proper package.json metadata for Homebridge Config UI X
+- **Repository Links**: Added repository, bugs, and homepage URLs
+- **File Manifest**: Explicitly included CHANGELOG.md in published package files
+- **Metadata Compliance**: Enhanced package.json for better npm and Homebridge integration
+
 ## [1.1.0] - 2025-08-03
 
 ### Added
