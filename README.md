@@ -42,21 +42,54 @@ npm install -g homebridge-volvo-ex30
 
 ### 2. OAuth Authentication
 
-Run the OAuth setup helper to obtain your refresh token:
+**For Raspberry Pi Users (Most Common Setup):**
+
+1. **SSH into your Raspberry Pi**:
+   ```bash
+   ssh pi@your-raspberry-pi-ip
+   ```
+
+2. **Navigate to the plugin directory**:
+   ```bash
+   cd /usr/local/lib/node_modules/homebridge-volvo-ex30
+   ```
+
+3. **Run the OAuth setup**:
+   ```bash
+   npm run oauth-setup
+   ```
+
+4. **Follow the interactive prompts**:
+   - Enter your **Client ID** from Volvo Developer Portal
+   - Enter your **Client Secret** from Volvo Developer Portal  
+   - Enter your **region** (`eu` for Europe/Middle East/Africa, `na` for North America/Latin America)
+
+5. **Complete browser authorization**:
+   - The setup will display an authorization URL
+   - **Copy this URL** and open it in your browser (on your computer/phone)
+   - **Sign in** with your Volvo ID account
+   - **Authorize** the application
+   - You'll be redirected to `http://localhost:3000/callback?code=ABC123&state=xyz`
+   - **Copy the `code` parameter** from the URL (e.g., `ABC123`)
+
+6. **Enter the authorization code**:
+   - Return to your SSH session
+   - **Paste the authorization code** when prompted
+   - The setup will exchange it for a refresh token
+
+7. **Save the refresh token**:
+   - The setup will display your refresh token
+   - **Copy this token** - you'll need it for your Homebridge configuration
+
+**For Other Installations:**
 
 ```bash
+# Navigate to your plugin installation directory
 cd /path/to/homebridge-volvo-ex30
 npm run oauth-setup
 ```
 
-Follow the prompts to:
-1. Enter your Client ID, Client Secret, and region
-2. Open the authorization URL in your browser
-3. Sign in with your Volvo ID account
-4. Copy the authorization code from the redirect URL
-5. Enter the code to complete the setup
-
-The setup will provide you with a refresh token to use in your configuration.
+⚠️ **Important**: Keep your refresh token secure and do not share it. It provides access to your vehicle data.
 
 ### 3. Configuration
 
@@ -121,6 +154,32 @@ The plugin includes:
 - Error handling and retry logic
 
 ## Troubleshooting
+
+### OAuth Setup Issues
+
+**Error: "Missing refreshToken in configuration"**
+- This is expected on first setup
+- Follow the step-by-step OAuth setup instructions above
+- Make sure to add the refresh token to your Homebridge config after getting it
+
+**Error: "No tokens available. Please complete OAuth flow first."**
+- You're missing the `refreshToken` field in your configuration
+- Run `npm run oauth-setup` in the plugin directory
+- Copy the refresh token to your Homebridge config
+
+**OAuth setup command not found:**
+```bash
+# Make sure you're in the right directory
+cd /usr/local/lib/node_modules/homebridge-volvo-ex30
+# Or find your global npm modules
+npm list -g --depth=0 | grep homebridge-volvo-ex30
+```
+
+**Browser authorization not working:**
+- Make sure you copy the **entire URL** from the terminal
+- Open it in any browser (computer, phone, tablet)
+- The redirect URL will show an error page - that's normal
+- Just copy the `code=` parameter from the URL bar
 
 ### Authentication Issues
 
