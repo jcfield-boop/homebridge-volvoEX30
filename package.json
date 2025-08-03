@@ -1,0 +1,45 @@
+{
+  "name": "homebridge-volvo-ex30",
+  "version": "1.0.0",
+  "description": "Homebridge plugin for Volvo EX30 integration using official Volvo APIs",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc -w",
+    "dev": "npm run build && npm run watch",
+    "clean": "rm -rf dist",
+    "lint": "eslint src/**/*.ts",
+    "typecheck": "tsc --noEmit",
+    "oauth-setup": "npm run build && node dist/auth/oauth-setup.js"
+  },
+  "keywords": [
+    "homebridge",
+    "homebridge-plugin",
+    "volvo",
+    "ex30",
+    "homekit",
+    "smart-car"
+  ],
+  "author": "James Field",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0",
+    "homebridge": ">=1.6.0"
+  },
+  "dependencies": {
+    "axios": "^1.6.0",
+    "node-cache": "^5.1.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "eslint": "^8.0.0",
+    "homebridge": "^1.6.0",
+    "typescript": "^5.0.0"
+  },
+  "peerDependencies": {
+    "homebridge": ">=1.6.0"
+  }
+}

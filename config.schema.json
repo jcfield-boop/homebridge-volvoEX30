@@ -1,0 +1,118 @@
+{
+  "pluginAlias": "VolvoEX30",
+  "pluginType": "platform",
+  "singular": false,
+  "schema": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "title": "Platform Name",
+        "type": "string",
+        "default": "Volvo EX30",
+        "required": true
+      },
+      "vin": {
+        "title": "Vehicle Identification Number (VIN)",
+        "type": "string",
+        "required": true,
+        "description": "17-character VIN of your Volvo EX30"
+      },
+      "clientId": {
+        "title": "Volvo API Client ID",
+        "type": "string",
+        "required": true,
+        "description": "Client ID from Volvo Developer Portal"
+      },
+      "clientSecret": {
+        "title": "Volvo API Client Secret",
+        "type": "string",
+        "required": true,
+        "description": "Client Secret from Volvo Developer Portal"
+      },
+      "vccApiKey": {
+        "title": "VCC API Key",
+        "type": "string",
+        "required": true,
+        "description": "Primary or Secondary VCC API Key from Volvo Developer Portal"
+      },
+      "refreshToken": {
+        "title": "Refresh Token",
+        "type": "string",
+        "required": false,
+        "description": "OAuth refresh token (will be obtained automatically)"
+      },
+      "region": {
+        "title": "Region",
+        "type": "string",
+        "default": "eu",
+        "enum": ["eu", "na"],
+        "enumNames": ["Europe/Middle East/Africa", "North America/Latin America"],
+        "description": "Your vehicle's region"
+      },
+      "pollingInterval": {
+        "title": "Polling Interval (minutes)",
+        "type": "integer",
+        "default": 5,
+        "minimum": 1,
+        "maximum": 60,
+        "description": "How often to check vehicle status (respects API rate limits)"
+      },
+      "enableBattery": {
+        "title": "Enable Battery Service",
+        "type": "boolean",
+        "default": true,
+        "description": "Show battery level and charging status"
+      },
+      "enableClimate": {
+        "title": "Enable Climate Service",
+        "type": "boolean",
+        "default": true,
+        "description": "Show climate control (requires Connected Vehicle API)"
+      },
+      "enableLocks": {
+        "title": "Enable Lock Service",
+        "type": "boolean",
+        "default": true,
+        "description": "Show door lock status and control (requires Connected Vehicle API)"
+      },
+      "enableDoors": {
+        "title": "Enable Door Sensors",
+        "type": "boolean",
+        "default": true,
+        "description": "Show individual door and window status (requires Extended Vehicle API)"
+      }
+    }
+  },
+  "layout": [
+    {
+      "type": "fieldset",
+      "title": "Vehicle Configuration",
+      "items": [
+        "name",
+        "vin",
+        "region"
+      ]
+    },
+    {
+      "type": "fieldset",
+      "title": "Volvo API Credentials",
+      "items": [
+        "clientId",
+        "clientSecret",
+        "vccApiKey",
+        "refreshToken"
+      ]
+    },
+    {
+      "type": "fieldset",
+      "title": "Feature Settings",
+      "items": [
+        "pollingInterval",
+        "enableBattery",
+        "enableClimate",
+        "enableLocks",
+        "enableDoors"
+      ]
+    }
+  ]
+}
