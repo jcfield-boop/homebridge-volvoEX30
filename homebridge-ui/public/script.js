@@ -14,6 +14,7 @@ class VolvoEX30ConfigUI {
         $('#startOAuth').on('click', () => this.startOAuth());
         $('#copyUrl').on('click', () => this.copyAuthUrl());
         $('#openUrl').on('click', () => this.openAuthUrl());
+        $('#gotCode').on('click', () => this.showStep(3));
         $('#exchangeToken').on('click', () => this.exchangeToken());
         $('#saveConfig').on('click', () => this.saveConfiguration());
         $('#loadConfig').on('click', () => this.loadCurrentConfig());
@@ -54,8 +55,8 @@ class VolvoEX30ConfigUI {
                 throw new Error('Failed to start OAuth callback server');
             }
 
-            // Generate OAuth URL
-            const redirectUri = 'http://localhost:3000/callback';
+            // Use GitHub repository as redirect URI
+            const redirectUri = 'https://github.com/jcfield-boop/homebridge-volvoEX30';
             this.oauthState = this.generateState();
             
             const baseUrl = region === 'na' ? 'https://volvoid.volvocars.com' : 'https://volvoid.eu.volvocars.com';
@@ -73,9 +74,6 @@ class VolvoEX30ConfigUI {
             this.authUrl = authUrl;
             
             this.showStep(2);
-            
-            // Start polling for callback
-            this.startCallbackPolling();
             
         } catch (error) {
             this.showError(`Failed to start OAuth: ${error.message}`);

@@ -1,6 +1,6 @@
 {
   "name": "homebridge-volvo-ex30",
-  "version": "1.2.0",
+  "version": "1.2.2",
   "description": "Homebridge plugin for Volvo EX30 integration using official Volvo APIs",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

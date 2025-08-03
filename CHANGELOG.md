@@ -5,6 +5,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.2] - 2025-08-03
+
+### Fixed
+- **OAuth Redirect URI**: Changed from localhost to GitHub repository URL to comply with Volvo API requirements
+- **Manual Code Entry**: Restored manual code entry flow since Volvo doesn't allow localhost redirects
+- **Clear Instructions**: Enhanced UI with step-by-step guidance for code extraction from browser address bar
+- **Production Compliance**: Updated redirect URI to meet Volvo Developer Portal publishing requirements
+
+### Changed
+- **Redirect URI**: Now uses `https://github.com/jcfield-boop/homebridge-volvoEX30` instead of localhost
+- **User Flow**: Back to 3-step process with clear manual code extraction instructions
+- **Error Handling**: Better guidance on what to expect after authorization (error page is normal)
+
+### Technical
+- Removed automatic callback polling (not compatible with non-localhost redirects)
+- Added "I Have the Code" button for better user flow control
+- Enhanced error page explanation and code extraction guidance
+
+## [1.2.1] - 2025-08-03
+
+### Added
+- **RELEASE_NOTES.md**: Added dedicated release notes file for Homebridge Config UI X
+- **GitHub Release Notes**: Enhanced GitHub release with comprehensive release information
+- **Release Documentation**: Better formatted release notes for plugin managers
+
+### Improved
+- **Homebridge Integration**: Better compatibility with Homebridge Config UI X release note display
+- **Documentation Structure**: Clearer separation between changelog and release notes
+
 ## [1.2.0] - 2025-08-03
 
 ### Added
