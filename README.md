@@ -8,6 +8,8 @@ A Homebridge plugin that integrates your Volvo EX30 with Apple HomeKit using the
 - **Real-time Updates**: Automatically polls your vehicle for status updates
 - **Rate Limiting**: Respects Volvo API rate limits (100 requests/minute)
 - **Secure Authentication**: Uses OAuth2 with Volvo ID for secure API access
+- **Legacy API Support**: Compatible with both modern and legacy Volvo API endpoints
+- **Flexible OAuth**: Supports custom redirect URIs including GitHub repository URLs
 
 ## Requirements
 
@@ -49,9 +51,18 @@ The custom UI handles the entire OAuth flow in your browser - no SSH or command 
 1. Go to [Volvo Developer Portal](https://developer.volvocars.com)
 2. Create an account and sign in
 3. Create a new application:
-   - **Name**: Choose any name (e.g., "Homebridge EX30")
+   - **Name**: Choose any name (e.g., "Homebridge EX30")  
    - **Description**: "Homebridge integration for EX30"
-   - **Redirect URIs**: Add `http://localhost:3000/callback`
+   - **Redirect URIs**: Add your desired redirect URI (e.g., `http://localhost:3000/callback` or your GitHub repository URL)
+   - **Scopes**: Select the following scopes for full functionality:
+     - `conve:fuel_status` - Battery and charging information
+     - `conve:climatization_start_stop` - Climate control
+     - `conve:unlock` / `conve:lock` / `conve:lock_status` - Door locks
+     - `openid` - Authentication
+     - `energy:state:read` / `energy:capability:read` - Energy data
+     - `conve:battery_charge_level` - Battery level
+     - `conve:diagnostics_engine_status` - Vehicle diagnostics
+     - `conve:warnings` - Vehicle warnings
 4. Note down your:
    - **Client ID**
    - **Client Secret** 
@@ -80,13 +91,14 @@ The custom UI handles the entire OAuth flow in your browser - no SSH or command 
    - Enter your **Client ID** from Volvo Developer Portal
    - Enter your **Client Secret** from Volvo Developer Portal  
    - Enter your **region** (`eu` for Europe/Middle East/Africa, `na` for North America/Latin America)
+   - Enter your **Redirect URI** (default: `http://localhost:3000/callback`, or your custom URI from the developer portal)
 
 5. **Complete browser authorization**:
    - The setup will display an authorization URL
    - **Copy this URL** and open it in your browser (on your computer/phone)
    - **Sign in** with your Volvo ID account
    - **Authorize** the application
-   - You'll be redirected to `http://localhost:3000/callback?code=ABC123&state=xyz`
+   - You'll be redirected to your configured redirect URI with a code parameter (e.g., `?code=ABC123&state=xyz`)
    - **Copy the `code` parameter** from the URL (e.g., `ABC123`)
 
 6. **Enter the authorization code**:

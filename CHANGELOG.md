@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.4] - 2025-08-04
+
+### Added
+- **Legacy OAuth Scope Support**: Added compatibility with legacy Connected Vehicle API scopes
+- **Flexible Redirect URIs**: Support for custom redirect URIs including GitHub repository URLs
+- **API Fallback System**: Graceful fallback from modern Energy API v2 to legacy Connected Vehicle API v1
+
+### Fixed
+- **OAuth Scope Compatibility**: Updated scopes to match `conve:*` format for approved Volvo applications
+- **Legacy API Integration**: Map legacy API responses to modern format for seamless compatibility
+- **Custom Redirect Handling**: Enhanced OAuth setup to handle non-localhost redirect URIs
+
+### Changed
+- **OAuth Scopes**: Updated from modern format to legacy format for broader compatibility
+- **API Endpoints**: Use Connected Vehicle API v1 endpoints with fallback capability
+- **Setup Process**: OAuth setup now prompts for custom redirect URIs
+
+### Technical
+- Legacy API response mapping to maintain interface compatibility
+- Enhanced error handling for unsupported legacy API features
+- Backward compatibility maintained for existing configurations
+
 ## [1.2.2] - 2025-08-03
 
 ### Fixed
