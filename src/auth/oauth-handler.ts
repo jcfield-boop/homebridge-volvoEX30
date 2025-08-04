@@ -29,7 +29,7 @@ export class OAuthHandler {
       response_type: 'code',
       client_id: this.config.clientId,
       redirect_uri: redirectUri,
-      scope: 'openid profile care:read vehicle:read energy:read connected_vehicle:read extended_vehicle:read',
+      scope: 'conve:fuel_status conve:climatization_start_stop conve:unlock conve:lock_status conve:lock openid energy:state:read energy:capability:read conve:battery_charge_level conve:diagnostics_engine_status conve:warnings',
     });
 
     if (state) {

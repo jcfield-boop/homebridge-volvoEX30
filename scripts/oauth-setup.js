@@ -38,7 +38,7 @@ class OAuthHandler {
       response_type: 'code',
       client_id: this.config.clientId,
       redirect_uri: redirectUri,
-      scope: 'openid profile care:read vehicle:read energy:read connected_vehicle:read extended_vehicle:read',
+      scope: 'conve:fuel_status conve:climatization_start_stop conve:unlock conve:lock_status conve:lock openid energy:state:read energy:capability:read conve:battery_charge_level conve:diagnostics_engine_status conve:warnings',
     });
 
     if (state) {
@@ -94,7 +94,7 @@ async function setupOAuth() {
       process.exit(1);
     }
 
-    const redirectUri = 'http://localhost:3000/callback';
+    const redirectUri = await question('Enter your OAuth Redirect URI [http://localhost:3000/callback]: ') || 'http://localhost:3000/callback';
     
     const oauthHandler = new OAuthHandler(
       {
@@ -116,10 +116,17 @@ async function setupOAuth() {
     console.log('\n📱 Authorization Required');
     console.log('Please open this URL in your browser and authorize the application:');
     console.log(`\n${authUrl}\n`);
-    console.log('After authorization, you will be redirected to a localhost URL.');
-    console.log('Copy the "code" parameter from the redirected URL.');
-    console.log('Example: http://localhost:3000/callback?code=ABC123&state=xyz');
-    console.log('Copy "ABC123" from the code parameter.\n');
+    if (redirectUri.includes('localhost')) {
+      console.log('After authorization, you will be redirected to a localhost URL.');
+      console.log('Copy the "code" parameter from the redirected URL.');
+      console.log('Example: http://localhost:3000/callback?code=ABC123&state=xyz');
+      console.log('Copy "ABC123" from the code parameter.\n');
+    } else {
+      console.log('After authorization, you will be redirected to your configured redirect URI.');
+      console.log('Copy the "code" parameter from the redirected URL.');
+      console.log(`Example: ${redirectUri}?code=ABC123&state=xyz`);
+      console.log('Copy "ABC123" from the code parameter.\n');
+    }
     
     const authCode = await question('Enter the authorization code from the redirect URL: ');
     
