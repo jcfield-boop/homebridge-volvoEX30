@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.15] - 2025-08-11
+
+### Added
+- Detailed debugging for JSON parsing errors in OAuth flow
+- Raw server response logging to identify response format issues
+- Content-type header logging to debug non-JSON responses
+- Enhanced error handling for server responses that aren't valid JSON
+
+### Fixed
+- Better error messages when server returns HTML instead of JSON
+- Improved debugging for "The string did not match the expected pattern" errors
+
 ## [1.2.14] - 2025-08-11
 
 ### Changed
