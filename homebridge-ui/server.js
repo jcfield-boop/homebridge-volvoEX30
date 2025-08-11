@@ -42,6 +42,20 @@ class VolvoEX30PluginUiServer extends HomebridgePluginUiServer {
             throw new RequestError('Missing required parameters: clientId, clientSecret, region', { status: 400 });
         }
 
+        // Validate region parameter
+        if (!['eu', 'na'].includes(region)) {
+            throw new RequestError('Invalid region. Must be "eu" or "na"', { status: 400 });
+        }
+
+        // Basic validation for clientId and clientSecret format
+        if (typeof clientId !== 'string' || clientId.length < 5) {
+            throw new RequestError('Invalid clientId format', { status: 400 });
+        }
+        
+        if (typeof clientSecret !== 'string' || clientSecret.length < 5) {
+            throw new RequestError('Invalid clientSecret format', { status: 400 });
+        }
+
         try {
             // Generate session ID
             const sessionId = crypto.randomBytes(16).toString('hex');
@@ -87,6 +101,7 @@ class VolvoEX30PluginUiServer extends HomebridgePluginUiServer {
             });
 
         } catch (error) {
+            console.error('OAuth authorization request error:', error);
             throw new RequestError(`Authorization request failed: ${error.message}`, { status: 500 });
         }
     }
@@ -228,6 +243,7 @@ class VolvoEX30PluginUiServer extends HomebridgePluginUiServer {
 
         try {
             const baseUrl = region === 'na' ? 'https://volvoid.volvocars.com' : 'https://volvoid.eu.volvocars.com';
+            const redirectUri = 'https://github.com/jcfield-boop/homebridge-volvoEX30';
             
             const params = new URLSearchParams({
                 grant_type: 'authorization_code',
@@ -270,12 +286,21 @@ class VolvoEX30PluginUiServer extends HomebridgePluginUiServer {
     }
 
     generateCodeVerifier() {
-        return crypto.randomBytes(32).toString('base64url');
+        // Generate base64url encoded string (compatible with older Node.js versions)
+        return crypto.randomBytes(32)
+            .toString('base64')
+            .replace(/\+/g, '-')
+            .replace(/\//g, '_')
+            .replace(/=/g, '');
     }
 
     generateCodeChallenge(codeVerifier) {
+        // Generate SHA256 hash and encode as base64url (compatible with older Node.js versions)
         const hash = crypto.createHash('sha256').update(codeVerifier).digest();
-        return hash.toString('base64url');
+        return hash.toString('base64')
+            .replace(/\+/g, '-')
+            .replace(/\//g, '_')
+            .replace(/=/g, '');
     }
 
 
