@@ -1,7 +1,22 @@
-const { HomebridgePluginUiServer, RequestError } = require('@homebridge/plugin-ui-utils');
-const axios = require('axios');
-const http = require('http');
-const crypto = require('crypto');
+console.log('🔍 Starting server.js execution...');
+
+let HomebridgePluginUiServer, RequestError, axios, http, crypto;
+
+try {
+    ({ HomebridgePluginUiServer, RequestError } = require('@homebridge/plugin-ui-utils'));
+    console.log('✅ Successfully loaded @homebridge/plugin-ui-utils');
+    
+    axios = require('axios');
+    console.log('✅ Successfully loaded axios');
+    
+    http = require('http');
+    crypto = require('crypto');
+    console.log('✅ Successfully loaded built-in modules');
+
+} catch (error) {
+    console.error('💥 Failed to load dependencies:', error);
+    throw error;
+}
 
 class VolvoEX30PluginUiServer extends HomebridgePluginUiServer {
     constructor() {

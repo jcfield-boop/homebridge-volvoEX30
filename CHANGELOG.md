@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.18] - 2025-08-11
+
+### Fixed
+- **CRITICAL**: Added missing `displayName` field in package.json required for custom UI plugins
+- Custom UI server should now be loaded by Homebridge properly
+- Added funding metadata for better npm package information
+
+### Root Cause
+- Homebridge was not loading our custom UI server because package.json was missing required fields
+- This caused all OAuth requests to fall back to main Homebridge UI (returning HTML instead of JSON)
+
 ## [1.2.17] - 2025-08-11
 
 ### Added
