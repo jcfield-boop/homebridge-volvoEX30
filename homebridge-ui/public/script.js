@@ -41,24 +41,15 @@ class VolvoEX30ConfigUI {
         const clientSecret = $('#clientSecret').val().trim();
         const region = $('#region').val();
 
+        console.log('🚀 Starting OAuth with:', { clientId: clientId?.substring(0, 8) + '...', region });
+
         if (!clientId || !clientSecret) {
             this.showError('Please enter your Client ID and Client Secret first.');
             return;
         }
 
-        // Basic validation
-        if (clientId.length < 10) {
-            this.showError('Client ID appears to be too short. Please check your credentials.');
-            return;
-        }
-
-        if (clientSecret.length < 10) {
-            this.showError('Client Secret appears to be too short. Please check your credentials.');
-            return;
-        }
-
         try {
-            // Generate authorization URL server-side (following Volvo's pattern)
+            console.log('📡 Making authorization request to server...');
             const authResponse = await fetch('/oauth/authorize', {
                 method: 'POST',
                 headers: {
@@ -81,11 +72,18 @@ class VolvoEX30ConfigUI {
             this.oauthState = authData.state;
             this.authUrl = authData.authUrl;
             
+            console.log('✅ Authorization URL generated:', {
+                sessionId: this.sessionId,
+                state: this.oauthState,
+                authUrl: authData.authUrl.substring(0, 100) + '...'
+            });
+            
             $('#authUrl').text(authData.authUrl);
             
             this.showStep(2);
             
         } catch (error) {
+            console.error('❌ OAuth start failed:', error);
             this.showError(`Failed to start OAuth: ${error.message}`);
         }
     }
@@ -224,7 +222,12 @@ class VolvoEX30ConfigUI {
     }
 
     async makeTokenRequest(code, sessionId, state) {
-        // Use server-side token exchange with session-based PKCE (following Volvo's pattern)
+        console.log('🔄 Making token exchange request:', {
+            code: code?.substring(0, 16) + '...',
+            sessionId,
+            state
+        });
+
         const response = await fetch('/oauth/token', {
             method: 'POST',
             headers: {
@@ -237,12 +240,18 @@ class VolvoEX30ConfigUI {
             })
         });
 
+        console.log(`📡 Token exchange response status: ${response.status}`);
+
         if (!response.ok) {
             const error = await response.json();
+            console.error('❌ Token exchange error:', error);
             throw new Error(error.message || 'Token exchange failed');
         }
 
-        return await response.json();
+        const tokenData = await response.json();
+        console.log('✅ Token exchange successful:', Object.keys(tokenData));
+        
+        return tokenData;
     }
 
 

@@ -5,45 +5,24 @@ const crypto = require('crypto');
 
 class VolvoEX30PluginUiServer extends HomebridgePluginUiServer {
     constructor() {
-        try {
-            console.log('🚀 Initializing VolvoEX30PluginUiServer...');
-            super();
+        super();
 
-            // OAuth callback server
-            this.oauthServer = null;
-            this.oauthCallbackData = null;
-            
-            // OAuth session storage (following Volvo's pattern)
-            this.oauthSessions = new Map(); // sessionId -> { codeVerifier, state, clientId, clientSecret, region }
+        // OAuth callback server
+        this.oauthServer = null;
+        this.oauthCallbackData = null;
+        
+        // OAuth session storage
+        this.oauthSessions = new Map(); // sessionId -> { codeVerifier, state, clientId, clientSecret, region }
 
-            // Handle OAuth authorization URL generation (following Volvo's pattern)
-            this.onRequest('/oauth/authorize', this.handleAuthorizationRequest.bind(this));
-            
-            console.log('✅ VolvoEX30PluginUiServer initialized - OAuth endpoints registered');
-            
-            // Log all requests for debugging
-            this.onRequest('*', (request, response, next) => {
-                console.log(`📡 UI Server request: ${request.method} ${request.url}`);
-                if (next) next();
-            });
-            
-            // Handle OAuth token exchange
-            this.onRequest('/oauth/token', this.handleTokenExchange.bind(this));
-            
-            // Handle OAuth callback server start/stop
-            this.onRequest('/oauth/start-server', this.startOAuthServer.bind(this));
-            this.onRequest('/oauth/stop-server', this.stopOAuthServer.bind(this));
-            this.onRequest('/oauth/check-callback', this.checkOAuthCallback.bind(this));
-            
-            // Handle configuration save/load
-            this.onRequest('/config', this.handleConfig.bind(this));
+        // Handle OAuth endpoints
+        this.onRequest('/oauth/authorize', this.handleAuthorizationRequest.bind(this));
+        this.onRequest('/oauth/token', this.handleTokenExchange.bind(this));
+        this.onRequest('/oauth/start-server', this.startOAuthServer.bind(this));
+        this.onRequest('/oauth/stop-server', this.stopOAuthServer.bind(this));
+        this.onRequest('/oauth/check-callback', this.checkOAuthCallback.bind(this));
+        this.onRequest('/config', this.handleConfig.bind(this));
 
-            this.ready();
-            console.log('🎉 VolvoEX30PluginUiServer ready!');
-        } catch (error) {
-            console.error('💥 Error initializing VolvoEX30PluginUiServer:', error);
-            throw error;
-        }
+        this.ready();
     }
 
     async handleAuthorizationRequest(request, response) {
@@ -53,42 +32,18 @@ class VolvoEX30PluginUiServer extends HomebridgePluginUiServer {
 
         const { clientId, clientSecret, region } = request.body;
 
-        console.log('OAuth authorization request received:', {
-            clientId: clientId ? `${clientId.substring(0, 8)}...` : 'missing',
-            clientSecret: clientSecret ? `${clientSecret.substring(0, 8)}...` : 'missing',
-            region: region || 'missing'
-        });
-
         if (!clientId || !clientSecret || !region) {
-            throw new RequestError('Missing required parameters: clientId, clientSecret, region', { status: 400 });
-        }
-
-        // Validate region parameter
-        if (!['eu', 'na'].includes(region)) {
-            throw new RequestError('Invalid region. Must be "eu" or "na"', { status: 400 });
-        }
-
-        // Basic validation for clientId and clientSecret format
-        if (typeof clientId !== 'string' || clientId.length < 3) {
-            console.error('Invalid clientId:', typeof clientId, clientId?.length);
-            throw new RequestError('Invalid clientId format', { status: 400 });
-        }
-        
-        if (typeof clientSecret !== 'string' || clientSecret.length < 3) {
-            console.error('Invalid clientSecret:', typeof clientSecret, clientSecret?.length);
-            throw new RequestError('Invalid clientSecret format', { status: 400 });
+            throw new RequestError('Missing required parameters', { status: 400 });
         }
 
         try {
-            // Generate session ID
+            // Generate session ID and PKCE parameters
             const sessionId = crypto.randomBytes(16).toString('hex');
-            
-            // Generate PKCE parameters (following Volvo's approach)
             const codeVerifier = this.generateCodeVerifier();
             const codeChallenge = this.generateCodeChallenge(codeVerifier);
             const state = crypto.randomBytes(16).toString('hex');
             
-            // Store session data (like Volvo's session storage)
+            // Store session data
             this.oauthSessions.set(sessionId, {
                 codeVerifier,
                 state,
@@ -98,10 +53,12 @@ class VolvoEX30PluginUiServer extends HomebridgePluginUiServer {
                 createdAt: Date.now()
             });
 
-            // Clean up old sessions (older than 1 hour)
+            console.log(`🔑 Created OAuth session ${sessionId} with state ${state}`);
+
+            // Clean up old sessions
             this.cleanupOldSessions();
 
-            // Build authorization URL (matching Volvo's structure)
+            // Build authorization URL
             const baseUrl = region === 'na' ? 'https://volvoid.volvocars.com' : 'https://volvoid.eu.volvocars.com';
             const redirectUri = 'https://github.com/jcfield-boop/homebridge-volvoEX30';
             
@@ -124,8 +81,8 @@ class VolvoEX30PluginUiServer extends HomebridgePluginUiServer {
             });
 
         } catch (error) {
-            console.error('OAuth authorization request error:', error);
-            throw new RequestError(`Authorization request failed: ${error.message}`, { status: 500 });
+            console.error('❌ OAuth authorization error:', error.message);
+            throw new RequestError(`Authorization failed: ${error.message}`, { status: 500 });
         }
     }
 
@@ -246,27 +203,35 @@ class VolvoEX30PluginUiServer extends HomebridgePluginUiServer {
         }
 
         const { code, sessionId, state } = request.body;
+        console.log(`🔄 Token exchange request: sessionId=${sessionId}, state=${state}, code=${code?.substring(0, 16)}...`);
 
         if (!code || !sessionId || !state) {
             throw new RequestError('Missing required parameters: code, sessionId, state', { status: 400 });
         }
 
-        // Retrieve session data (following Volvo's pattern)
+        // Retrieve session data
         const session = this.oauthSessions.get(sessionId);
+        console.log(`📋 Session lookup: ${session ? 'found' : 'NOT FOUND'}`);
+        
         if (!session) {
+            console.log(`❌ Available sessions: ${Array.from(this.oauthSessions.keys())}`);
             throw new RequestError('Invalid or expired session', { status: 400 });
         }
 
-        // Verify state parameter (following Volvo's security pattern)
+        // Verify state parameter
+        console.log(`🔍 State verification: received=${state}, expected=${session.state}, match=${session.state === state}`);
         if (session.state !== state) {
             throw new RequestError('State parameter mismatch', { status: 400 });
         }
 
         const { codeVerifier, clientId, clientSecret, region } = session;
+        console.log(`🎫 Using session data: region=${region}, codeVerifier=${codeVerifier?.substring(0, 16)}...`);
 
         try {
             const baseUrl = region === 'na' ? 'https://volvoid.volvocars.com' : 'https://volvoid.eu.volvocars.com';
             const redirectUri = 'https://github.com/jcfield-boop/homebridge-volvoEX30';
+            
+            console.log(`🌍 Making token request to: ${baseUrl}/as/token.oauth2`);
             
             const params = new URLSearchParams({
                 grant_type: 'authorization_code',
@@ -277,6 +242,8 @@ class VolvoEX30PluginUiServer extends HomebridgePluginUiServer {
                 code_verifier: codeVerifier
             });
 
+            console.log(`📡 Token exchange parameters: ${params.toString()}`);
+
             const tokenResponse = await axios.post(`${baseUrl}/as/token.oauth2`, params, {
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
@@ -285,18 +252,28 @@ class VolvoEX30PluginUiServer extends HomebridgePluginUiServer {
                 timeout: 30000
             });
 
+            console.log(`✅ Token exchange successful! Got ${Object.keys(tokenResponse.data).join(', ')}`);
+
             const tokens = {
                 access_token: tokenResponse.data.access_token,
                 refresh_token: tokenResponse.data.refresh_token,
                 expires_in: tokenResponse.data.expires_in
             };
 
-            // Clean up session after successful token exchange (following Volvo's pattern)
+            // Clean up session after successful token exchange
             this.oauthSessions.delete(sessionId);
+            console.log(`🧹 Cleaned up session ${sessionId}`);
 
             response.send(tokens);
 
         } catch (error) {
+            console.error(`❌ Token exchange failed:`, {
+                status: error.response?.status,
+                error: error.response?.data?.error,
+                description: error.response?.data?.error_description,
+                data: error.response?.data
+            });
+
             this.pushEvent('oauth-error', {
                 message: error.response?.data?.error_description || error.message
             });
