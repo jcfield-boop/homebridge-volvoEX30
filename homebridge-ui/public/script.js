@@ -1,364 +1,310 @@
-// Volvo EX30 Plugin Configuration UI
-class VolvoEX30ConfigUI {
-    constructor() {
-        this.sessionId = null;
-        this.oauthState = null;
-        this.init();
-    }
+/**
+ * Volvo EX30 Plugin Configuration UI
+ * Simplified Mercedes-style OAuth flow with current plugin-ui-utils
+ */
 
-    init() {
-        this.bindEvents();
-        this.loadCurrentConfig();
-    }
+// Global state
+let currentSessionId = null;
+let currentState = null;
 
-    bindEvents() {
-        $('#startOAuth').on('click', () => this.startOAuth());
-        $('#copyUrl').on('click', () => this.copyAuthUrl());
-        $('#openUrl').on('click', () => this.openAuthUrl());
-        $('#gotCode').on('click', () => this.showStep(3));
-        $('#exchangeToken').on('click', () => this.exchangeToken());
-        $('#saveConfig').on('click', () => this.saveConfiguration());
-        $('#loadConfig').on('click', () => this.loadCurrentConfig());
-    }
+$(document).ready(() => {
+    console.log('🚗 Volvo EX30 UI initialized');
+    
+    // Load current configuration
+    loadCurrentConfig();
+    
+    // Bind event handlers
+    $('#startOAuth').on('click', startOAuthFlow);
+    $('#copyUrl').on('click', copyAuthUrl);
+    $('#openUrl').on('click', openAuthUrl);
+    $('#gotCode').on('click', showCodeEntry);
+    $('#exchangeToken').on('click', exchangeTokens);
+    $('#saveConfig').on('click', saveConfiguration);
+    $('#loadConfig').on('click', loadCurrentConfig);
+});
 
-    showError(message) {
-        $('#errorMessage').text(message).show();
-        setTimeout(() => $('#errorMessage').hide(), 5000);
+async function startOAuthFlow() {
+    console.log('🚀 Starting OAuth flow');
+    
+    const clientId = $('#clientId').val().trim();
+    const region = $('#region').val();
+    
+    if (!clientId) {
+        showError('Please enter your Client ID first.');
+        return;
     }
-
-    showStep(stepNumber) {
-        $('.step').removeClass('active').hide();
-        $(`#step${stepNumber}`).addClass('active').show();
+    
+    try {
+        $('#startOAuth').prop('disabled', true).text('⏳ Generating URL...');
         
-        // Mark previous steps as complete
-        for (let i = 1; i < stepNumber; i++) {
-            $(`#step${i}`).addClass('complete');
-        }
-    }
-
-    async startOAuth() {
-        const clientId = $('#clientId').val().trim();
-        const clientSecret = $('#clientSecret').val().trim();
-        const region = $('#region').val();
-
-        console.log('🚀 Starting OAuth with:', { clientId: clientId?.substring(0, 8) + '...', region });
-
-        if (!clientId || !clientSecret) {
-            this.showError('Please enter your Client ID and Client Secret first.');
-            return;
-        }
-
-        try {
-            console.log('📡 Making authorization request to server...');
-            const authResponse = await fetch('/oauth/authorize', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    clientId,
-                    clientSecret,
-                    region
-                })
-            });
-
-            console.log('📡 Server response status:', authResponse.status);
-            console.log('📡 Server response headers:', authResponse.headers.get('content-type'));
-
-            // Get the raw response text first
-            const responseText = await authResponse.text();
-            console.log('📡 Raw server response:', responseText);
-
-            if (!authResponse.ok) {
-                let errorData;
-                try {
-                    errorData = JSON.parse(responseText);
-                } catch (parseError) {
-                    console.error('❌ Failed to parse error response as JSON:', parseError);
-                    throw new Error(`Server returned ${authResponse.status}: ${responseText}`);
-                }
-                throw new Error(errorData.message || 'Failed to generate authorization URL');
-            }
-
-            let authData;
-            try {
-                authData = JSON.parse(responseText);
-            } catch (parseError) {
-                console.error('❌ Failed to parse success response as JSON:', parseError);
-                console.error('❌ Raw response was:', responseText);
-                throw new Error('Server returned invalid JSON response');
-            }
-            this.sessionId = authData.sessionId;
-            this.oauthState = authData.state;
-            this.authUrl = authData.authUrl;
-            
-            console.log('✅ Authorization URL generated:', {
-                sessionId: this.sessionId,
-                state: this.oauthState,
-                authUrl: authData.authUrl.substring(0, 100) + '...'
-            });
-            
-            $('#authUrl').text(authData.authUrl);
-            
-            this.showStep(2);
-            
-        } catch (error) {
-            console.error('❌ OAuth start failed:', error);
-            this.showError(`Failed to start OAuth: ${error.message}`);
-        }
-    }
-
-    async startCallbackPolling() {
-        // Poll every 2 seconds for OAuth callback
-        this.callbackInterval = setInterval(async () => {
-            try {
-                const response = await fetch('/oauth/check-callback');
-                const data = await response.json();
-                
-                if (data.error) {
-                    clearInterval(this.callbackInterval);
-                    this.showError(`OAuth authorization failed: ${data.error} - ${data.error_description || ''}`);
-                } else if (data.code) {
-                    clearInterval(this.callbackInterval);
-                    // Automatically proceed with token exchange
-                    this.autoExchangeToken(data.code);
-                }
-            } catch (error) {
-                console.warn('Error polling for callback:', error);
-            }
-        }, 2000);
-
-        // Stop polling after 10 minutes
-        setTimeout(() => {
-            if (this.callbackInterval) {
-                clearInterval(this.callbackInterval);
-                this.showError('OAuth authorization timed out. Please try again.');
-            }
-        }, 10 * 60 * 1000);
-    }
-
-    async autoExchangeToken(code) {
-        if (!this.sessionId || !this.oauthState) {
-            this.showError('Session expired. Please restart OAuth process.');
-            return;
-        }
-
-        try {
-            $('#step2').removeClass('active').addClass('complete');
-            this.showStep(4); // Skip step 3, go directly to success
-            
-            $('.loading').show();
-            const response = await this.makeTokenRequest(code, this.sessionId, this.oauthState);
-            
-            if (response.refresh_token) {
-                $('#refreshToken').val(response.refresh_token);
-                $('#tokenDisplay').text(response.refresh_token);
-                // Clear session data after successful exchange
-                this.sessionId = null;
-                this.oauthState = null;
-                $('.loading').hide();
-            } else {
-                throw new Error('No refresh token received');
-            }
-            
-        } catch (error) {
-            $('.loading').hide();
-            this.showError(`Token exchange failed: ${error.message}`);
-        }
-    }
-
-    copyAuthUrl() {
-        navigator.clipboard.writeText(this.authUrl).then(() => {
-            const btn = $('#copyUrl');
-            const originalText = btn.text();
-            btn.text('✅ Copied!');
-            setTimeout(() => btn.text(originalText), 2000);
-        }).catch(() => {
-            // Fallback for older browsers
-            const textArea = document.createElement('textarea');
-            textArea.value = this.authUrl;
-            document.body.appendChild(textArea);
-            textArea.select();
-            document.execCommand('copy');
-            document.body.removeChild(textArea);
-            
-            const btn = $('#copyUrl');
-            const originalText = btn.text();
-            btn.text('✅ Copied!');
-            setTimeout(() => btn.text(originalText), 2000);
+        const response = await makeRequest('/authCode', 'POST', {
+            clientId,
+            region
         });
-    }
-
-    openAuthUrl() {
-        window.open(this.authUrl, '_blank');
-    }
-
-    async exchangeToken() {
-        const authCode = $('#authCode').val().trim();
-
-        if (!authCode) {
-            this.showError('Please enter the authorization code.');
-            return;
-        }
-
-        if (!this.sessionId || !this.oauthState) {
-            this.showError('Session expired. Please restart the OAuth process.');
-            return;
-        }
-
-        $('.loading').show();
-        $('#exchangeToken').prop('disabled', true);
-
-        try {
-            const response = await this.makeTokenRequest(authCode, this.sessionId, this.oauthState);
-            
-            if (response.refresh_token) {
-                $('#refreshToken').val(response.refresh_token);
-                $('#tokenDisplay').text(response.refresh_token);
-                // Clear session data after successful exchange
-                this.sessionId = null;
-                this.oauthState = null;
-                
-                $('.loading').hide();
-                $('#exchangeToken').prop('disabled', false);
-                this.showStep(4);
-            } else {
-                throw new Error('No refresh token received');
-            }
-            
-        } catch (error) {
-            $('.loading').hide();
-            $('#exchangeToken').prop('disabled', false);
-            
-            let errorMessage = `Token exchange failed: ${error.message}`;
-            if (error.message.includes('session')) {
-                errorMessage += ' Please restart the OAuth process.';
-            } else if (error.message.includes('invalid_grant')) {
-                errorMessage += ' The authorization code may have expired or been used already.';
-            }
-            
-            this.showError(errorMessage);
-        }
-    }
-
-    async makeTokenRequest(code, sessionId, state) {
-        console.log('🔄 Making token exchange request:', {
-            code: code?.substring(0, 16) + '...',
-            sessionId,
-            state
-        });
-
-        const response = await fetch('/oauth/token', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                code,
-                sessionId,
-                state
-            })
-        });
-
-        console.log(`📡 Token exchange response status: ${response.status}`);
-
-        if (!response.ok) {
-            const error = await response.json();
-            console.error('❌ Token exchange error:', error);
-            throw new Error(error.message || 'Token exchange failed');
-        }
-
-        const tokenData = await response.json();
-        console.log('✅ Token exchange successful:', Object.keys(tokenData));
         
-        return tokenData;
-    }
-
-
-    async saveConfiguration() {
-        const vin = $('#vin').val().trim();
-        const clientId = $('#clientId').val().trim();
-        const clientSecret = $('#clientSecret').val().trim();
-        const vccApiKey = $('#vccApiKey').val().trim();
-        const refreshToken = $('#refreshToken').val().trim();
-
-        if (!vin || !clientId || !clientSecret || !vccApiKey) {
-            this.showError('Please fill in all required fields: VIN, Client ID, Client Secret, and VCC API Key.');
-            return;
-        }
-
-        if (!refreshToken) {
-            this.showError('Please complete the OAuth authorization to get a refresh token.');
-            return;
-        }
-
-        const config = {
-            platform: 'VolvoEX30',
-            name: $('#name').val().trim() || 'Volvo EX30',
-            vin: vin,
-            clientId: clientId,
-            clientSecret: clientSecret,
-            vccApiKey: vccApiKey,
-            refreshToken: refreshToken,
-            region: $('#region').val(),
-            pollingInterval: parseInt($('#pollingInterval').val()) || 5,
-            enableBattery: $('#enableBattery').prop('checked'),
-            enableClimate: $('#enableClimate').prop('checked'),
-            enableLocks: $('#enableLocks').prop('checked'),
-            enableDoors: $('#enableDoors').prop('checked')
-        };
-
-        try {
-            const response = await fetch('/config', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(config)
-            });
-
-            if (response.ok) {
-                alert('✅ Configuration saved successfully! Please restart Homebridge to apply changes.');
-            } else {
-                const error = await response.json();
-                this.showError(`Failed to save configuration: ${error.message}`);
-            }
-        } catch (error) {
-            this.showError(`Failed to save configuration: ${error.message}`);
-        }
-    }
-
-    async loadCurrentConfig() {
-        try {
-            const response = await fetch('/config');
-            if (response.ok) {
-                const config = await response.json();
-                
-                $('#name').val(config.name || 'Volvo EX30');
-                $('#vin').val(config.vin || '');
-                $('#clientId').val(config.clientId || '');
-                $('#clientSecret').val(config.clientSecret || '');
-                $('#vccApiKey').val(config.vccApiKey || '');
-                $('#region').val(config.region || 'eu');
-                $('#pollingInterval').val(config.pollingInterval || 5);
-                $('#enableBattery').prop('checked', config.enableBattery !== false);
-                $('#enableClimate').prop('checked', config.enableClimate === true);
-                $('#enableLocks').prop('checked', config.enableLocks === true);
-                $('#enableDoors').prop('checked', config.enableDoors === true);
-                
-                if (config.refreshToken) {
-                    $('#refreshToken').val(config.refreshToken);
-                    $('#tokenDisplay').text(config.refreshToken);
-                    this.showStep(4);
-                }
-            }
-        } catch (error) {
-            console.warn('Could not load current configuration:', error);
-        }
+        console.log('✅ Auth URL generated', response);
+        
+        currentSessionId = response.sessionId;
+        currentState = response.state;
+        
+        $('#authUrl').text(response.authUrl);
+        $('#openUrl').attr('href', response.authUrl);
+        
+        // Update UI
+        $('#step1').removeClass('active').addClass('complete');
+        $('#step2').show().addClass('active');
+        
+        hideError();
+        
+    } catch (error) {
+        console.error('❌ Failed to start OAuth:', error);
+        showError(`Failed to generate authorization URL: ${error.message || error}`);
+    } finally {
+        $('#startOAuth').prop('disabled', false).text('🚀 Start OAuth Setup');
     }
 }
 
-// Initialize the UI when the page loads
-$(document).ready(() => {
-    new VolvoEX30ConfigUI();
-});
+function copyAuthUrl() {
+    const authUrl = $('#authUrl').text();
+    navigator.clipboard.writeText(authUrl).then(() => {
+        $('#copyUrl').text('✅ Copied!');
+        setTimeout(() => {
+            $('#copyUrl').text('📋 Copy URL');
+        }, 2000);
+    }).catch(() => {
+        // Fallback for older browsers
+        const textArea = document.createElement('textarea');
+        textArea.value = authUrl;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        
+        $('#copyUrl').text('✅ Copied!');
+        setTimeout(() => {
+            $('#copyUrl').text('📋 Copy URL');
+        }, 2000);
+    });
+}
+
+function openAuthUrl() {
+    const authUrl = $('#authUrl').text();
+    window.open(authUrl, '_blank');
+}
+
+function showCodeEntry() {
+    $('#step2').removeClass('active').addClass('complete');
+    $('#step3').show().addClass('active');
+    $('#authCode').focus();
+}
+
+async function exchangeTokens() {
+    console.log('🔄 Exchanging authorization code for tokens');
+    
+    const authCode = $('#authCode').val().trim();
+    const clientSecret = $('#clientSecret').val().trim();
+    
+    if (!authCode) {
+        showError('Please enter the authorization code from your browser.');
+        return;
+    }
+    
+    if (!clientSecret) {
+        showError('Please enter your Client Secret.');
+        return;
+    }
+    
+    if (!currentSessionId) {
+        showError('Session expired. Please start OAuth again.');
+        return;
+    }
+    
+    try {
+        $('#exchangeToken').prop('disabled', true);
+        $('.loading').show();
+        
+        const response = await makeRequest('/authToken', 'POST', {
+            code: authCode,
+            sessionId: currentSessionId,
+            clientSecret: clientSecret
+        });
+        
+        console.log('✅ Token exchange successful');
+        
+        // Store the refresh token
+        $('#refreshToken').val(response.refresh_token);
+        $('#tokenDisplay').text(response.refresh_token);
+        
+        // Update UI
+        $('#step3').removeClass('active').addClass('complete');
+        $('#step4').show().addClass('active');
+        
+        hideError();
+        
+    } catch (error) {
+        console.error('❌ Token exchange failed:', error);
+        showError(`Token exchange failed: ${error.message || error}`);
+    } finally {
+        $('#exchangeToken').prop('disabled', false);
+        $('.loading').hide();
+    }
+}
+
+async function saveConfiguration() {
+    console.log('💾 Saving configuration');
+    
+    const config = {
+        name: $('#name').val().trim() || 'Volvo EX30',
+        vin: $('#vin').val().trim(),
+        clientId: $('#clientId').val().trim(),
+        clientSecret: $('#clientSecret').val().trim(),
+        vccApiKey: $('#vccApiKey').val().trim(),
+        refreshToken: $('#refreshToken').val().trim(),
+        region: $('#region').val(),
+        pollingInterval: parseInt($('#pollingInterval').val()) || 5,
+        enableBattery: $('#enableBattery').is(':checked'),
+        enableClimate: $('#enableClimate').is(':checked'),
+        enableLocks: $('#enableLocks').is(':checked'),
+        enableDoors: $('#enableDoors').is(':checked')
+    };
+    
+    // Validate required fields
+    if (!config.vin) {
+        showError('Please enter your VIN.');
+        return;
+    }
+    
+    if (!config.clientId || !config.clientSecret || !config.vccApiKey) {
+        showError('Please enter all API credentials.');
+        return;
+    }
+    
+    if (!config.refreshToken) {
+        showError('Please complete OAuth authorization to get a refresh token.');
+        return;
+    }
+    
+    try {
+        $('#saveConfig').prop('disabled', true).text('⏳ Saving...');
+        
+        const response = await makeRequest('/config', 'POST', config);
+        
+        console.log('✅ Configuration saved');
+        showSuccess('Configuration saved successfully! Restart Homebridge to apply changes.');
+        
+    } catch (error) {
+        console.error('❌ Failed to save config:', error);
+        showError(`Failed to save configuration: ${error.message || error}`);
+    } finally {
+        $('#saveConfig').prop('disabled', false).text('💾 Save Configuration');
+    }
+}
+
+async function loadCurrentConfig() {
+    console.log('📥 Loading current configuration');
+    
+    try {
+        const config = await makeRequest('/config', 'GET');
+        
+        if (Object.keys(config).length > 0) {
+            console.log('📋 Config loaded:', config);
+            
+            $('#name').val(config.name || 'Volvo EX30');
+            $('#vin').val(config.vin || '');
+            $('#clientId').val(config.clientId || '');
+            $('#clientSecret').val(config.clientSecret || '');
+            $('#vccApiKey').val(config.vccApiKey || '');
+            $('#refreshToken').val(config.refreshToken || '');
+            $('#region').val(config.region || 'eu');
+            $('#pollingInterval').val(config.pollingInterval || 5);
+            $('#enableBattery').prop('checked', config.enableBattery !== false);
+            $('#enableClimate').prop('checked', config.enableClimate === true);
+            $('#enableLocks').prop('checked', config.enableLocks === true);
+            $('#enableDoors').prop('checked', config.enableDoors === true);
+            
+            if (config.refreshToken) {
+                $('#tokenDisplay').text(config.refreshToken);
+                $('#step1').removeClass('active').addClass('complete');
+                $('#step2').removeClass('active').addClass('complete');
+                $('#step3').removeClass('active').addClass('complete');
+                $('#step4').show().addClass('complete');
+            }
+        } else {
+            console.log('📄 No existing configuration found');
+        }
+        
+    } catch (error) {
+        console.error('❌ Failed to load config:', error);
+    }
+}
+
+async function makeRequest(endpoint, method, data = null) {
+    console.log(`📡 Making ${method} request to ${endpoint}`, data);
+    
+    const options = {
+        method,
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    };
+    
+    if (data && method !== 'GET') {
+        options.body = JSON.stringify(data);
+    }
+    
+    try {
+        const response = await fetch(endpoint, options);
+        
+        console.log(`📡 Response status: ${response.status}`);
+        
+        if (!response.ok) {
+            let errorMessage = `HTTP ${response.status}`;
+            try {
+                const errorData = await response.json();
+                errorMessage = errorData.message || errorData.error || errorMessage;
+            } catch (e) {
+                // Response might not be JSON
+                const text = await response.text();
+                console.error('❌ Non-JSON error response:', text);
+                errorMessage = 'Server returned non-JSON response. Check server logs.';
+            }
+            throw new Error(errorMessage);
+        }
+        
+        const result = await response.json();
+        console.log('✅ Request successful:', result);
+        return result;
+        
+    } catch (error) {
+        console.error('❌ Request failed:', error);
+        throw error;
+    }
+}
+
+function showError(message) {
+    $('#errorMessage').text(message).show();
+    // Auto-hide after 10 seconds
+    setTimeout(() => {
+        $('#errorMessage').hide();
+    }, 10000);
+}
+
+function hideError() {
+    $('#errorMessage').hide();
+}
+
+function showSuccess(message) {
+    // Create or update success message
+    let successDiv = $('#successMessage');
+    if (successDiv.length === 0) {
+        successDiv = $('<div id="successMessage" class="success-message" style="display: none;"></div>');
+        $('#errorMessage').after(successDiv);
+    }
+    
+    successDiv.text(message).show();
+    
+    // Auto-hide after 5 seconds
+    setTimeout(() => {
+        successDiv.hide();
+    }, 5000);
+}

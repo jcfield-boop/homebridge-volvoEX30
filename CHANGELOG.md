@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.19] - 2025-08-11
+
+### Fixed
+- **CRITICAL**: Complete refactor to Mercedes plugin pattern with current plugin-ui-utils v1.0.3
+- Simplified server.js to follow proven working patterns from homebridge-mercedesme
+- Replaced complex callback server with simple manual OAuth code entry
+- Removed all complex polling, callback handling, and error wrappers
+- Two-step OAuth flow: /authCode generates URL → /authToken exchanges code
+
+### Changed
+- OAuth flow now matches Mercedes plugin: generate URL → manual code entry → token exchange
+- Simplified request handlers use modern async/return pattern for v1.0.3 compatibility
+- Removed HTTP callback server in favor of reliable manual code extraction
+- Frontend simplified to clear two-step process with better user guidance
+
+### Technical Implementation
+- Server class follows working Mercedes pattern with direct instantiation
+- Endpoints: /authCode, /authToken, /config, /test for debugging
+- PKCE implementation maintained for Volvo API security requirements
+- Enhanced logging throughout for better debugging of server loading issues
+
 ## [1.2.18] - 2025-08-11
 
 ### Fixed
