@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.6] - 2025-08-11
+
+### Fixed
+- **OAuth Setup Script**: Updated standalone OAuth setup script to include PKCE support
+- **Complete PKCE Implementation**: Both TypeScript and JavaScript OAuth handlers now support PKCE
+- **Script Consistency**: OAuth setup script now matches main codebase implementation
+
+### Technical
+- Added PKCE support to `scripts/oauth-setup.js` standalone script
+- Synchronized PKCE implementation across all OAuth handlers
+- Fixed discrepancy between compiled and standalone OAuth code
+
 ## [1.2.5] - 2025-08-11
 
 ### Fixed

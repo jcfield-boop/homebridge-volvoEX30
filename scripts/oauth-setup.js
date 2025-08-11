@@ -2,6 +2,7 @@
 
 const readline = require('readline');
 const axios = require('axios');
+const crypto = require('crypto');
 
 const rl = readline.createInterface({
   input: process.stdin,
@@ -18,6 +19,7 @@ class OAuthHandler {
   constructor(config, logger) {
     this.config = config;
     this.logger = logger;
+    this.codeVerifier = null;
     
     this.httpClient = axios.create({
       baseURL: 'https://volvoid.eu.volvocars.com',
@@ -34,11 +36,17 @@ class OAuthHandler {
   }
 
   getAuthorizationUrl(redirectUri, state) {
+    // Generate PKCE parameters
+    this.codeVerifier = this.generateCodeVerifier();
+    const codeChallenge = this.generateCodeChallenge(this.codeVerifier);
+    
     const params = new URLSearchParams({
       response_type: 'code',
       client_id: this.config.clientId,
       redirect_uri: redirectUri,
       scope: 'conve:fuel_status conve:climatization_start_stop conve:unlock conve:lock_status conve:lock openid energy:state:read energy:capability:read conve:battery_charge_level conve:diagnostics_engine_status conve:warnings',
+      code_challenge: codeChallenge,
+      code_challenge_method: 'S256',
     });
 
     if (state) {
@@ -50,12 +58,17 @@ class OAuthHandler {
 
   async exchangeCodeForTokens(code, redirectUri) {
     try {
+      if (!this.codeVerifier) {
+        throw new Error('Code verifier not found. Please generate authorization URL first.');
+      }
+      
       const params = new URLSearchParams({
         grant_type: 'authorization_code',
         client_id: this.config.clientId,
         client_secret: this.config.clientSecret,
         code: code,
         redirect_uri: redirectUri,
+        code_verifier: this.codeVerifier,
       });
 
       const response = await this.httpClient.post('/as/token.oauth2', params);
@@ -66,6 +79,7 @@ class OAuthHandler {
         expiresAt: Date.now() + (response.data.expires_in * 1000),
       };
 
+      this.codeVerifier = null; // Clear code verifier after successful exchange
       this.logger.info('Successfully obtained OAuth tokens');
       
       return tokens;
@@ -73,6 +87,15 @@ class OAuthHandler {
       this.logger.error('Failed to exchange code for tokens:', error.response?.data || error.message);
       throw new Error('OAuth token exchange failed');
     }
+  }
+
+  generateCodeVerifier() {
+    return crypto.randomBytes(32).toString('base64url');
+  }
+
+  generateCodeChallenge(codeVerifier) {
+    const hash = crypto.createHash('sha256').update(codeVerifier).digest();
+    return hash.toString('base64url');
   }
 }
 
