@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.14] - 2025-08-11
+
+### Changed
+- Simplified OAuth implementation with targeted debugging for better troubleshooting
+- Removed excessive validation and logging that was interfering with OAuth flow
+- Enhanced client-side and server-side debugging to identify specific failure points
+
+### Fixed
+- OAuth token exchange debugging now shows session storage, state verification, and token exchange details
+- Streamlined authorization request handling while maintaining security
+- Improved error identification for OAuth troubleshooting
+
+## [1.2.13] - 2025-08-11
+
+### Added
+- Comprehensive debugging for OAuth UI server initialization and request handling
+- Request interceptor to log all incoming requests
+- Enhanced error handling around server initialization
+
+## [1.2.12] - 2025-08-11
+
+### Fixed
+- OAuth validation debugging and relaxed validation rules
+- Reduced minimum length validation for client credentials
+- Added detailed logging for OAuth authorization requests
+
 ## [1.2.11] - 2025-08-11
 
 ### Changed
