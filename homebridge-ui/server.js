@@ -5,24 +5,52 @@ const crypto = require('crypto');
 
 class VolvoEX30PluginUiServer extends HomebridgePluginUiServer {
     constructor() {
-        super();
+        try {
+            console.log('🚀 Initializing VolvoEX30PluginUiServer...');
+            super();
 
-        // OAuth callback server
-        this.oauthServer = null;
-        this.oauthCallbackData = null;
-        
-        // OAuth session storage
-        this.oauthSessions = new Map(); // sessionId -> { codeVerifier, state, clientId, clientSecret, region }
+            // OAuth callback server
+            this.oauthServer = null;
+            this.oauthCallbackData = null;
+            
+            // OAuth session storage
+            this.oauthSessions = new Map(); // sessionId -> { codeVerifier, state, clientId, clientSecret, region }
 
-        // Handle OAuth endpoints
-        this.onRequest('/oauth/authorize', this.handleAuthorizationRequest.bind(this));
-        this.onRequest('/oauth/token', this.handleTokenExchange.bind(this));
-        this.onRequest('/oauth/start-server', this.startOAuthServer.bind(this));
-        this.onRequest('/oauth/stop-server', this.stopOAuthServer.bind(this));
-        this.onRequest('/oauth/check-callback', this.checkOAuthCallback.bind(this));
-        this.onRequest('/config', this.handleConfig.bind(this));
+            // Handle OAuth endpoints with error wrapping
+            this.onRequest('/oauth/authorize', this.wrapHandler(this.handleAuthorizationRequest.bind(this)));
+            this.onRequest('/oauth/token', this.wrapHandler(this.handleTokenExchange.bind(this)));
+            this.onRequest('/oauth/start-server', this.wrapHandler(this.startOAuthServer.bind(this)));
+            this.onRequest('/oauth/stop-server', this.wrapHandler(this.stopOAuthServer.bind(this)));
+            this.onRequest('/oauth/check-callback', this.wrapHandler(this.checkOAuthCallback.bind(this)));
+            this.onRequest('/config', this.wrapHandler(this.handleConfig.bind(this)));
 
-        this.ready();
+            this.ready();
+            console.log('✅ VolvoEX30PluginUiServer initialized successfully');
+        } catch (error) {
+            console.error('💥 Failed to initialize VolvoEX30PluginUiServer:', error);
+            throw error;
+        }
+    }
+
+    wrapHandler(handler) {
+        return async (request, response) => {
+            try {
+                console.log(`📡 Handling ${request.method} ${request.url}`);
+                await handler(request, response);
+            } catch (error) {
+                console.error(`💥 Handler error for ${request.method} ${request.url}:`, error);
+                console.error('💥 Error stack:', error.stack);
+                
+                // Send JSON error response instead of letting it become HTML
+                if (!response.headersSent) {
+                    response.status(500).json({
+                        error: 'Internal Server Error',
+                        message: error.message,
+                        details: error.stack
+                    });
+                }
+            }
+        };
     }
 
     async handleAuthorizationRequest(request, response) {
