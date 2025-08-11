@@ -88,6 +88,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Legacy API integration now maps responses to modern format for seamless compatibility
 - Custom redirect handling enhanced for non-localhost redirect URIs
 
+## [1.2.3] - 2025-08-03
+
+### Changed
+- OAuth scopes updated to match exact scopes approved in Volvo Developer Portal application
+- Scope names changed to: `openid energy:state:read energy:capability:read`
+
+### Fixed
+- OAuth authorization request validation errors (400 Bad Request)
+- Removed unsupported scopes that were causing OAuth failures
+
 ## [1.2.2] - 2025-08-03
 
 ### Changed
