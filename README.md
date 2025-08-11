@@ -7,7 +7,7 @@ A Homebridge plugin that integrates your Volvo EX30 with Apple HomeKit using the
 - **Battery Monitoring**: View battery level, charging status, and low battery alerts in HomeKit
 - **Real-time Updates**: Automatically polls your vehicle for status updates
 - **Rate Limiting**: Respects Volvo API rate limits (100 requests/minute)
-- **Secure Authentication**: Uses OAuth2 with Volvo ID for secure API access
+- **Secure Authentication**: Uses OAuth2 with PKCE (Proof Key for Code Exchange) for enhanced security
 - **Legacy API Support**: Compatible with both modern and legacy Volvo API endpoints
 - **Flexible OAuth**: Supports custom redirect URIs including GitHub repository URLs
 
@@ -29,7 +29,9 @@ npm install -g homebridge-volvo-ex30
 
 ## Setup
 
-⚡ **NEW in v1.1.0**: **Custom Configuration UI** - Complete setup directly in Homebridge Config UI X!
+⚡ **NEW in v1.2.7**: **Enhanced Custom UI** - Now with PKCE security support and improved OAuth flow!
+
+✨ **UPDATED in v1.1.0**: **Custom Configuration UI** - Complete setup directly in Homebridge Config UI X!
 
 ### Method 1: Custom Configuration UI (Recommended)
 
@@ -42,7 +44,13 @@ npm install -g homebridge-volvo-ex30
    - Configure all settings visually
    - Save directly to Homebridge
 
-The custom UI handles the entire OAuth flow in your browser - no SSH or command line needed!
+The custom UI handles the entire OAuth flow with secure PKCE authentication - no SSH or command line needed!
+
+**✅ Security Features in v1.2.7:**
+- PKCE (Proof Key for Code Exchange) support for enhanced security
+- Input validation for API credentials  
+- Better error handling with specific OAuth guidance
+- Consistent OAuth implementation across all setup methods
 
 ### Method 2: Manual Setup
 
@@ -185,6 +193,12 @@ The plugin includes:
 ## Troubleshooting
 
 ### OAuth Setup Issues
+
+**Error: "code_challenge is required"**
+- This is a PKCE requirement from Volvo's OAuth server
+- ✅ **Fixed in v1.2.7**: All OAuth methods now support PKCE
+- Make sure you're using the latest version: `npm update -g homebridge-volvo-ex30`
+- If still getting this error, try clearing browser cache and restart OAuth setup
 
 **Error: "Missing refreshToken in configuration"**
 - This is expected on first setup

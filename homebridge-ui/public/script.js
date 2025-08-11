@@ -2,6 +2,7 @@
 class VolvoEX30ConfigUI {
     constructor() {
         this.oauthState = null;
+        this.codeVerifier = null;
         this.init();
     }
 
@@ -45,6 +46,17 @@ class VolvoEX30ConfigUI {
             return;
         }
 
+        // Basic validation
+        if (clientId.length < 10) {
+            this.showError('Client ID appears to be too short. Please check your credentials.');
+            return;
+        }
+
+        if (clientSecret.length < 10) {
+            this.showError('Client Secret appears to be too short. Please check your credentials.');
+            return;
+        }
+
         try {
             // Start the OAuth callback server
             const serverResponse = await fetch('/oauth/start-server', {
@@ -55,6 +67,10 @@ class VolvoEX30ConfigUI {
                 throw new Error('Failed to start OAuth callback server');
             }
 
+            // Generate PKCE parameters
+            this.codeVerifier = this.generateCodeVerifier();
+            const codeChallenge = await this.generateCodeChallenge(this.codeVerifier);
+            
             // Use GitHub repository as redirect URI
             const redirectUri = 'https://github.com/jcfield-boop/homebridge-volvoEX30';
             this.oauthState = this.generateState();
@@ -65,7 +81,9 @@ class VolvoEX30ConfigUI {
                 response_type: 'code',
                 client_id: clientId,
                 redirect_uri: redirectUri,
-                scope: 'openid energy:state:read energy:capability:read',
+                scope: 'conve:fuel_status conve:climatization_start_stop conve:unlock conve:lock_status conve:lock openid energy:state:read energy:capability:read conve:battery_charge_level conve:diagnostics_engine_status conve:warnings',
+                code_challenge: codeChallenge,
+                code_challenge_method: 'S256',
                 state: this.oauthState
             });
 
@@ -77,7 +95,11 @@ class VolvoEX30ConfigUI {
             this.showStep(2);
             
         } catch (error) {
-            this.showError(`Failed to start OAuth: ${error.message}`);
+            let errorMessage = `Failed to start OAuth: ${error.message}`;
+            if (error.message.includes('PKCE')) {
+                errorMessage += ' This may be a browser compatibility issue with PKCE.';
+            }
+            this.showError(errorMessage);
         }
     }
 
@@ -120,11 +142,12 @@ class VolvoEX30ConfigUI {
             this.showStep(4); // Skip step 3, go directly to success
             
             $('.loading').show();
-            const response = await this.makeTokenRequest(code, clientId, clientSecret, region);
+            const response = await this.makeTokenRequest(code, clientId, clientSecret, region, this.codeVerifier);
             
             if (response.refresh_token) {
                 $('#refreshToken').val(response.refresh_token);
                 $('#tokenDisplay').text(response.refresh_token);
+                this.codeVerifier = null; // Clear code verifier after successful exchange
                 $('.loading').hide();
             } else {
                 throw new Error('No refresh token received');
@@ -173,15 +196,21 @@ class VolvoEX30ConfigUI {
             return;
         }
 
+        if (!this.codeVerifier) {
+            this.showError('Code verifier not found. Please restart the OAuth process.');
+            return;
+        }
+
         $('.loading').show();
         $('#exchangeToken').prop('disabled', true);
 
         try {
-            const response = await this.makeTokenRequest(authCode, clientId, clientSecret, region);
+            const response = await this.makeTokenRequest(authCode, clientId, clientSecret, region, this.codeVerifier);
             
             if (response.refresh_token) {
                 $('#refreshToken').val(response.refresh_token);
                 $('#tokenDisplay').text(response.refresh_token);
+                this.codeVerifier = null; // Clear code verifier after successful exchange
                 
                 $('.loading').hide();
                 $('#exchangeToken').prop('disabled', false);
@@ -193,13 +222,21 @@ class VolvoEX30ConfigUI {
         } catch (error) {
             $('.loading').hide();
             $('#exchangeToken').prop('disabled', false);
-            this.showError(`Token exchange failed: ${error.message}`);
+            
+            let errorMessage = `Token exchange failed: ${error.message}`;
+            if (error.message.includes('code_challenge')) {
+                errorMessage += ' The OAuth server requires PKCE support.';
+            } else if (error.message.includes('invalid_grant')) {
+                errorMessage += ' The authorization code may have expired or been used already.';
+            }
+            
+            this.showError(errorMessage);
         }
     }
 
-    async makeTokenRequest(code, clientId, clientSecret, region) {
+    async makeTokenRequest(code, clientId, clientSecret, region, codeVerifier) {
         const baseUrl = region === 'na' ? 'https://volvoid.volvocars.com' : 'https://volvoid.eu.volvocars.com';
-        const redirectUri = 'http://localhost:3000/callback';
+        const redirectUri = 'https://github.com/jcfield-boop/homebridge-volvoEX30';
         
         const params = new URLSearchParams({
             grant_type: 'authorization_code',
@@ -221,7 +258,8 @@ class VolvoEX30ConfigUI {
                 clientId,
                 clientSecret,
                 region,
-                redirectUri
+                redirectUri: 'https://github.com/jcfield-boop/homebridge-volvoEX30',
+                codeVerifier
             })
         });
 
@@ -235,6 +273,28 @@ class VolvoEX30ConfigUI {
 
     generateState() {
         return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    }
+
+    generateCodeVerifier() {
+        // Generate a code verifier (43-128 characters)
+        const array = new Uint8Array(32);
+        crypto.getRandomValues(array);
+        return this.base64URLEncode(array);
+    }
+
+    async generateCodeChallenge(codeVerifier) {
+        // Create SHA256 hash of code verifier
+        const encoder = new TextEncoder();
+        const data = encoder.encode(codeVerifier);
+        const hash = await crypto.subtle.digest('SHA-256', data);
+        return this.base64URLEncode(new Uint8Array(hash));
+    }
+
+    base64URLEncode(array) {
+        return btoa(String.fromCharCode.apply(null, array))
+            .replace(/\+/g, '-')
+            .replace(/\//g, '_')
+            .replace(/=/g, '');
     }
 
     async saveConfiguration() {

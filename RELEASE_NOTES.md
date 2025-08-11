@@ -1,5 +1,41 @@
 # Release Notes
 
+## v1.2.7 - Enhanced Custom UI with PKCE Security
+
+### 🔐 Security & Stability
+- **Complete PKCE Support**: All OAuth flows now use PKCE (Proof Key for Code Exchange) for enhanced security
+- **Custom UI PKCE**: Homebridge Config UI X custom interface now supports PKCE authentication
+- **Legacy Scope Support**: Updated OAuth scopes to `conve:*` format for maximum compatibility
+- **Enhanced Validation**: Better credential validation and error handling
+
+### 🎯 What's Fixed
+- ✅ **"code_challenge is required" Error**: Completely resolved across all OAuth methods
+- ✅ **Custom UI OAuth**: Now works seamlessly with Volvo's PKCE requirements
+- ✅ **Consistent Security**: All OAuth implementations (main code, CLI script, custom UI) use the same security standards
+- ✅ **Better Error Messages**: Clear guidance for common OAuth issues
+
+### 🛠️ Technical Improvements
+- Web Crypto API-based PKCE generation in custom UI
+- Synchronized OAuth scopes across all implementations  
+- Enhanced error handling with specific OAuth failure detection
+- Improved redirect URI consistency
+
+### 🚀 User Experience
+- Seamless OAuth setup in custom UI with proper security
+- Better validation prevents common setup errors
+- Clearer error messages guide users through OAuth issues
+- One-stop credential entry with persistent storage
+
+## v1.2.6 - OAuth Script PKCE Support
+- Added PKCE support to standalone `npm run oauth-setup` script
+- Synchronized PKCE implementation across TypeScript and JavaScript code
+- Fixed discrepancy between different OAuth implementations
+
+## v1.2.5 - Core PKCE Implementation  
+- Added PKCE support to main TypeScript OAuth handler
+- Enhanced OAuth security compliance with modern standards
+- Fixed core "code_challenge is required" error
+
 ## v1.2.0 - Automatic OAuth Flow
 
 ### 🚀 Major Features

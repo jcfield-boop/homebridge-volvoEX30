@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.7] - 2025-08-11
+
+### Fixed
+- **Custom UI PKCE Support**: Complete PKCE implementation in Homebridge Config UI X custom interface
+- **OAuth Flow Integration**: Custom UI now properly generates and uses PKCE parameters for secure authentication
+- **Legacy Scope Compatibility**: Updated custom UI to use correct `conve:*` OAuth scopes matching main codebase
+- **Credential Validation**: Enhanced validation and error handling for API credentials in custom UI
+- **Redirect URI Consistency**: Fixed redirect URI handling across all OAuth implementations
+
+### Enhanced
+- **User Experience**: Custom UI now provides seamless, secure OAuth setup with better error messages
+- **Security**: All OAuth flows (main code, standalone script, custom UI) now use PKCE for enhanced security
+- **Error Handling**: Improved error messages for common OAuth issues (expired codes, PKCE requirements)
+- **Validation**: Added credential format validation to prevent common setup errors
+
+### Technical
+- Added Web Crypto API-based PKCE generation to custom UI frontend
+- Updated custom UI server endpoints to support PKCE token exchange
+- Synchronized OAuth scopes across all implementations
+- Enhanced error handling with specific OAuth failure detection
+
 ## [1.2.6] - 2025-08-11
 
 ### Fixed

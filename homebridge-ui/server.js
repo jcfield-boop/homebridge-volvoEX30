@@ -1,6 +1,7 @@
 const { HomebridgePluginUiServer, RequestError } = require('@homebridge/plugin-ui-utils');
 const axios = require('axios');
 const http = require('http');
+const crypto = require('crypto');
 
 class VolvoEX30PluginUiServer extends HomebridgePluginUiServer {
     constructor() {
@@ -9,6 +10,7 @@ class VolvoEX30PluginUiServer extends HomebridgePluginUiServer {
         // OAuth callback server
         this.oauthServer = null;
         this.oauthCallbackData = null;
+        this.codeVerifier = null;
 
         // Handle OAuth token exchange
         this.onRequest('/oauth/token', this.handleTokenExchange.bind(this));
@@ -131,9 +133,9 @@ class VolvoEX30PluginUiServer extends HomebridgePluginUiServer {
             throw new RequestError('Method not allowed', { status: 405 });
         }
 
-        const { code, clientId, clientSecret, region, redirectUri } = request.body;
+        const { code, clientId, clientSecret, region, redirectUri, codeVerifier } = request.body;
 
-        if (!code || !clientId || !clientSecret || !region || !redirectUri) {
+        if (!code || !clientId || !clientSecret || !region || !redirectUri || !codeVerifier) {
             throw new RequestError('Missing required parameters', { status: 400 });
         }
 
@@ -145,7 +147,8 @@ class VolvoEX30PluginUiServer extends HomebridgePluginUiServer {
                 client_id: clientId,
                 client_secret: clientSecret,
                 code: code,
-                redirect_uri: redirectUri
+                redirect_uri: redirectUri,
+                code_verifier: codeVerifier
             });
 
             const tokenResponse = await axios.post(`${baseUrl}/as/token.oauth2`, params, {
@@ -174,6 +177,15 @@ class VolvoEX30PluginUiServer extends HomebridgePluginUiServer {
                 { status: 400 }
             );
         }
+    }
+
+    generateCodeVerifier() {
+        return crypto.randomBytes(32).toString('base64url');
+    }
+
+    generateCodeChallenge(codeVerifier) {
+        const hash = crypto.createHash('sha256').update(codeVerifier).digest();
+        return hash.toString('base64url');
     }
 
     async handleConfig(request, response) {
