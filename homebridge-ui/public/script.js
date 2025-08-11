@@ -62,12 +62,32 @@ class VolvoEX30ConfigUI {
                 })
             });
 
+            console.log('📡 Server response status:', authResponse.status);
+            console.log('📡 Server response headers:', authResponse.headers.get('content-type'));
+
+            // Get the raw response text first
+            const responseText = await authResponse.text();
+            console.log('📡 Raw server response:', responseText);
+
             if (!authResponse.ok) {
-                const errorData = await authResponse.json();
+                let errorData;
+                try {
+                    errorData = JSON.parse(responseText);
+                } catch (parseError) {
+                    console.error('❌ Failed to parse error response as JSON:', parseError);
+                    throw new Error(`Server returned ${authResponse.status}: ${responseText}`);
+                }
                 throw new Error(errorData.message || 'Failed to generate authorization URL');
             }
 
-            const authData = await authResponse.json();
+            let authData;
+            try {
+                authData = JSON.parse(responseText);
+            } catch (parseError) {
+                console.error('❌ Failed to parse success response as JSON:', parseError);
+                console.error('❌ Raw response was:', responseText);
+                throw new Error('Server returned invalid JSON response');
+            }
             this.sessionId = authData.sessionId;
             this.oauthState = authData.state;
             this.authUrl = authData.authUrl;
