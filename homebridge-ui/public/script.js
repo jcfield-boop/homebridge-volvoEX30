@@ -1,8 +1,8 @@
 // Volvo EX30 Plugin Configuration UI
 class VolvoEX30ConfigUI {
     constructor() {
+        this.sessionId = null;
         this.oauthState = null;
-        this.codeVerifier = null;
         this.init();
     }
 
@@ -58,48 +58,35 @@ class VolvoEX30ConfigUI {
         }
 
         try {
-            // Start the OAuth callback server
-            const serverResponse = await fetch('/oauth/start-server', {
-                method: 'POST'
+            // Generate authorization URL server-side (following Volvo's pattern)
+            const authResponse = await fetch('/oauth/authorize', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    clientId,
+                    clientSecret,
+                    region
+                })
             });
 
-            if (!serverResponse.ok) {
-                throw new Error('Failed to start OAuth callback server');
+            if (!authResponse.ok) {
+                const errorData = await authResponse.json();
+                throw new Error(errorData.message || 'Failed to generate authorization URL');
             }
 
-            // Generate PKCE parameters
-            this.codeVerifier = this.generateCodeVerifier();
-            const codeChallenge = await this.generateCodeChallenge(this.codeVerifier);
+            const authData = await authResponse.json();
+            this.sessionId = authData.sessionId;
+            this.oauthState = authData.state;
+            this.authUrl = authData.authUrl;
             
-            // Use GitHub repository as redirect URI
-            const redirectUri = 'https://github.com/jcfield-boop/homebridge-volvoEX30';
-            this.oauthState = this.generateState();
-            
-            const baseUrl = region === 'na' ? 'https://volvoid.volvocars.com' : 'https://volvoid.eu.volvocars.com';
-            console.log('Region:', region, 'Base URL:', baseUrl); // Debug log
-            const params = new URLSearchParams({
-                response_type: 'code',
-                client_id: clientId,
-                redirect_uri: redirectUri,
-                scope: 'conve:fuel_status conve:climatization_start_stop conve:unlock conve:lock_status conve:lock openid energy:state:read energy:capability:read conve:battery_charge_level conve:diagnostics_engine_status conve:warnings',
-                code_challenge: codeChallenge,
-                code_challenge_method: 'S256',
-                state: this.oauthState
-            });
-
-            const authUrl = `${baseUrl}/as/authorization.oauth2?${params.toString()}`;
-            
-            $('#authUrl').text(authUrl);
-            this.authUrl = authUrl;
+            $('#authUrl').text(authData.authUrl);
             
             this.showStep(2);
             
         } catch (error) {
-            let errorMessage = `Failed to start OAuth: ${error.message}`;
-            if (error.message.includes('PKCE')) {
-                errorMessage += ' This may be a browser compatibility issue with PKCE.';
-            }
-            this.showError(errorMessage);
+            this.showError(`Failed to start OAuth: ${error.message}`);
         }
     }
 
@@ -133,21 +120,24 @@ class VolvoEX30ConfigUI {
     }
 
     async autoExchangeToken(code) {
-        const clientId = $('#clientId').val().trim();
-        const clientSecret = $('#clientSecret').val().trim();
-        const region = $('#region').val();
+        if (!this.sessionId || !this.oauthState) {
+            this.showError('Session expired. Please restart OAuth process.');
+            return;
+        }
 
         try {
             $('#step2').removeClass('active').addClass('complete');
             this.showStep(4); // Skip step 3, go directly to success
             
             $('.loading').show();
-            const response = await this.makeTokenRequest(code, clientId, clientSecret, region, this.codeVerifier);
+            const response = await this.makeTokenRequest(code, this.sessionId, this.oauthState);
             
             if (response.refresh_token) {
                 $('#refreshToken').val(response.refresh_token);
                 $('#tokenDisplay').text(response.refresh_token);
-                this.codeVerifier = null; // Clear code verifier after successful exchange
+                // Clear session data after successful exchange
+                this.sessionId = null;
+                this.oauthState = null;
                 $('.loading').hide();
             } else {
                 throw new Error('No refresh token received');
@@ -187,17 +177,14 @@ class VolvoEX30ConfigUI {
 
     async exchangeToken() {
         const authCode = $('#authCode').val().trim();
-        const clientId = $('#clientId').val().trim();
-        const clientSecret = $('#clientSecret').val().trim();
-        const region = $('#region').val();
 
         if (!authCode) {
             this.showError('Please enter the authorization code.');
             return;
         }
 
-        if (!this.codeVerifier) {
-            this.showError('Code verifier not found. Please restart the OAuth process.');
+        if (!this.sessionId || !this.oauthState) {
+            this.showError('Session expired. Please restart the OAuth process.');
             return;
         }
 
@@ -205,12 +192,14 @@ class VolvoEX30ConfigUI {
         $('#exchangeToken').prop('disabled', true);
 
         try {
-            const response = await this.makeTokenRequest(authCode, clientId, clientSecret, region, this.codeVerifier);
+            const response = await this.makeTokenRequest(authCode, this.sessionId, this.oauthState);
             
             if (response.refresh_token) {
                 $('#refreshToken').val(response.refresh_token);
                 $('#tokenDisplay').text(response.refresh_token);
-                this.codeVerifier = null; // Clear code verifier after successful exchange
+                // Clear session data after successful exchange
+                this.sessionId = null;
+                this.oauthState = null;
                 
                 $('.loading').hide();
                 $('#exchangeToken').prop('disabled', false);
@@ -224,8 +213,8 @@ class VolvoEX30ConfigUI {
             $('#exchangeToken').prop('disabled', false);
             
             let errorMessage = `Token exchange failed: ${error.message}`;
-            if (error.message.includes('code_challenge')) {
-                errorMessage += ' The OAuth server requires PKCE support.';
+            if (error.message.includes('session')) {
+                errorMessage += ' Please restart the OAuth process.';
             } else if (error.message.includes('invalid_grant')) {
                 errorMessage += ' The authorization code may have expired or been used already.';
             }
@@ -234,20 +223,8 @@ class VolvoEX30ConfigUI {
         }
     }
 
-    async makeTokenRequest(code, clientId, clientSecret, region, codeVerifier) {
-        const baseUrl = region === 'na' ? 'https://volvoid.volvocars.com' : 'https://volvoid.eu.volvocars.com';
-        const redirectUri = 'https://github.com/jcfield-boop/homebridge-volvoEX30';
-        
-        const params = new URLSearchParams({
-            grant_type: 'authorization_code',
-            client_id: clientId,
-            client_secret: clientSecret,
-            code: code,
-            redirect_uri: redirectUri
-        });
-
-        // Since we can't make direct CORS requests to Volvo's OAuth endpoint from the browser,
-        // we'll use our server-side endpoint
+    async makeTokenRequest(code, sessionId, state) {
+        // Use server-side token exchange with session-based PKCE (following Volvo's pattern)
         const response = await fetch('/oauth/token', {
             method: 'POST',
             headers: {
@@ -255,11 +232,8 @@ class VolvoEX30ConfigUI {
             },
             body: JSON.stringify({
                 code,
-                clientId,
-                clientSecret,
-                region,
-                redirectUri: 'https://github.com/jcfield-boop/homebridge-volvoEX30',
-                codeVerifier
+                sessionId,
+                state
             })
         });
 
@@ -271,31 +245,6 @@ class VolvoEX30ConfigUI {
         return await response.json();
     }
 
-    generateState() {
-        return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-    }
-
-    generateCodeVerifier() {
-        // Generate a code verifier (43-128 characters)
-        const array = new Uint8Array(32);
-        crypto.getRandomValues(array);
-        return this.base64URLEncode(array);
-    }
-
-    async generateCodeChallenge(codeVerifier) {
-        // Create SHA256 hash of code verifier
-        const encoder = new TextEncoder();
-        const data = encoder.encode(codeVerifier);
-        const hash = await crypto.subtle.digest('SHA-256', data);
-        return this.base64URLEncode(new Uint8Array(hash));
-    }
-
-    base64URLEncode(array) {
-        return btoa(String.fromCharCode.apply(null, array))
-            .replace(/\+/g, '-')
-            .replace(/\//g, '_')
-            .replace(/=/g, '');
-    }
 
     async saveConfiguration() {
         const vin = $('#vin').val().trim();
