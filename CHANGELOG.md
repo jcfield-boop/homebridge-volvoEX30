@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.21] - 2025-08-11
+
+### Fixed
+- **DEBUG**: Added custom UI server connectivity test on page load
+- **DEBUG**: Enhanced error handling to detect HTML vs JSON responses
+- **DEBUG**: Better error messages when custom server isn't loading
+- **DEBUG**: Identifies when requests fall back to main Homebridge UI
+
+### Root Cause Investigation
+- Server loading issue persists despite Mercedes pattern implementation
+- Added diagnostics to help identify if server.js is being executed at all
+- Enhanced client-side debugging to show actual server responses
+
 ## [1.2.20] - 2025-08-11
 
 ### Fixed

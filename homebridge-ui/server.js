@@ -230,7 +230,7 @@ class VolvoEX30UiServer extends HomebridgePluginUiServer {
     }
 }
 
-// Direct instantiation
+// Direct instantiation following Mercedes plugin pattern
 console.log('🚀 Creating VolvoEX30UiServer instance...');
 new VolvoEX30UiServer();
 console.log('🎉 Volvo EX30 UI Server started successfully!');

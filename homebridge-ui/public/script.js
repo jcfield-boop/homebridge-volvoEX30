@@ -10,6 +10,9 @@ let currentState = null;
 $(document).ready(() => {
     console.log('🚗 Volvo EX30 UI initialized');
     
+    // Test server connectivity first
+    testServerConnectivity();
+    
     // Load current configuration
     loadCurrentConfig();
     
@@ -22,6 +25,23 @@ $(document).ready(() => {
     $('#saveConfig').on('click', saveConfiguration);
     $('#loadConfig').on('click', loadCurrentConfig);
 });
+
+async function testServerConnectivity() {
+    console.log('🔍 Testing custom UI server connectivity...');
+    
+    try {
+        const response = await makeRequest('/test', 'GET');
+        console.log('✅ Custom UI server is working:', response);
+        
+        if (response.status && response.status.includes('VolvoEX30 UI Server Running')) {
+            console.log('✅ Custom server endpoints are accessible');
+        }
+    } catch (error) {
+        console.error('❌ Custom UI server test failed:', error);
+        console.error('❌ This means requests will fall back to main Homebridge UI');
+        showError('Custom UI server not loading. Check Homebridge logs for server initialization errors.');
+    }
+}
 
 async function startOAuthFlow() {
     console.log('🚀 Starting OAuth flow');
@@ -259,14 +279,24 @@ async function makeRequest(endpoint, method, data = null) {
         
         if (!response.ok) {
             let errorMessage = `HTTP ${response.status}`;
+            let responseText = '';
+            
             try {
-                const errorData = await response.json();
+                responseText = await response.text();
+                console.error(`❌ Error response (${response.status}):`, responseText);
+                
+                // Try to parse as JSON first
+                const errorData = JSON.parse(responseText);
                 errorMessage = errorData.message || errorData.error || errorMessage;
             } catch (e) {
-                // Response might not be JSON
-                const text = await response.text();
-                console.error('❌ Non-JSON error response:', text);
-                errorMessage = 'Server returned non-JSON response. Check server logs.';
+                // Response is not JSON - likely HTML from main Homebridge UI
+                console.error('❌ Non-JSON error response (HTML fallback detected):', responseText.substring(0, 200) + '...');
+                
+                if (responseText.includes('<html') || responseText.includes('<!DOCTYPE')) {
+                    errorMessage = 'Custom UI server not responding. Request falling back to main Homebridge UI. Check server logs.';
+                } else {
+                    errorMessage = `Server error: ${responseText.substring(0, 100)}`;
+                }
             }
             throw new Error(errorMessage);
         }
