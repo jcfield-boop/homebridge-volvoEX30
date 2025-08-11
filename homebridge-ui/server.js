@@ -38,6 +38,12 @@ class VolvoEX30PluginUiServer extends HomebridgePluginUiServer {
 
         const { clientId, clientSecret, region } = request.body;
 
+        console.log('OAuth authorization request received:', {
+            clientId: clientId ? `${clientId.substring(0, 8)}...` : 'missing',
+            clientSecret: clientSecret ? `${clientSecret.substring(0, 8)}...` : 'missing',
+            region: region || 'missing'
+        });
+
         if (!clientId || !clientSecret || !region) {
             throw new RequestError('Missing required parameters: clientId, clientSecret, region', { status: 400 });
         }
@@ -48,11 +54,13 @@ class VolvoEX30PluginUiServer extends HomebridgePluginUiServer {
         }
 
         // Basic validation for clientId and clientSecret format
-        if (typeof clientId !== 'string' || clientId.length < 5) {
+        if (typeof clientId !== 'string' || clientId.length < 3) {
+            console.error('Invalid clientId:', typeof clientId, clientId?.length);
             throw new RequestError('Invalid clientId format', { status: 400 });
         }
         
-        if (typeof clientSecret !== 'string' || clientSecret.length < 5) {
+        if (typeof clientSecret !== 'string' || clientSecret.length < 3) {
+            console.error('Invalid clientSecret:', typeof clientSecret, clientSecret?.length);
             throw new RequestError('Invalid clientSecret format', { status: 400 });
         }
 
