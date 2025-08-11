@@ -1,10 +1,12 @@
 import axios, { AxiosInstance } from 'axios';
 import { Logger } from 'homebridge';
 import { OAuthTokens, VolvoApiConfig } from '../types/config';
+import * as crypto from 'crypto';
 
 export class OAuthHandler {
   private readonly httpClient: AxiosInstance;
   private tokens: OAuthTokens | null = null;
+  private codeVerifier: string | null = null;
 
   constructor(
     private readonly config: VolvoApiConfig,
@@ -25,11 +27,17 @@ export class OAuthHandler {
   }
 
   getAuthorizationUrl(redirectUri: string, state?: string): string {
+    // Generate PKCE parameters
+    this.codeVerifier = this.generateCodeVerifier();
+    const codeChallenge = this.generateCodeChallenge(this.codeVerifier);
+    
     const params = new URLSearchParams({
       response_type: 'code',
       client_id: this.config.clientId,
       redirect_uri: redirectUri,
       scope: 'conve:fuel_status conve:climatization_start_stop conve:unlock conve:lock_status conve:lock openid energy:state:read energy:capability:read conve:battery_charge_level conve:diagnostics_engine_status conve:warnings',
+      code_challenge: codeChallenge,
+      code_challenge_method: 'S256',
     });
 
     if (state) {
@@ -41,12 +49,17 @@ export class OAuthHandler {
 
   async exchangeCodeForTokens(code: string, redirectUri: string): Promise<OAuthTokens> {
     try {
+      if (!this.codeVerifier) {
+        throw new Error('Code verifier not found. Please generate authorization URL first.');
+      }
+      
       const params = new URLSearchParams({
         grant_type: 'authorization_code',
         client_id: this.config.clientId,
         client_secret: this.config.clientSecret,
         code: code,
         redirect_uri: redirectUri,
+        code_verifier: this.codeVerifier,
       });
 
       const response = await this.httpClient.post('/as/token.oauth2', params);
@@ -58,6 +71,7 @@ export class OAuthHandler {
       };
 
       this.tokens = tokens;
+      this.codeVerifier = null; // Clear code verifier after successful exchange
       this.logger.info('Successfully obtained OAuth tokens');
       
       return tokens;
@@ -128,5 +142,14 @@ export class OAuthHandler {
 
   isAuthenticated(): boolean {
     return this.tokens !== null && !this.isTokenExpired(this.tokens);
+  }
+
+  private generateCodeVerifier(): string {
+    return crypto.randomBytes(32).toString('base64url');
+  }
+
+  private generateCodeChallenge(codeVerifier: string): string {
+    const hash = crypto.createHash('sha256').update(codeVerifier).digest();
+    return hash.toString('base64url');
   }
 }

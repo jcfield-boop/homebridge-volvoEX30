@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.5] - 2025-08-11
+
+### Fixed
+- **PKCE OAuth Support**: Added PKCE (Proof Key for Code Exchange) support to OAuth flow
+- **Code Challenge Required**: Fixed "code_challenge is required" error from Volvo OAuth
+- **OAuth Security**: Enhanced OAuth security with proper PKCE parameter generation
+- **Authentication Flow**: OAuth now properly generates code_verifier and code_challenge for secure authentication
+
+### Technical
+- Added crypto-based PKCE parameter generation (code_verifier, code_challenge)
+- Updated authorization URL to include required PKCE parameters
+- Enhanced token exchange to include code_verifier parameter
+- Improved OAuth security compliance with modern standards
+
 ## [1.2.4] - 2025-08-04
 
 ### Added
