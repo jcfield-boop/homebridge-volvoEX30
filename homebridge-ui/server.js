@@ -16,6 +16,12 @@ class VolvoEX30PluginUiServer extends HomebridgePluginUiServer {
             // OAuth session storage
             this.oauthSessions = new Map(); // sessionId -> { codeVerifier, state, clientId, clientSecret, region }
 
+            // Add a simple test endpoint to verify server is running
+            this.onRequest('/test', (request, response) => {
+                console.log('🧪 Test endpoint hit!');
+                response.json({ status: 'VolvoEX30 UI Server Running', timestamp: new Date().toISOString() });
+            });
+
             // Handle OAuth endpoints with error wrapping
             this.onRequest('/oauth/authorize', this.wrapHandler(this.handleAuthorizationRequest.bind(this)));
             this.onRequest('/oauth/token', this.wrapHandler(this.handleTokenExchange.bind(this)));
