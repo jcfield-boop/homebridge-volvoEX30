@@ -1,5 +1,6 @@
 {
   "name": "homebridge-volvo-ex30",
+  "displayName": "Volvo EX30",
   "version": "1.2.17",
   "description": "Homebridge plugin for Volvo EX30 integration using official Volvo APIs",
   "main": "dist/index.js",
@@ -42,6 +43,10 @@
   },
   "peerDependencies": {
     "homebridge": ">=1.6.0"
+  },
+  "funding": {
+    "type": "github",
+    "url": "https://github.com/sponsors/jcfield-boop"
   },
   "repository": {
     "type": "git",
