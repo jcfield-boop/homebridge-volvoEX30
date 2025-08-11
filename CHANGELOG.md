@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.17] - 2025-08-11
+
+### Added
+- Diagnostic `/test` endpoint to verify custom UI server initialization
+- Test endpoint returns JSON status to confirm server is running
+
+### Fixed
+- Identified issue: custom plugin UI server may not be initializing properly
+- Server falling back to main Homebridge UI instead of custom endpoints
+
 ## [1.2.16] - 2025-08-11
 
 ### Added
