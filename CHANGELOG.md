@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.22] - 2025-08-11
+
+### Fixed
+- **DEBUG**: Added raw response text logging before JSON parsing
+- **DEBUG**: Enhanced server-side request/response logging 
+- **DEBUG**: Better error messages for JSON parsing failures
+- **DEBUG**: Shows exact response content that fails to parse
+
+### Root Cause Investigation  
+- Server IS responding (status 200) but response isn't valid JSON
+- Added detailed logging to see what server actually returns
+- Enhanced debugging to identify JSON parsing issues vs server loading issues
+
 ## [1.2.21] - 2025-08-11
 
 ### Fixed

@@ -301,8 +301,20 @@ async function makeRequest(endpoint, method, data = null) {
             throw new Error(errorMessage);
         }
         
-        const result = await response.json();
-        console.log('✅ Request successful:', result);
+        // Get response text first to debug JSON parsing issues
+        const responseText = await response.text();
+        console.log('📄 Raw response text:', responseText);
+        
+        let result;
+        try {
+            result = JSON.parse(responseText);
+            console.log('✅ Request successful:', result);
+        } catch (parseError) {
+            console.error('❌ JSON Parse Error:', parseError);
+            console.error('❌ Raw response that failed to parse:', responseText);
+            throw new Error(`Invalid JSON response: ${parseError.message}. Response: ${responseText.substring(0, 200)}`);
+        }
+        
         return result;
         
     } catch (error) {

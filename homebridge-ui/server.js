@@ -31,6 +31,8 @@ class VolvoEX30UiServer extends HomebridgePluginUiServer {
 
     async handleAuthCode(request) {
         console.log('🔐 Handling auth code generation');
+        console.log('📥 Request method:', request.method);
+        console.log('📥 Request body:', request.body);
         
         const { clientId, region = 'eu' } = request.body;
         
@@ -75,11 +77,14 @@ class VolvoEX30UiServer extends HomebridgePluginUiServer {
             
             console.log(`✅ Generated auth URL for session ${sessionId}`);
             
-            return {
+            const response = {
                 authUrl,
                 sessionId,
                 state
             };
+            
+            console.log('📤 Returning response:', response);
+            return response;
             
         } catch (error) {
             console.error('❌ Auth code generation failed:', error);
