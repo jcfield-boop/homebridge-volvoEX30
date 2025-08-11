@@ -7,90 +7,88 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.2.7] - 2025-08-11
 
+### Added
+- Web Crypto API-based PKCE generation to custom UI frontend
+- Enhanced credential format validation to prevent common setup errors
+- Better error messages for OAuth issues (expired codes, PKCE requirements)
+
+### Changed
+- Updated custom UI to use correct `conve:*` OAuth scopes matching main codebase
+- Enhanced validation and error handling for API credentials in custom UI
+- Improved user experience with seamless, secure OAuth setup in custom UI
+
 ### Fixed
-- **Custom UI PKCE Support**: Complete PKCE implementation in Homebridge Config UI X custom interface
-- **OAuth Flow Integration**: Custom UI now properly generates and uses PKCE parameters for secure authentication
-- **Legacy Scope Compatibility**: Updated custom UI to use correct `conve:*` OAuth scopes matching main codebase
-- **Credential Validation**: Enhanced validation and error handling for API credentials in custom UI
-- **Redirect URI Consistency**: Fixed redirect URI handling across all OAuth implementations
+- Complete PKCE implementation in Homebridge Config UI X custom interface
+- Custom UI now properly generates and uses PKCE parameters for secure authentication
+- Redirect URI handling consistency across all OAuth implementations
+- "code_challenge is required" error in custom UI OAuth flow
 
-### Enhanced
-- **User Experience**: Custom UI now provides seamless, secure OAuth setup with better error messages
-- **Security**: All OAuth flows (main code, standalone script, custom UI) now use PKCE for enhanced security
-- **Error Handling**: Improved error messages for common OAuth issues (expired codes, PKCE requirements)
-- **Validation**: Added credential format validation to prevent common setup errors
-
-### Technical
-- Added Web Crypto API-based PKCE generation to custom UI frontend
+### Security
+- All OAuth flows (main code, standalone script, custom UI) now use PKCE for enhanced security
 - Updated custom UI server endpoints to support PKCE token exchange
 - Synchronized OAuth scopes across all implementations
-- Enhanced error handling with specific OAuth failure detection
 
 ## [1.2.6] - 2025-08-11
 
-### Fixed
-- **OAuth Setup Script**: Updated standalone OAuth setup script to include PKCE support
-- **Complete PKCE Implementation**: Both TypeScript and JavaScript OAuth handlers now support PKCE
-- **Script Consistency**: OAuth setup script now matches main codebase implementation
+### Added
+- PKCE support to `scripts/oauth-setup.js` standalone script
 
-### Technical
-- Added PKCE support to `scripts/oauth-setup.js` standalone script
+### Changed
 - Synchronized PKCE implementation across all OAuth handlers
-- Fixed discrepancy between compiled and standalone OAuth code
+
+### Fixed
+- OAuth setup script now includes PKCE support
+- Discrepancy between compiled TypeScript and standalone JavaScript OAuth code
+- Script consistency - OAuth setup script now matches main codebase implementation
 
 ## [1.2.5] - 2025-08-11
 
-### Fixed
-- **PKCE OAuth Support**: Added PKCE (Proof Key for Code Exchange) support to OAuth flow
-- **Code Challenge Required**: Fixed "code_challenge is required" error from Volvo OAuth
-- **OAuth Security**: Enhanced OAuth security with proper PKCE parameter generation
-- **Authentication Flow**: OAuth now properly generates code_verifier and code_challenge for secure authentication
+### Added
+- PKCE (Proof Key for Code Exchange) support to OAuth flow
+- Crypto-based PKCE parameter generation (code_verifier, code_challenge)
+- Required PKCE parameters to authorization URL
+- Code verifier parameter to token exchange
 
-### Technical
-- Added crypto-based PKCE parameter generation (code_verifier, code_challenge)
-- Updated authorization URL to include required PKCE parameters
-- Enhanced token exchange to include code_verifier parameter
+### Changed
+- Enhanced OAuth security with proper PKCE parameter generation
 - Improved OAuth security compliance with modern standards
+
+### Fixed
+- "code_challenge is required" error from Volvo OAuth
+- OAuth authentication flow now properly generates PKCE parameters for secure authentication
 
 ## [1.2.4] - 2025-08-04
 
 ### Added
-- **Legacy OAuth Scope Support**: Added compatibility with legacy Connected Vehicle API scopes
-- **Flexible Redirect URIs**: Support for custom redirect URIs including GitHub repository URLs
-- **API Fallback System**: Graceful fallback from modern Energy API v2 to legacy Connected Vehicle API v1
-
-### Fixed
-- **OAuth Scope Compatibility**: Updated scopes to match `conve:*` format for approved Volvo applications
-- **Legacy API Integration**: Map legacy API responses to modern format for seamless compatibility
-- **Custom Redirect Handling**: Enhanced OAuth setup to handle non-localhost redirect URIs
-
-### Changed
-- **OAuth Scopes**: Updated from modern format to legacy format for broader compatibility
-- **API Endpoints**: Use Connected Vehicle API v1 endpoints with fallback capability
-- **Setup Process**: OAuth setup now prompts for custom redirect URIs
-
-### Technical
+- Compatibility with legacy Connected Vehicle API scopes
+- Support for custom redirect URIs including GitHub repository URLs
+- Graceful fallback from modern Energy API v2 to legacy Connected Vehicle API v1
 - Legacy API response mapping to maintain interface compatibility
 - Enhanced error handling for unsupported legacy API features
+
+### Changed
+- OAuth scopes updated from modern format to legacy `conve:*` format for broader compatibility
+- API endpoints now use Connected Vehicle API v1 endpoints with fallback capability
+- OAuth setup process now prompts for custom redirect URIs
 - Backward compatibility maintained for existing configurations
+
+### Fixed
+- OAuth scope compatibility updated to match `conve:*` format for approved Volvo applications
+- Legacy API integration now maps responses to modern format for seamless compatibility
+- Custom redirect handling enhanced for non-localhost redirect URIs
 
 ## [1.2.2] - 2025-08-03
 
-### Fixed
-- **OAuth Redirect URI**: Changed from localhost to GitHub repository URL to comply with Volvo API requirements
-- **Manual Code Entry**: Restored manual code entry flow since Volvo doesn't allow localhost redirects
-- **Clear Instructions**: Enhanced UI with step-by-step guidance for code extraction from browser address bar
-- **Production Compliance**: Updated redirect URI to meet Volvo Developer Portal publishing requirements
-
 ### Changed
-- **Redirect URI**: Now uses `https://github.com/jcfield-boop/homebridge-volvoEX30` instead of localhost
-- **User Flow**: Back to 3-step process with clear manual code extraction instructions
-- **Error Handling**: Better guidance on what to expect after authorization (error page is normal)
+- OAuth redirect URI changed from localhost to GitHub repository URL to comply with Volvo API requirements
+- Restored manual code entry flow since Volvo doesn't allow localhost redirects
+- Enhanced UI with step-by-step guidance for code extraction from browser address bar
 
-### Technical
-- Removed automatic callback polling (not compatible with non-localhost redirects)
-- Added "I Have the Code" button for better user flow control
-- Enhanced error page explanation and code extraction guidance
+### Fixed
+- Redirect URI updated to meet Volvo Developer Portal publishing requirements
+
+### Removed
+- Automatic callback polling (not compatible with non-localhost redirects)
 
 ## [1.2.1] - 2025-08-03
 
