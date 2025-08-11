@@ -5,30 +5,45 @@ const crypto = require('crypto');
 
 class VolvoEX30PluginUiServer extends HomebridgePluginUiServer {
     constructor() {
-        super();
+        try {
+            console.log('🚀 Initializing VolvoEX30PluginUiServer...');
+            super();
 
-        // OAuth callback server
-        this.oauthServer = null;
-        this.oauthCallbackData = null;
-        
-        // OAuth session storage (following Volvo's pattern)
-        this.oauthSessions = new Map(); // sessionId -> { codeVerifier, state, clientId, clientSecret, region }
+            // OAuth callback server
+            this.oauthServer = null;
+            this.oauthCallbackData = null;
+            
+            // OAuth session storage (following Volvo's pattern)
+            this.oauthSessions = new Map(); // sessionId -> { codeVerifier, state, clientId, clientSecret, region }
 
-        // Handle OAuth authorization URL generation (following Volvo's pattern)
-        this.onRequest('/oauth/authorize', this.handleAuthorizationRequest.bind(this));
-        
-        // Handle OAuth token exchange
-        this.onRequest('/oauth/token', this.handleTokenExchange.bind(this));
-        
-        // Handle OAuth callback server start/stop
-        this.onRequest('/oauth/start-server', this.startOAuthServer.bind(this));
-        this.onRequest('/oauth/stop-server', this.stopOAuthServer.bind(this));
-        this.onRequest('/oauth/check-callback', this.checkOAuthCallback.bind(this));
-        
-        // Handle configuration save/load
-        this.onRequest('/config', this.handleConfig.bind(this));
+            // Handle OAuth authorization URL generation (following Volvo's pattern)
+            this.onRequest('/oauth/authorize', this.handleAuthorizationRequest.bind(this));
+            
+            console.log('✅ VolvoEX30PluginUiServer initialized - OAuth endpoints registered');
+            
+            // Log all requests for debugging
+            this.onRequest('*', (request, response, next) => {
+                console.log(`📡 UI Server request: ${request.method} ${request.url}`);
+                if (next) next();
+            });
+            
+            // Handle OAuth token exchange
+            this.onRequest('/oauth/token', this.handleTokenExchange.bind(this));
+            
+            // Handle OAuth callback server start/stop
+            this.onRequest('/oauth/start-server', this.startOAuthServer.bind(this));
+            this.onRequest('/oauth/stop-server', this.stopOAuthServer.bind(this));
+            this.onRequest('/oauth/check-callback', this.checkOAuthCallback.bind(this));
+            
+            // Handle configuration save/load
+            this.onRequest('/config', this.handleConfig.bind(this));
 
-        this.ready();
+            this.ready();
+            console.log('🎉 VolvoEX30PluginUiServer ready!');
+        } catch (error) {
+            console.error('💥 Error initializing VolvoEX30PluginUiServer:', error);
+            throw error;
+        }
     }
 
     async handleAuthorizationRequest(request, response) {
