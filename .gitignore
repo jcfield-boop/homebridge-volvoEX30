@@ -141,3 +141,4 @@ Thumbs.db
 
 # OAuth test session files (contain PKCE parameters)
 .oauth-session.json
+.production-oauth-session.json

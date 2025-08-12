@@ -5,6 +5,38 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.26] - 2025-08-12
+
+### Added
+- **PRODUCTION OAuth Setup**: Complete production OAuth flow for real EX30 vehicles
+- **Production Setup Script**: `scripts/production-oauth-setup.js` for real vehicle authentication
+- **Comprehensive Documentation**: Updated CLAUDE.md with official Volvo reference material
+- **Production Setup Guide**: Detailed guide for accessing real EX30 vehicles vs demo vehicles
+
+### Fixed
+- **Developer vs Production Separation**: Clear distinction between sandbox and production environments
+- **Real Vehicle Access**: Tools and documentation for connecting to actual EX30 vehicles
+- **Production Requirements**: Comprehensive guide for production application approval
+
+### Changed
+- **Documentation Structure**: Updated CLAUDE.md with official Volvo OAuth2 patterns and API specifications
+- **Security Guidelines**: Enhanced security considerations for production use
+- **Environment Configuration**: Support for production credentials via environment variables
+
+### Technical Implementation
+- Production OAuth script with endpoint discovery and PKCE compliance
+- Comprehensive validation for production vs developer configuration
+- Real vehicle testing with Energy API v2 validation
+- Enhanced error handling and troubleshooting for production issues
+
+### Developer Resources
+- Official Volvo OAuth2 sample integration patterns
+- Energy API v2 specification compliance
+- Production application setup requirements
+- Comprehensive troubleshooting guide for real vehicle integration
+
+This release provides the complete toolchain for transitioning from demo/sandbox testing to production use with real EX30 vehicles.
+
 ## [1.2.25] - 2025-08-12
 
 ### Fixed
