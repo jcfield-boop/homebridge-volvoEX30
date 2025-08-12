@@ -5,6 +5,8 @@
 
 const axios = require('axios');
 const crypto = require('crypto');
+const fs = require('fs');
+const path = require('path');
 
 // Your test credentials (LOCAL TESTING ONLY)
 const TEST_CREDENTIALS = {
@@ -26,6 +28,42 @@ class OAuthTester {
     constructor() {
         this.codeVerifier = null;
         this.state = null;
+        this.sessionFile = path.join(__dirname, '.oauth-session.json');
+    }
+
+    saveSession(sessionData) {
+        try {
+            fs.writeFileSync(this.sessionFile, JSON.stringify(sessionData, null, 2));
+            console.log('💾 Saved PKCE session data for token exchange');
+        } catch (error) {
+            console.warn('⚠️  Could not save session data:', error.message);
+        }
+    }
+
+    loadSession() {
+        try {
+            if (fs.existsSync(this.sessionFile)) {
+                const sessionData = JSON.parse(fs.readFileSync(this.sessionFile, 'utf8'));
+                this.codeVerifier = sessionData.codeVerifier;
+                this.state = sessionData.state;
+                console.log('📂 Loaded PKCE session data from previous run');
+                return sessionData;
+            }
+        } catch (error) {
+            console.warn('⚠️  Could not load session data:', error.message);
+        }
+        return null;
+    }
+
+    cleanupSession() {
+        try {
+            if (fs.existsSync(this.sessionFile)) {
+                fs.unlinkSync(this.sessionFile);
+                console.log('🗑️  Cleaned up session file');
+            }
+        } catch (error) {
+            console.warn('⚠️  Could not cleanup session file:', error.message);
+        }
     }
 
     generateCodeVerifier() {
@@ -56,6 +94,14 @@ class OAuthTester {
         console.log(`   Code Verifier: ${this.codeVerifier.substring(0, 16)}...`);
         console.log(`   Code Challenge: ${codeChallenge.substring(0, 16)}...`);
         console.log(`   State: ${this.state}\n`);
+
+        // Save session for token exchange
+        this.saveSession({
+            codeVerifier: this.codeVerifier,
+            state: this.state,
+            codeChallenge: codeChallenge,
+            timestamp: Date.now()
+        });
 
         // Test different configurations with your actual approved scopes
         const approvedScopes = 'conve:fuel_status conve:climatization_start_stop conve:unlock conve:lock_status conve:lock openid energy:state:read energy:capability:read conve:battery_charge_level conve:diagnostics_engine_status conve:warnings';
@@ -125,6 +171,20 @@ class OAuthTester {
     async exchangeCodeForTokens(authCode) {
         console.log('🔄 Exchanging authorization code for tokens...\n');
         
+        // Load PKCE parameters from previous session
+        const session = this.loadSession();
+        if (!session || !this.codeVerifier) {
+            console.error('💥 No PKCE session found! You must run the script without arguments first to generate authorization URLs.');
+            console.error('   1. Run: node test-oauth.js');
+            console.error('   2. Use generated URL to authorize');
+            console.error('   3. Run: node test-oauth.js [CODE]');
+            throw new Error('Missing PKCE session data');
+        }
+        
+        console.log('✅ Using PKCE parameters from session:');
+        console.log(`   Code Verifier: ${this.codeVerifier.substring(0, 16)}...`);
+        console.log(`   Session Age: ${Math.round((Date.now() - session.timestamp) / 1000)} seconds\n`);
+        
         // Test both endpoints since we don't know which one worked for authorization
         const endpoints = [
             { name: 'EU', baseUrl: 'https://volvoid.eu.volvocars.com' },
@@ -176,6 +236,9 @@ class OAuthTester {
                 
                 console.log('🎯 REFRESH TOKEN FOR HOMEBRIDGE CONFIG:');
                 console.log(tokenResponse.data.refresh_token);
+                
+                // Clean up session file after successful exchange
+                this.cleanupSession();
                 
                 return tokenResponse.data;
 
@@ -242,12 +305,12 @@ class OAuthTester {
             {
                 name: 'Capabilities',
                 url: `https://api.volvocars.com/energy/v2/vehicles/${TEST_CREDENTIALS.vin}/capabilities`,
-                description: 'Check what your EX30 supports'
+                description: 'Check what Energy API v2 features your EX30 supports'
             },
             {
                 name: 'Energy State', 
                 url: `https://api.volvocars.com/energy/v2/vehicles/${TEST_CREDENTIALS.vin}/state`,
-                description: 'Get current battery/charging status'
+                description: 'Get complete energy state with all charging metrics'
             }
         ];
         

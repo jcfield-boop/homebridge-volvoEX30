@@ -138,3 +138,6 @@ Thumbs.db
 
 # Homebridge specific
 *.orig
+
+# OAuth test session files (contain PKCE parameters)
+.oauth-session.json

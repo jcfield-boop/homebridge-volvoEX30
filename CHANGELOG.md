@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.25] - 2025-08-12
+
+### Fixed
+- **CRITICAL**: Updated custom UI server OAuth2 flow to follow official Volvo implementation pattern
+- Enhanced PKCE implementation with proper RFC 7636 compliance
+- Added OpenID Connect endpoint discovery following Volvo's official sample
+- Improved session management and error handling in custom UI server
+- Added health check endpoint (`/health`) for better debugging
+
+### Changed
+- OAuth2 flow now uses discovered endpoints from Volvo ID `.well-known/openid_configuration`
+- Enhanced authorization URL generation with proper endpoint discovery
+- Token exchange now uses discovered token endpoint for better reliability
+- Improved debugging and logging throughout OAuth flow
+
+### Technical Implementation
+- Follows official Volvo developer portal OAuth2 sample pattern
+- Added endpoint discovery via OpenID Connect well-known configuration
+- Enhanced PKCE code verifier and challenge generation with better compliance
+- Better session data management including discovered endpoints
+- Comprehensive error handling and logging for debugging custom UI server loading issues
+
 ## [1.2.23] - 2025-08-12
 
 ### Changed

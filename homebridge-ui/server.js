@@ -19,7 +19,19 @@ class VolvoEX30UiServer extends HomebridgePluginUiServer {
         this.onRequest('/authToken', this.handleAuthToken.bind(this));
         this.onRequest('/config', this.handleConfig.bind(this));
 
-        // Simple test endpoint
+        // Health check endpoint
+        this.onRequest('/health', async () => {
+            console.log('🏥 Health check endpoint called');
+            return { 
+                status: 'Volvo EX30 UI Server Running', 
+                timestamp: new Date().toISOString(),
+                version: '1.2.24',
+                activeSessions: this.authSessions.size,
+                uptime: process.uptime()
+            };
+        });
+
+        // Simple test endpoint for debugging
         this.onRequest('/test', async () => {
             console.log('🧪 Test endpoint called');
             return { status: 'Volvo EX30 UI Server Running', timestamp: new Date().toISOString() };
@@ -41,6 +53,9 @@ class VolvoEX30UiServer extends HomebridgePluginUiServer {
         }
 
         try {
+            // Discover OpenID endpoints following official Volvo sample
+            const endpoints = await this.discoverVolvoEndpoints(region);
+            
             // Generate PKCE parameters
             const codeVerifier = this.generateCodeVerifier();
             const codeChallenge = this.generateCodeChallenge(codeVerifier);
@@ -53,14 +68,14 @@ class VolvoEX30UiServer extends HomebridgePluginUiServer {
                 state,
                 clientId,
                 region,
+                endpoints,
                 createdAt: Date.now()
             });
 
             // Clean old sessions
             this.cleanupOldSessions();
 
-            // Build Volvo authorization URL
-            const baseUrl = region === 'na' ? 'https://volvoid.volvocars.com' : 'https://volvoid.eu.volvocars.com';
+            // Use discovered authorization endpoint
             const redirectUri = 'https://github.com/jcfield-boop/homebridge-volvoEX30';
             
             const authParams = new URLSearchParams({
@@ -73,7 +88,7 @@ class VolvoEX30UiServer extends HomebridgePluginUiServer {
                 state: state
             });
 
-            const authUrl = `${baseUrl}/as/authorization.oauth2?${authParams.toString()}`;
+            const authUrl = `${endpoints.authorization_endpoint}?${authParams.toString()}`;
             
             console.log(`✅ Generated auth URL for session ${sessionId}`);
             
@@ -109,10 +124,9 @@ class VolvoEX30UiServer extends HomebridgePluginUiServer {
             throw new RequestError('Invalid or expired session', { status: 400 });
         }
 
-        const { codeVerifier, clientId, region } = session;
+        const { codeVerifier, clientId, region, endpoints } = session;
 
         try {
-            const baseUrl = region === 'na' ? 'https://volvoid.volvocars.com' : 'https://volvoid.eu.volvocars.com';
             const redirectUri = 'https://github.com/jcfield-boop/homebridge-volvoEX30';
             
             const tokenParams = new URLSearchParams({
@@ -124,9 +138,9 @@ class VolvoEX30UiServer extends HomebridgePluginUiServer {
                 code_verifier: codeVerifier
             });
 
-            console.log(`🌍 Making token request to: ${baseUrl}/as/token.oauth2`);
+            console.log(`🌍 Making token request to: ${endpoints.token_endpoint}`);
 
-            const tokenResponse = await axios.post(`${baseUrl}/as/token.oauth2`, tokenParams, {
+            const tokenResponse = await axios.post(endpoints.token_endpoint, tokenParams, {
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
                     'Accept': 'application/json'
@@ -210,6 +224,8 @@ class VolvoEX30UiServer extends HomebridgePluginUiServer {
     }
 
     generateCodeVerifier() {
+        // Generate 128 bytes of random data, base64url encode
+        // This follows RFC 7636 specification for PKCE
         return crypto.randomBytes(32)
             .toString('base64')
             .replace(/\+/g, '-')
@@ -218,11 +234,36 @@ class VolvoEX30UiServer extends HomebridgePluginUiServer {
     }
 
     generateCodeChallenge(codeVerifier) {
+        // SHA256 hash of code verifier, base64url encoded
+        // This follows RFC 7636 specification for PKCE
         const hash = crypto.createHash('sha256').update(codeVerifier).digest();
         return hash.toString('base64')
             .replace(/\+/g, '-')
             .replace(/\//g, '_')
             .replace(/=/g, '');
+    }
+
+    async discoverVolvoEndpoints(region = 'eu') {
+        // Discover Volvo ID OpenID configuration
+        // Following official Volvo sample pattern
+        const baseUrl = region === 'na' ? 'https://volvoid.volvocars.com' : 'https://volvoid.eu.volvocars.com';
+        
+        try {
+            const response = await axios.get(`${baseUrl}/.well-known/openid_configuration`);
+            console.log('🔍 Discovered Volvo ID endpoints:', {
+                authorization_endpoint: response.data.authorization_endpoint,
+                token_endpoint: response.data.token_endpoint,
+                issuer: response.data.issuer
+            });
+            return response.data;
+        } catch (error) {
+            console.warn('⚠️ Failed to discover OpenID endpoints, using defaults:', error.message);
+            return {
+                authorization_endpoint: `${baseUrl}/as/authorization.oauth2`,
+                token_endpoint: `${baseUrl}/as/token.oauth2`,
+                issuer: baseUrl
+            };
+        }
     }
 
     cleanupOldSessions() {
