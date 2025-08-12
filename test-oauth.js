@@ -10,7 +10,7 @@ const crypto = require('crypto');
 const TEST_CREDENTIALS = {
     vin: 'YV4EK3ZL4SS150793',
     clientId: 'dc-s68ezw2gmvo5nmrmfre3j4c28',
-    clientSecret: 'h5Wvv1t6XJjnmGGdUJydKJ',
+    clientSecret: 'AAZIK89F1JF1BKCiJ3yuaW',
     vccApiKey: '2e86956bc5b941dfb861e878a6c3dd19',
     region: 'eu' // Try 'na' if 'eu' doesn't work
 };
@@ -237,24 +237,42 @@ class OAuthTester {
     async testApiCall(accessToken) {
         console.log('🧪 Testing API call with access token...');
         
-        try {
-            const apiResponse = await axios.get(`https://api.volvocars.com/energy/v1/vehicles/${TEST_CREDENTIALS.vin}/battery-charge-level`, {
-                headers: {
-                    'Authorization': `Bearer ${accessToken}`,
-                    'VCC-API-Key': TEST_CREDENTIALS.vccApiKey,
-                    'Accept': 'application/json'
-                },
-                timeout: 15000
-            });
-            
-            console.log('✅ API call successful!');
-            console.log('📊 Battery data:', apiResponse.data);
-            
-        } catch (error) {
-            console.log('⚠️  API call failed (this might be expected):');
-            console.log('   Status:', error.response?.status);
-            console.log('   Error:', error.response?.data);
-            console.log('   (This could be normal if EX30 isn\'t supported by this specific endpoint)');
+        // Test both capabilities and energy state using Energy API v2
+        const endpoints = [
+            {
+                name: 'Capabilities',
+                url: `https://api.volvocars.com/energy/v2/vehicles/${TEST_CREDENTIALS.vin}/capabilities`,
+                description: 'Check what your EX30 supports'
+            },
+            {
+                name: 'Energy State', 
+                url: `https://api.volvocars.com/energy/v2/vehicles/${TEST_CREDENTIALS.vin}/state`,
+                description: 'Get current battery/charging status'
+            }
+        ];
+        
+        for (const endpoint of endpoints) {
+            try {
+                console.log(`\n📡 Testing ${endpoint.name}: ${endpoint.description}`);
+                
+                const apiResponse = await axios.get(endpoint.url, {
+                    headers: {
+                        'Authorization': `Bearer ${accessToken}`,
+                        'VCC-API-Key': TEST_CREDENTIALS.vccApiKey,
+                        'Accept': 'application/json'
+                    },
+                    timeout: 15000
+                });
+                
+                console.log(`✅ ${endpoint.name} API call successful!`);
+                console.log(`📊 ${endpoint.name} data:`, JSON.stringify(apiResponse.data, null, 2));
+                
+            } catch (error) {
+                console.log(`⚠️  ${endpoint.name} API call failed:`);
+                console.log('   Status:', error.response?.status);
+                console.log('   Error:', error.response?.data);
+                console.log(`   (This could be normal if EX30 isn't supported by ${endpoint.name})`);
+            }
         }
     }
 }

@@ -18,7 +18,7 @@ export class VolvoApiClient {
     private readonly logger: Logger,
   ) {
     this.httpClient = axios.create({
-      baseURL: config.baseUrl,
+      baseURL: 'https://api.volvocars.com/energy/v2',
       timeout: 30000,
       headers: {
         'Accept': 'application/json',
@@ -134,13 +134,13 @@ export class VolvoApiClient {
 
     try {
       this.logger.debug(`Getting capabilities for VIN: ${vin}`);
-      // Use legacy Connected Vehicle API endpoint for capabilities
-      const response = await this.httpClient.get<Capabilities>(`/connected-vehicle/v1/vehicles/${vin}/capabilities`);
+      // Use Energy API v2 endpoint for capabilities
+      const response = await this.httpClient.get<Capabilities>(`/vehicles/${vin}/capabilities`);
       
       this.cache.set(cacheKey, response.data, 3600);
       return response.data;
     } catch (error) {
-      // Fallback: assume basic capabilities are available for legacy scopes
+      // Fallback: assume basic capabilities are available
       this.logger.warn('Failed to get capabilities, assuming basic support:', error);
       const basicCapabilities: Capabilities = {
         getEnergyState: {
@@ -173,82 +173,13 @@ export class VolvoApiClient {
 
     try {
       this.logger.debug(`Getting energy state for VIN: ${vin}`);
-      // Use legacy Connected Vehicle API endpoints to get battery data
-      const [batteryResponse, chargingResponse] = await Promise.all([
-        this.httpClient.get(`/connected-vehicle/v1/vehicles/${vin}/battery-charge-level`),
-        this.httpClient.get(`/connected-vehicle/v1/vehicles/${vin}/fuel-status`)
-      ]);
+      // Use Energy API v2 endpoint to get complete energy state
+      const response = await this.httpClient.get<EnergyState>(`/vehicles/${vin}/state`);
       
-      // Map legacy response to expected format
-      const energyState: EnergyState = {
-        batteryChargeLevel: batteryResponse.data.batteryChargeLevel ? {
-          status: 'OK' as const,
-          value: batteryResponse.data.batteryChargeLevel.value,
-          updatedAt: batteryResponse.data.batteryChargeLevel.timestamp || new Date().toISOString(),
-          unit: '%'
-        } : {
-          status: 'ERROR' as const,
-          code: 'NO_DATA',
-          message: 'Battery level unavailable'
-        },
-        chargingStatus: chargingResponse.data.chargingStatus ? {
-          status: 'OK' as const,
-          value: chargingResponse.data.chargingStatus.value || 'IDLE',
-          updatedAt: chargingResponse.data.chargingStatus.timestamp || new Date().toISOString()
-        } : {
-          status: 'ERROR' as const,
-          code: 'NO_DATA',
-          message: 'Charging status unavailable'
-        },
-        electricRange: chargingResponse.data.electricRange ? {
-          status: 'OK' as const,
-          value: chargingResponse.data.electricRange.value,
-          updatedAt: chargingResponse.data.electricRange.timestamp || new Date().toISOString(),
-          unit: 'km'
-        } : {
-          status: 'ERROR' as const,
-          code: 'NO_DATA',
-          message: 'Electric range unavailable'
-        },
-        chargerConnectionStatus: {
-          status: 'ERROR' as const,
-          code: 'NOT_SUPPORTED',
-          message: 'Charger connection status not available in legacy API'
-        },
-        chargingType: {
-          status: 'ERROR' as const,
-          code: 'NOT_SUPPORTED',
-          message: 'Charging type not available in legacy API'
-        },
-        chargerPowerStatus: {
-          status: 'ERROR' as const,
-          code: 'NOT_SUPPORTED',
-          message: 'Charger power status not available in legacy API'
-        },
-        estimatedChargingTimeToTargetBatteryChargeLevel: {
-          status: 'ERROR' as const,
-          code: 'NOT_SUPPORTED',
-          message: 'Estimated charging time not available in legacy API'
-        },
-        targetBatteryChargeLevel: {
-          status: 'ERROR' as const,
-          code: 'NOT_SUPPORTED',
-          message: 'Target battery charge level not available in legacy API'
-        },
-        chargingCurrentLimit: {
-          status: 'ERROR' as const,
-          code: 'NOT_SUPPORTED',
-          message: 'Charging current limit not available in legacy API'
-        },
-        chargingPower: {
-          status: 'ERROR' as const,
-          code: 'NOT_SUPPORTED',
-          message: 'Charging power not available in legacy API'
-        }
-      };
+      this.logger.debug('Energy API response:', JSON.stringify(response.data, null, 2));
       
-      this.cache.set(cacheKey, energyState, 60);
-      return energyState;
+      this.cache.set(cacheKey, response.data, 60);
+      return response.data;
     } catch (error) {
       this.logger.error('Failed to get energy state:', error);
       throw error;

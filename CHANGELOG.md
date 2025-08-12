@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.23] - 2025-08-12
+
+### Changed
+- **BREAKING**: Migrated from legacy Connected Vehicle API v1 to modern Energy API v2
+- API base URL updated to `https://api.volvocars.com/energy/v2`
+- Endpoints updated to `/vehicles/{vin}/capabilities` and `/vehicles/{vin}/state`
+- Removed legacy API mapping code in favor of native Energy API v2 responses
+
+### Improved
+- **Performance**: Direct Energy API v2 integration eliminates response mapping overhead
+- **Data Quality**: Access to complete energy state data structure as designed by Volvo
+- **Feature Support**: Full support for all Energy API v2 features including charging power, connection status, and advanced charging metrics
+- **API Compliance**: Implementation now matches official Volvo Energy API specification exactly
+
+### Technical Details
+- Energy state endpoint now returns native API response with proper status/value/updatedAt structure
+- Capabilities endpoint provides accurate feature support detection per vehicle
+- Enhanced logging shows complete API responses for better debugging
+- Maintained OAuth scopes compatibility with both legacy `conve:*` and modern `energy:*` scopes
+
+This release aligns the plugin with Volvo's official Energy API v2 specification and should provide more reliable and comprehensive vehicle data.
+
 ## [1.2.22] - 2025-08-11
 
 ### Fixed
