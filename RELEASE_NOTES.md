@@ -1,5 +1,49 @@
 # Release Notes
 
+## v1.2.28 - Improved User Experience & Documentation Alignment
+
+### 🔧 Fixed Outdated Error Messages
+- **Before**: Complex SSH instructions in error logs that nobody wanted to follow
+- **After**: Direct Postman setup instructions that get you working in 2 minutes
+- **Impact**: No more confusion when users see missing token errors
+
+### 🎯 Enhanced Custom UI
+- **New Section**: "Alternative: Quick Postman Setup" prominently displayed in green
+- **Manual Token Entry**: Direct paste field for refresh tokens from Postman
+- **Collapsible Guide**: Step-by-step Postman instructions built right into the UI
+- **Visual Priority**: Manual approach now highlighted as "Recommended for Personal Use"
+
+### 📋 What Users See Now
+**Error Message (Old)**:
+```
+🔧 To get your refresh token, run the OAuth setup:
+   1. SSH into your Raspberry Pi
+   2. cd /usr/local/lib/node_modules/homebridge-volvo-ex30
+   3. npm run oauth-setup
+   ...
+```
+
+**Error Message (New)**:
+```  
+🔑 QUICK SETUP - Get your refresh token with Postman:
+   1. Download Postman (https://www.postman.com/downloads/)
+   2. Create new request → Authorization tab → OAuth 2.0
+   3. Configure: Grant Type "Authorization Code (With PKCE)"
+   ...
+  10. Click "Get New Access Token" → Login → Copy refresh_token
+```
+
+### 💡 Why This Matters
+- **Consistency**: Error messages now match the README's Method 3 approach
+- **User Success**: No more "I don't know how to SSH" support requests
+- **Quick Wins**: Users can get their EX30 in HomeKit within minutes, not hours
+- **Less Friction**: Manual approach is now the obvious first choice
+
+### 🚀 Three Setup Methods (In Order of Ease)
+1. **Method 3 (Manual/Postman)** - ⭐ **Now prominently featured everywhere**
+2. **Method 1 (Custom UI OAuth)** - Still available for automated flow
+3. **Method 2 (SSH OAuth)** - Advanced users only
+
 ## v1.2.27 - Enhanced Token Rotation & Manual Setup
 
 ### 🔄 Token Rotation Revolution

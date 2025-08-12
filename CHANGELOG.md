@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.28] - 2025-08-12
+
+### Fixed
+- **Outdated Error Messages**: Updated platform error messages to show Method 3 (Postman) setup instead of complex SSH instructions
+- **User Experience**: Error logs now provide immediate, actionable Postman setup instructions
+- **Documentation Alignment**: Error messages now match the recommended Method 3 approach in README
+
+### Added
+- **Enhanced Custom UI**: New "Alternative: Quick Postman Setup" section in Homebridge Config UI X
+- **Manual Token Entry**: Direct token input field in custom UI for users who get tokens via Postman
+- **Collapsible Instructions**: Detailed step-by-step Postman setup guide within the UI
+- **Visual Hierarchy**: Green-highlighted section emphasizing the manual approach as recommended
+
+### Changed
+- **Error Message Content**: Platform startup errors now show 10-step Postman process instead of 5-step SSH process
+- **Custom UI Layout**: Added prominent manual setup section alongside existing automated OAuth flow
+- **User Guidance**: Clear explanation of why manual setup works well for personal use (10K daily API calls)
+
+### Technical Implementation
+- Updated platform.ts error messages with complete Postman OAuth2 configuration
+- Added manual token validation and integration in custom UI JavaScript
+- Enhanced UI with Bootstrap accordion for organized instruction display
+- Maintained backward compatibility with existing OAuth flows
+
 ## [1.2.27] - 2025-08-12
 
 ### Added

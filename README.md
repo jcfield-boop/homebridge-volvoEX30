@@ -40,11 +40,12 @@ npm install -g homebridge-volvo-ex30
 3. **Click "Settings"** on the Volvo EX30 plugin
 4. **Use the custom interface** to:
    - Enter your API credentials
-   - Complete OAuth authorization with one-click
+   - **NEW**: Use the "Quick Postman Setup" section for manual token entry
+   - OR complete OAuth authorization with automated one-click flow
    - Configure all settings visually
    - Save directly to Homebridge
 
-The custom UI handles the entire OAuth flow with secure PKCE authentication - no SSH or command line needed!
+The custom UI now offers **both automated OAuth AND manual token entry** - choose what works best for you!
 
 **✅ Security Features in v1.2.7:**
 - PKCE (Proof Key for Code Exchange) support for enhanced security
