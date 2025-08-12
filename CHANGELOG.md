@@ -5,6 +5,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.27] - 2025-08-12
+
+### Added
+- **Robust Token Rotation**: Full support for OAuth refresh token rotation with dual storage strategy
+- **Manual Setup Guide**: New "Method 3" in README for quick Postman-based token setup
+- **Enhanced Token Storage**: Automatic backup of refresh tokens to both file and config.json
+- **Smart Token Precedence**: Intelligent token selection (stored > config) for seamless rotation
+
+### Fixed
+- **ESLint Configuration**: Resolved all linting issues and improved Node.js environment support
+- **TypeScript Compilation**: Fixed Logger type issues and improved type safety
+- **Token Persistence**: Ensures refresh tokens survive plugin restarts and Homebridge updates
+- **Code Quality**: Fixed trailing commas, unused variables, and type assertions
+
+### Changed
+- **README Structure**: Added comprehensive manual token approach for personal use
+- **Development Workflow**: Cleaned up test files and streamlined development setup
+- **Token Management**: Improved error handling and fallback strategies for token refresh
+
+### Removed
+- **Test Files**: Cleaned up temporary OAuth test scripts and development artifacts
+- **Debug Code**: Removed unused diagnostic and test files from working directory
+
+### Technical Implementation
+- Dual token storage strategy (JSON file + optional config.json update)
+- Token precedence logic: stored tokens take priority over config tokens
+- Automatic config.json updates when refresh tokens rotate
+- Enhanced error handling with graceful fallbacks
+
 ## [1.2.26] - 2025-08-12
 
 ### Added

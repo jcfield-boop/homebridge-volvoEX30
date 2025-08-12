@@ -25,15 +25,20 @@ export class VolvoEX30Platform implements DynamicPlatformPlugin {
     if (!this.config.refreshToken) {
       this.log.error('❌ Missing refreshToken in configuration!');
       this.log.error('');
-      this.log.error('🔧 To get your refresh token, run the OAuth setup:');
-      this.log.error('   1. SSH into your Raspberry Pi');
-      this.log.error('   2. cd /usr/local/lib/node_modules/homebridge-volvo-ex30');
-      this.log.error('   3. npm run oauth-setup');
-      this.log.error('   4. Follow the prompts to get your refresh token');
-      this.log.error('   5. Add the refresh token to your Homebridge config');
+      this.log.error('🔑 QUICK SETUP - Get your refresh token with Postman:');
+      this.log.error('   1. Download Postman (https://www.postman.com/downloads/)');
+      this.log.error('   2. Create new request → Authorization tab → OAuth 2.0');
+      this.log.error('   3. Configure: Grant Type "Authorization Code (With PKCE)"');
+      this.log.error('   4. Auth URL: https://volvoid.eu.volvocars.com/as/authorization.oauth2');
+      this.log.error('   5. Access Token URL: https://volvoid.eu.volvocars.com/as/token.oauth2');
+      this.log.error('   6. Client ID: dc-s68ezw2gmvo5nmrmfre3j4c28');
+      this.log.error('   7. Client Secret: AAZIK89F1JF1BKCiJ3yuaW');
+      this.log.error('   8. Callback URL: https://oauth.pstmn.io/v1/callback');
+      this.log.error('   9. Scope: openid');
+      this.log.error('  10. Click "Get New Access Token" → Login → Copy refresh_token');
       this.log.error('');
-      this.log.error('📖 For detailed setup instructions, see:');
-      this.log.error('   https://github.com/jcfield-boop/homebridge-volvoEX30#setup');
+      this.log.error('📖 For complete setup guide with screenshots, see:');
+      this.log.error('   https://github.com/jcfield-boop/homebridge-volvoEX30#method-3-manual-token-approach-recommended-for-personal-use');
       return;
     }
 

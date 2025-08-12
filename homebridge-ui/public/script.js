@@ -22,6 +22,7 @@ $(document).ready(() => {
     $('#openUrl').on('click', openAuthUrl);
     $('#gotCode').on('click', showCodeEntry);
     $('#exchangeToken').on('click', exchangeTokens);
+    $('#useManualToken').on('click', useManualToken);
     $('#saveConfig').on('click', saveConfiguration);
     $('#loadConfig').on('click', loadCurrentConfig);
 });
@@ -167,6 +168,43 @@ async function exchangeTokens() {
     } finally {
         $('#exchangeToken').prop('disabled', false);
         $('.loading').hide();
+    }
+}
+
+async function useManualToken() {
+    console.log('🔑 Using manual refresh token');
+    
+    const manualToken = $('#manualRefreshToken').val().trim();
+    
+    if (!manualToken) {
+        showError('Please enter a refresh token');
+        return;
+    }
+    
+    // Validate token format (basic check)
+    if (manualToken.length < 10) {
+        showError('Invalid refresh token format - tokens are usually much longer');
+        return;
+    }
+    
+    try {
+        // Set the refresh token in the hidden field for saving
+        $('#refreshToken').val(manualToken);
+        $('#tokenDisplay').text(manualToken.substring(0, 20) + '...');
+        
+        // Hide all OAuth steps and show success
+        $('#step1, #step2, #step3').hide().removeClass('active');
+        $('#step4').show().addClass('active complete');
+        
+        // Update the success message
+        $('.success-message').html('<strong>Success!</strong> Your manual refresh token has been set.');
+        
+        console.log('✅ Manual token set successfully');
+        hideError();
+        
+    } catch (error) {
+        console.error('❌ Failed to set manual token:', error);
+        showError(`Failed to set manual token: ${error.message || error}`);
     }
 }
 

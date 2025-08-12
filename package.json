@@ -50,7 +50,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/jcfield-boop/homebridge-volvoEX30.git"
+    "url": "git+https://github.com/jcfield-boop/homebridge-volvoEX30.git"
   },
   "bugs": {
     "url": "https://github.com/jcfield-boop/homebridge-volvoEX30/issues"

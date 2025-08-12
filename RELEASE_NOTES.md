@@ -1,5 +1,38 @@
 # Release Notes
 
+## v1.2.27 - Enhanced Token Rotation & Manual Setup
+
+### 🔄 Token Rotation Revolution
+- **Robust Token Rotation**: Full support for OAuth refresh token rotation with intelligent fallbacks
+- **Dual Storage Strategy**: Tokens saved to both file storage AND config.json for maximum persistence
+- **Smart Token Precedence**: Always uses the most recent token (stored > config) for seamless operation
+- **Zero-Downtime Updates**: Token rotation happens automatically without breaking HomeKit connection
+
+### 🔑 Manual Setup Approach (Quick Win!)
+- **New Method 3**: Simple Postman-based token setup for personal use
+- **10K Daily Calls**: More than enough API quota for personal EX30 monitoring
+- **Hard-Code Friendly**: Just paste the refresh token and go!
+- **Perfect vs Good**: Don't over-engineer - get your EX30 in HomeKit today
+
+### 🛠️ Code Quality & Stability
+- **Clean Codebase**: Removed all test files and development artifacts
+- **ESLint Compliance**: Fixed all linting issues and improved Node.js environment support  
+- **TypeScript Safety**: Resolved Logger type issues and enhanced type safety
+- **Production Ready**: Streamlined for reliable long-term operation
+
+### 💡 Why This Matters
+Before v1.2.27, token rotation could break your HomeKit connection. Now:
+- ✅ **Tokens rotate seamlessly** - Volvo rotates your refresh token? No problem!
+- ✅ **Survives restarts** - Plugin restarts won't lose your tokens
+- ✅ **Multiple backups** - Token stored in multiple locations for safety
+- ✅ **Smart fallbacks** - If one method fails, others take over
+
+### 🚀 Quick Start (New Users)
+1. Use **Method 3** in README for fastest setup
+2. Get your refresh token from Postman in 2 minutes  
+3. Hard-code it in Homebridge config
+4. Enjoy your EX30 in HomeKit!
+
 ## v1.2.7 - Enhanced Custom UI with PKCE Security
 
 ### 🔐 Security & Stability
