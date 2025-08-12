@@ -1,0 +1,13 @@
+{
+  "codeVerifier": "z4iFWnQi4uPhezKeYj-FwCaO6_eiZ5zM-KMo0M_-TkE",
+  "state": "af70d26ee64ff62f7df9aa959e0e96f8",
+  "codeChallenge": "-STATeG3o9i8hJBsH989CJOSPvcMxYaFFt_qJ1RHk60",
+  "timestamp": 1754966122537,
+  "credentials": {
+    "clientId": "dc-s68ezw2gmvo5nmrmfre3j4c28",
+    "clientSecret": "AAZIK89F1JF1BKCiJ3yuaW",
+    "vccApiKey": "2e86956bc5b941dfb861e878a6c3dd19",
+    "vin": "YV4EK3ZL4SS150793",
+    "region": "eu"
+  }
+}

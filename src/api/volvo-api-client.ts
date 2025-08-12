@@ -154,8 +154,8 @@ export class VolvoApiClient {
           estimatedChargingTimeToTargetBatteryChargeLevel: { isSupported: true },
           targetBatteryChargeLevel: { isSupported: true },
           chargingCurrentLimit: { isSupported: true },
-          chargingPower: { isSupported: true }
-        }
+          chargingPower: { isSupported: true },
+        },
       };
       this.cache.set(cacheKey, basicCapabilities, 3600);
       return basicCapabilities;

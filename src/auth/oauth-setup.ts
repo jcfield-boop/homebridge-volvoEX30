@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import * as readline from 'readline';
+import { Logger } from 'homebridge';
 import { OAuthHandler } from './oauth-handler';
 
 const rl = readline.createInterface({
@@ -44,9 +45,11 @@ async function setupOAuth() {
       {
         debug: console.log,
         info: console.log,
+        success: console.log,
         warn: console.warn,
         error: console.error,
-      } as any,
+        log: console.log,
+      } as Logger,
     );
 
     const authUrl = oauthHandler.getAuthorizationUrl(redirectUri);

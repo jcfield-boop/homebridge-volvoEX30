@@ -128,6 +128,42 @@ npm run oauth-setup
 
 ⚠️ **Important**: Keep your refresh token secure and do not share it. It provides access to your vehicle data.
 
+### Method 3: Manual Token Approach (Recommended for Personal Use)
+
+🔑 **Quick Win for Personal Use**
+
+Since this is for personal use with the test API access (10,000 calls/day - more than enough), the simplest approach is to get a refresh token manually using Postman.
+
+**Option 1: Use Postman**
+
+1. Download [Postman](https://www.postman.com/downloads/)
+2. Create a new request
+3. Go to **Authorization** tab
+4. Select **OAuth 2.0**
+5. Configure with these settings:
+   - **Token Name**: `Volvo EX30`
+   - **Grant Type**: `Authorization Code (With PKCE)`
+   - **Callback URL**: `https://oauth.pstmn.io/v1/callback`
+   - **Auth URL**: `https://volvoid.eu.volvocars.com/as/authorization.oauth2`
+   - **Access Token URL**: `https://volvoid.eu.volvocars.com/as/token.oauth2`
+   - **Client ID**: `dc-s68ezw2gmvo5nmrmfre3j4c28`
+   - **Client Secret**: `AAZIK89F1JF1BKCiJ3yuaW`
+   - **Scope**: `openid`
+   - **State**: (leave empty)
+   - **Client Authentication**: `Send as Basic Auth header`
+6. Click **"Get New Access Token"**
+7. Login with your Volvo ID
+8. Copy the `refresh_token` from the response
+
+**Option 2: Hard-code the Refresh Token**
+
+Once you get the refresh token from Postman:
+1. Copy the refresh token value
+2. Add it directly to your Homebridge config (see Configuration section below)
+3. The simplified plugin will handle token refresh automatically
+
+💡 **Why this works**: The test API has generous limits (10,000 calls/day), manual token setup is perfectly fine for personal use, and you can always improve the OAuth flow later.
+
 ### 3. Configuration
 
 Add the plugin to your Homebridge `config.json`:

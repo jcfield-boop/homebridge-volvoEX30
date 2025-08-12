@@ -1,9 +1,13 @@
 module.exports = {
   parser: '@typescript-eslint/parser',
+  plugins: ['@typescript-eslint'],
   extends: [
     'eslint:recommended',
-    '@typescript-eslint/recommended',
   ],
+  env: {
+    node: true,
+    es2020: true,
+  },
   parserOptions: {
     ecmaVersion: 2020,
     sourceType: 'module',
@@ -14,5 +18,7 @@ module.exports = {
     'semi': ['error', 'always'],
     'quotes': ['error', 'single'],
     'comma-dangle': ['error', 'always-multiline'],
+    'no-console': 'off',
+    'no-unused-vars': 'off', // Use TypeScript version instead
   },
 };
