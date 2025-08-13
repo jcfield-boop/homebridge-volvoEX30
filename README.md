@@ -224,8 +224,24 @@ This plugin respects Volvo's API rate limits:
 The plugin includes:
 - Intelligent caching to minimize API calls
 - Rate limiting protection  
-- Automatic token refresh
+- **Aggressive automatic token refresh** (v1.2.31+)
 - Error handling and retry logic
+
+### Token Management (v1.2.31+)
+
+**Volvo's Unique Challenge**: Volvo's OAuth tokens expire much faster than typical implementations (minutes instead of hours), requiring very aggressive refresh strategies.
+
+**How the Plugin Handles This:**
+- **Proactive Refresh**: Refreshes tokens 3 minutes before expiry
+- **Aggressive Buffer**: 15-minute safety buffer for token expiry detection  
+- **Smart Recovery**: Automatically clears invalid refresh tokens
+- **Frequent Updates**: Token refresh every 2-3 minutes during active use
+
+**What You'll See in Logs:**
+```
+🔄 Refreshing token - reason: proactive refresh (Volvo tokens are short-lived)
+✅ Token refreshed successfully
+```
 
 ## Troubleshooting
 
@@ -267,10 +283,13 @@ npm list -g --depth=0 | grep homebridge-volvo-ex30
 2. **Expired refresh token**: Run the OAuth setup again to get a new refresh token
 3. **Region mismatch**: Ensure your region setting matches your vehicle's region
 
-**Error: "OAuth token refresh failed" (Fixed in v1.2.30)**
-- ✅ **Fixed**: Improved token handling to use config values instead of cached tokens
-- ✅ **Fixed**: Added detailed error messages for different OAuth failure scenarios
-- If you still see this error, verify your refresh token is valid using the test script:
+**Error: "OAuth token refresh failed" (Fixed in v1.2.31)**
+- ✅ **Fixed in v1.2.30**: Improved token handling to use config values instead of cached tokens  
+- ✅ **Fixed in v1.2.31**: Implemented aggressive proactive token refresh for Volvo's short-lived tokens
+- ✅ **Enhanced**: Automatic token refresh every 2-3 minutes to prevent expiration
+- ✅ **Improved**: Smart error recovery when refresh tokens become invalid
+- **New in v1.2.31**: Plugin now handles Volvo's ultra-short token lifespans automatically
+- If you still see this error after v1.2.31, verify your refresh token is valid:
   ```bash
   node scripts/test-refresh-token.js
   ```
