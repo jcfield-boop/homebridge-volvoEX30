@@ -405,13 +405,28 @@ npm list -g --depth=0 | grep homebridge-volvo-ex30
 - ✅ **Enhanced in v1.2.37+**: Force battery service recognition with initial values
 - **What you should see**: Battery icon with charging state and percentage
 
-**If still showing house icon after v1.2.37:**
-1. **Update to latest version**: `npm update -g homebridge-volvo-ex30`
-2. **Restart Homebridge**: `sudo systemctl restart homebridge`
-3. **Clear HomeKit cache (if needed)**:
-   - In Home app: Remove EX30 accessory completely
-   - Restart Homebridge - accessory will be rediscovered with proper battery icon
-4. **Check logs**: Look for "🔋 Battery service configured as primary service" message
+**If still showing house icon after v1.2.38+:**
+
+**This is a known Apple Home app limitation** - the battery service works correctly but Apple's Home app shows it as "Not Supported" with a house icon.
+
+**Solutions:**
+1. **Use Alternative HomeKit Apps**: 
+   - **Controller for HomeKit** (iOS/macOS) - Displays battery services correctly
+   - **Eve for HomeKit** (iOS) - Shows proper battery information
+   - **Home Assistant** - Full HomeKit compatibility
+   - **HomeKit Device Manager** - Developer tool with full service support
+
+2. **Use the Humidity Sensor Workaround** (v1.2.39+):
+   - Plugin creates both a battery service AND a humidity sensor
+   - Humidity sensor shows battery percentage (0-100%) with proper sensor icon
+   - Look for "EX30 Battery %" sensor in Home app
+
+3. **Clear HomeKit Cache (last resort)**:
+   - Remove EX30 accessory from Home app completely
+   - Restart Homebridge - accessory rediscovered with both services
+   - Check logs for "💧 Battery humidity sensor configured" message
+
+**Why This Happens**: Apple's Home app has limited support for battery services compared to other HomeKit apps. The functionality works perfectly - it's just a display limitation.
 
 ### API Errors
 

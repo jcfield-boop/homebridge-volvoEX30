@@ -104,14 +104,14 @@ export class VolvoEX30Platform implements DynamicPlatformPlugin {
       if (existingAccessory) {
         this.log.info('Restoring existing accessory from cache:', existingAccessory.displayName);
         
-        // Force HomeKit to recognize this as a battery device
-        existingAccessory.category = this.api.hap.Categories.OTHER;
-        this.log.info('🔋 Set accessory category to OTHER for battery display');
+        // Set as SENSOR category with humidity sensor as primary display
+        existingAccessory.category = this.api.hap.Categories.SENSOR;
+        this.log.info('📊 Set accessory category to SENSOR for humidity sensor display');
         
         new VolvoEX30Accessory(this, existingAccessory);
       } else {
         this.log.info('Adding new accessory:', this.config.name);
-        const accessory = new this.api.platformAccessory(this.config.name, uuid, this.api.hap.Categories.OTHER);
+        const accessory = new this.api.platformAccessory(this.config.name, uuid, this.api.hap.Categories.SENSOR);
         
         // Set proper accessory context
         accessory.context.device = {

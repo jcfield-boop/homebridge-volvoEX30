@@ -5,6 +5,49 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.39] - 2025-08-13
+
+### Added
+- **Humidity Sensor Workaround**: Added "EX30 Battery %" humidity sensor for proper HomeKit display
+- **Dual Service Approach**: Both battery service AND humidity sensor for maximum compatibility
+- **Alternative HomeKit Apps**: Documented apps that display battery services correctly (Controller, Eve, etc.)
+- **Enhanced Custom UI Retry Logic**: Config loading now retries up to 3 times with increasing delays
+
+### Fixed
+- **Apple Home App Limitation**: Humidity sensor displays battery percentage with proper sensor icon
+- **HomeKit House Icon Issue**: Multiple solutions including workaround and alternative apps
+- **Custom UI Config Loading**: Improved reliability with retry logic and better error handling
+- **Service Recognition**: Humidity sensor as primary service for better HomeKit display
+
+### Changed
+- **Primary Service**: Humidity sensor now primary, battery service secondary for better icon display
+- **Accessory Category**: Back to SENSOR category optimized for humidity sensor display
+- **Custom UI Reliability**: Enhanced config loading with exponential backoff retry strategy
+
+### Technical Implementation
+- **Humidity Sensor Service**: CurrentRelativeHumidity characteristic displays battery percentage (0-100%)
+- **Dual Updates**: Both services update with real battery data during polling
+- **Service Configuration**: Humidity sensor set as primary with proper naming and configuration
+- **Retry Logic**: 1s, 2s delays for empty config; 1.5s, 3s delays for errors
+
+### Documentation Updates
+- **Apple Limitation Explanation**: Clear explanation this is Apple Home app issue, not plugin issue
+- **Multiple Solutions**: Alternative HomeKit apps, workaround sensor, cache clearing steps
+- **User-Friendly Guidance**: Step-by-step solutions for different user scenarios
+- **App Recommendations**: Specific alternative HomeKit apps that work properly
+
+### Result
+- ✅ **Proper Sensor Icon**: "EX30 Battery %" shows with sensor icon instead of house icon
+- ✅ **Real Battery Data**: Both services display actual EX30 battery percentage and status
+- ✅ **Multiple Display Options**: Works in Apple Home (humidity) and other HomeKit apps (battery)
+- ✅ **Reliable Config Loading**: Custom UI consistently loads existing configuration
+- ✅ **User Education**: Clear understanding of Apple limitation and available solutions
+
+### Migration Notes
+- Existing users will see both battery service (may show house icon) AND new humidity sensor
+- Humidity sensor displays same battery data with proper sensor icon
+- No configuration changes needed - automatic dual service setup
+
 ## [1.2.38] - 2025-08-13
 
 ### Fixed

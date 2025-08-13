@@ -258,14 +258,14 @@ async function saveConfiguration() {
     }
 }
 
-async function loadCurrentConfig() {
-    console.log('📥 Loading current configuration');
+async function loadCurrentConfig(retryCount = 0) {
+    console.log(`📥 Loading current configuration (attempt ${retryCount + 1})`);
     
     try {
         const config = await makeRequest('/config', 'GET');
         
         if (Object.keys(config).length > 0) {
-            console.log('📋 Config loaded:', config);
+            console.log('📋 Config loaded successfully:', config);
             
             $('#name').val(config.name || 'Volvo EX30');
             $('#vin').val(config.vin || '');
@@ -287,12 +287,31 @@ async function loadCurrentConfig() {
                 $('#step3').removeClass('active').addClass('complete');
                 $('#step4').show().addClass('complete');
             }
+            
+            console.log('✅ Configuration loaded and UI updated successfully');
         } else {
             console.log('📄 No existing configuration found');
+            
+            // Retry up to 3 times with increasing delay if no config found
+            if (retryCount < 2) {
+                const delay = (retryCount + 1) * 1000; // 1s, 2s delays
+                console.log(`⏰ Retrying config load in ${delay}ms...`);
+                setTimeout(() => loadCurrentConfig(retryCount + 1), delay);
+                return;
+            }
         }
         
     } catch (error) {
-        console.error('❌ Failed to load config:', error);
+        console.error(`❌ Failed to load config (attempt ${retryCount + 1}):`, error);
+        
+        // Retry up to 3 times with increasing delay on error
+        if (retryCount < 2) {
+            const delay = (retryCount + 1) * 1500; // 1.5s, 3s delays
+            console.log(`⏰ Retrying config load in ${delay}ms due to error...`);
+            setTimeout(() => loadCurrentConfig(retryCount + 1), delay);
+        } else {
+            console.error('❌ Failed to load configuration after 3 attempts');
+        }
     }
 }
 

@@ -4,6 +4,7 @@ import { EnergyState } from './types/energy-api';
 
 export class VolvoEX30Accessory {
   private batteryService?: Service;
+  private batteryHumidityService?: Service; // Humidity sensor to display battery % (HomeKit compatibility)
   private informationService: Service;
   
   private currentEnergyState: EnergyState | null = null;
@@ -17,6 +18,7 @@ export class VolvoEX30Accessory {
     
     this.setupInformationService();
     this.setupBatteryService();
+    this.setupBatteryHumidityService(); // Add humidity sensor for better HomeKit compatibility
     this.startPolling();
   }
 
@@ -26,9 +28,9 @@ export class VolvoEX30Accessory {
       .setCharacteristic(this.platform.Characteristic.Model, 'EX30')
       .setCharacteristic(this.platform.Characteristic.Name, this.accessory.context.device.name)
       .setCharacteristic(this.platform.Characteristic.SerialNumber, this.accessory.context.device.vin)
-      .setCharacteristic(this.platform.Characteristic.FirmwareRevision, '1.2.38')
+      .setCharacteristic(this.platform.Characteristic.FirmwareRevision, '1.2.39')
       .setCharacteristic(this.platform.Characteristic.HardwareRevision, '2025')
-      .setCharacteristic(this.platform.Characteristic.SoftwareRevision, '1.2.38');
+      .setCharacteristic(this.platform.Characteristic.SoftwareRevision, '1.2.39');
     
     this.platform.log.debug('✅ Accessory information service configured');
   }
@@ -63,8 +65,8 @@ export class VolvoEX30Accessory {
     this.batteryService.getCharacteristic(this.platform.Characteristic.ChargingState)
       .onGet(this.getChargingState.bind(this));
 
-    // Set this service as the primary service for proper HomeKit display
-    this.batteryService.setPrimaryService(true);
+    // Battery service is secondary - humidity sensor will be primary
+    this.batteryService.setPrimaryService(false);
     
     // Force initial values to help HomeKit recognize this as a battery
     this.batteryService.setCharacteristic(this.platform.Characteristic.BatteryLevel, 50);
@@ -74,6 +76,34 @@ export class VolvoEX30Accessory {
       this.platform.Characteristic.ChargingState.NOT_CHARGING);
     
     this.platform.log.info('🔋 Battery service configured as primary service with initial values');
+  }
+
+  private setupBatteryHumidityService(): void {
+    if (!this.platform.config.enableBattery) {
+      return;
+    }
+
+    // Add humidity sensor to display battery percentage (HomeKit compatibility workaround)
+    this.batteryHumidityService = this.accessory.getService('EX30 Battery %') ||
+      this.accessory.addService(this.platform.Service.HumiditySensor, 'EX30 Battery %', 'battery-humidity');
+
+    this.batteryHumidityService.setCharacteristic(this.platform.Characteristic.Name, 'EX30 Battery %');
+    this.batteryHumidityService.setCharacteristic(this.platform.Characteristic.ConfiguredName, 'EX30 Battery %');
+
+    // Configure humidity as battery level (0-100%)
+    this.batteryHumidityService.getCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity)
+      .onGet(this.getBatteryLevel.bind(this))
+      .setProps({
+        minValue: 0,
+        maxValue: 100,
+        minStep: 1,
+      });
+
+    // Set initial value and make this the primary service
+    this.batteryHumidityService.setCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, 50);
+    this.batteryHumidityService.setPrimaryService(true);
+
+    this.platform.log.info('💧 Battery humidity sensor configured as PRIMARY service for HomeKit compatibility');
   }
 
   private async getBatteryLevel(): Promise<CharacteristicValue> {
@@ -163,19 +193,17 @@ export class VolvoEX30Accessory {
         const energyState = await apiClient.getEnergyState(this.platform.config.vin);
         this.currentEnergyState = energyState;
         
+        const batteryLevel = await this.getBatteryLevel();
+
         if (this.batteryService) {
-          this.batteryService.updateCharacteristic(
-            this.platform.Characteristic.BatteryLevel, 
-            await this.getBatteryLevel(),
-          );
-          this.batteryService.updateCharacteristic(
-            this.platform.Characteristic.StatusLowBattery, 
-            await this.getStatusLowBattery(),
-          );
-          this.batteryService.updateCharacteristic(
-            this.platform.Characteristic.ChargingState, 
-            await this.getChargingState(),
-          );
+          this.batteryService.updateCharacteristic(this.platform.Characteristic.BatteryLevel, batteryLevel);
+          this.batteryService.updateCharacteristic(this.platform.Characteristic.StatusLowBattery, await this.getStatusLowBattery());
+          this.batteryService.updateCharacteristic(this.platform.Characteristic.ChargingState, await this.getChargingState());
+        }
+
+        // Update humidity sensor with battery percentage
+        if (this.batteryHumidityService) {
+          this.batteryHumidityService.updateCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, batteryLevel);
         }
         
         this.platform.log.debug('Updated energy state from polling');
