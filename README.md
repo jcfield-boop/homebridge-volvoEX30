@@ -227,29 +227,31 @@ The plugin includes:
 - **Aggressive automatic token refresh** (v1.2.31+)
 - Error handling and retry logic
 
-### Token Management (v1.2.31+ → v1.2.34 COMPLETE SOLUTION)
+### Token Management (v1.2.31+ → v1.2.35 COMPLETE SOLUTION)
 
 **Volvo's Token Rotation System**: Volvo implements **automatic refresh token rotation** for security - each refresh creates a new token and invalidates the old one.
 
 **Evolution of Token Handling:**
 - **v1.2.32**: Fixed concurrent token refresh conflicts with serialization
 - **v1.2.34**: Added persistent token storage for complete lifecycle management
+- **v1.2.35**: Eliminated plugin conflicts with conflict-free JSON storage
 
-**How the Plugin Handles This (v1.2.34+):**
-- **Persistent Storage**: Rotated tokens automatically saved to `~/.homebridge/persist/volvo-ex30/`
+**How the Plugin Handles This (v1.2.35+):**
+- **Conflict-Free Storage**: Tokens saved to isolated JSON file `~/.homebridge/volvo-ex30-tokens.json`
 - **Serialized Refresh**: All concurrent requests wait for single token refresh
 - **Smart Recovery**: Uses stored tokens after restarts, falls back to config.json
 - **7-Day Lifecycle**: Tokens rotate and persist properly for entire lifecycle
+- **No Plugin Conflicts**: Simple file storage eliminates node-persist conflicts
 
 **What You'll See in Logs:**
 ```
-💾 Token storage initialized for OAuth handler
+💾 Token storage file: /var/lib/homebridge/volvo-ex30-tokens.json
 🔄 Token rotated by Volvo - storing new refresh token  
 💾 Stored refresh token for VIN YV4EK3ZL... (oxSNqaNqP...)
 ✅ Successfully refreshed OAuth tokens
 ```
 
-**Complete Solution:** After v1.2.34, tokens work continuously across restarts and updates without any manual intervention.
+**Complete Solution:** After v1.2.35, tokens work continuously across restarts and updates without any manual intervention or plugin conflicts.
 
 ## Troubleshooting
 
@@ -299,12 +301,13 @@ npm list -g --depth=0 | grep homebridge-volvo-ex30
 - **Key Discovery**: Volvo rotates refresh tokens on every use - v1.2.32 handles this properly
 - **Result**: Tokens should now work continuously for 7-day lifecycle without manual intervention
 
-**Enhanced Token Storage System (v1.2.34+):**
+**Enhanced Token Storage System (v1.2.35+):**
 - ✅ **Persistent token storage**: Refreshed tokens automatically saved to disk
+- ✅ **Conflict-free storage**: Simple JSON file, no plugin conflicts
 - ✅ **Survives restarts**: Stored tokens persist across Homebridge restarts
 - ✅ **Survives updates**: Token storage survives plugin updates and system reboots
 - ✅ **Smart fallback**: Uses stored token → config.json token → error
-- ✅ **Storage location**: `~/.homebridge/persist/volvo-ex30/` (safe from updates)
+- ✅ **Storage location**: `~/.homebridge/volvo-ex30-tokens.json` (clean, isolated)
 - ✅ **7-day lifecycle**: Tokens rotate properly with automatic persistence
 
 **If you still see this error after v1.2.32:**

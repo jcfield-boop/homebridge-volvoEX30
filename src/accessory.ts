@@ -26,9 +26,9 @@ export class VolvoEX30Accessory {
       .setCharacteristic(this.platform.Characteristic.Model, 'EX30')
       .setCharacteristic(this.platform.Characteristic.Name, this.accessory.context.device.name)
       .setCharacteristic(this.platform.Characteristic.SerialNumber, this.accessory.context.device.vin)
-      .setCharacteristic(this.platform.Characteristic.FirmwareRevision, '1.2.34')
+      .setCharacteristic(this.platform.Characteristic.FirmwareRevision, '1.2.35')
       .setCharacteristic(this.platform.Characteristic.HardwareRevision, '2025')
-      .setCharacteristic(this.platform.Characteristic.SoftwareRevision, '1.2.34');
+      .setCharacteristic(this.platform.Characteristic.SoftwareRevision, '1.2.35');
     
     this.platform.log.debug('✅ Accessory information service configured');
   }
@@ -42,7 +42,7 @@ export class VolvoEX30Accessory {
     this.batteryService = this.accessory.getService(this.platform.Service.Battery) ||
       this.accessory.addService(this.platform.Service.Battery, 'EX30 Battery', 'battery');
 
-    // Set display name
+    // Set display name and configure for car battery display
     this.batteryService.setCharacteristic(this.platform.Characteristic.Name, 'EX30 Battery');
 
     // Configure battery level characteristic

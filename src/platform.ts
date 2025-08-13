@@ -104,7 +104,7 @@ export class VolvoEX30Platform implements DynamicPlatformPlugin {
       if (existingAccessory) {
         this.log.info('Restoring existing accessory from cache:', existingAccessory.displayName);
         
-        // Ensure proper category is set (fix for HomeKit display issues)
+        // Ensure proper category is set (fix for HomeKit display issues)  
         existingAccessory.category = this.api.hap.Categories.SENSOR;
         this.log.debug('✅ Set accessory category to SENSOR for proper HomeKit display');
         
@@ -118,6 +118,14 @@ export class VolvoEX30Platform implements DynamicPlatformPlugin {
           vin: this.config.vin,
           name: this.config.name,
         };
+
+        // Set default room to Garage for new accessories
+        try {
+          accessory.context.defaultRoom = 'Garage';
+          this.log.debug('✅ Set default room to Garage for new accessory');
+        } catch (error) {
+          this.log.debug('Note: Could not set default room (this is normal)');
+        }
         
         new VolvoEX30Accessory(this, accessory);
         this.api.registerPlatformAccessories('homebridge-volvo-ex30', 'VolvoEX30', [accessory]);

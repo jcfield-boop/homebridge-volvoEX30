@@ -24,6 +24,7 @@ const mockLogger = {
 const testVin = 'YV4EK3ZL4SS150793';
 const testToken = 'test_refresh_token_' + Date.now();
 const testStorageDir = path.join(os.tmpdir(), 'homebridge-test');
+const testTokenFile = path.join(testStorageDir, 'volvo-ex30-tokens.json');
 
 async function testTokenStorage() {
   console.log('🧪 Testing Token Storage System\n');
@@ -84,15 +85,14 @@ async function testTokenStorage() {
       return false;
     }
 
-    // 7. Verify storage directory structure
-    console.log('7. Checking storage directory...');
-    const storageDir = path.join(testStorageDir, 'persist', 'volvo-ex30');
-    if (fs.existsSync(storageDir)) {
-      console.log(`✅ Storage directory exists: ${storageDir}`);
-      const files = fs.readdirSync(storageDir);
-      console.log('Storage files:', files);
+    // 7. Verify storage file structure
+    console.log('7. Checking storage file...');
+    if (fs.existsSync(testTokenFile)) {
+      console.log(`✅ Token file exists: ${testTokenFile}`);
+      const fileContent = fs.readFileSync(testTokenFile, 'utf8');
+      console.log('File content preview:', fileContent.substring(0, 200) + '...');
     } else {
-      console.log('❌ Storage directory not found');
+      console.log('❌ Token file not found');
       return false;
     }
 
@@ -105,11 +105,13 @@ async function testTokenStorage() {
   } finally {
     // Cleanup test storage
     try {
-      const storageDir = path.join(testStorageDir, 'persist', 'volvo-ex30');
-      if (fs.existsSync(storageDir)) {
-        fs.rmSync(storageDir, { recursive: true, force: true });
-        console.log('\n🧹 Test storage cleaned up');
+      if (fs.existsSync(testTokenFile)) {
+        fs.unlinkSync(testTokenFile);
       }
+      if (fs.existsSync(testStorageDir)) {
+        fs.rmSync(testStorageDir, { recursive: true, force: true });
+      }
+      console.log('\n🧹 Test storage cleaned up');
     } catch (cleanupError) {
       console.warn('Warning: Failed to cleanup test storage:', cleanupError.message);
     }

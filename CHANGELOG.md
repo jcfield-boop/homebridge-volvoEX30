@@ -5,6 +5,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.35] - 2025-08-13
+
+### Fixed
+- **CRITICAL: Plugin Conflicts**: Eliminated node-persist dependency causing conflicts with other plugins
+- **Storage Conflicts**: Resolved electromagnetic lock plugin and other node-persist collisions
+- **HomeKit Display**: Enhanced accessory category assignment with default Garage room
+
+### Changed
+- **Storage System**: Migrated from node-persist to simple JSON file storage
+- **Storage Location**: Now uses isolated `~/.homebridge/volvo-ex30-tokens.json` file
+- **No External Dependencies**: Removed node-persist and @types/node-persist dependencies
+- **Conflict-Free**: Each plugin can use its own storage approach without interference
+
+### Technical Implementation
+- **Simple JSON Storage**: Native Node.js fs operations, no external libraries
+- **Same Functionality**: All token persistence features preserved
+- **Migration**: Automatic migration from old storage to new JSON file
+- **Isolated Storage**: Single file approach eliminates shared directory conflicts
+
+### Dependencies Removed
+- **Removed**: `node-persist@^3.1.3` (causing plugin conflicts)
+- **Removed**: `@types/node-persist@^3.1.8` (no longer needed)
+
+### Result
+- ✅ **No Plugin Conflicts**: Eliminates interference with other Homebridge plugins
+- ✅ **Smaller Package**: Reduced dependencies and package size
+- ✅ **Same Features**: All token rotation and persistence functionality maintained
+- ✅ **Better Isolation**: Clean separation from other plugin storage systems
+
 ## [1.2.34] - 2025-08-13
 
 ### Added

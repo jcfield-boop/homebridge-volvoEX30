@@ -1,17 +1,17 @@
 import { Logger } from 'homebridge';
 import { OAuthTokens } from '../types/config';
-import storage from 'node-persist';
+import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 
 /**
  * Persistent token storage for Volvo refresh tokens
- * Stores tokens in ~/.homebridge/persist/volvo-ex30/ directory
+ * Uses simple JSON file to avoid node-persist conflicts with other plugins
+ * Stores tokens in ~/.homebridge/volvo-ex30-tokens.json
  * Survives plugin updates and Homebridge restarts
  */
 export class TokenStorage {
-  private readonly storageDir: string;
-  private localStorage: any;
+  private readonly tokenFilePath: string;
   private initialized = false;
 
   constructor(
@@ -19,11 +19,11 @@ export class TokenStorage {
     private readonly vin: string,
     homebridgeStorageDir?: string,
   ) {
-    // Use provided storage directory or default Homebridge location
+    // Use simple JSON file in homebridge directory to avoid persist conflicts
     const homebridgeDir = homebridgeStorageDir || path.join(os.homedir(), '.homebridge');
-    this.storageDir = path.join(homebridgeDir, 'persist', 'volvo-ex30');
+    this.tokenFilePath = path.join(homebridgeDir, 'volvo-ex30-tokens.json');
     
-    this.logger.debug(`💾 Token storage directory: ${this.storageDir}`);
+    this.logger.debug(`💾 Token storage file: ${this.tokenFilePath}`);
   }
 
   /**
@@ -35,17 +35,16 @@ export class TokenStorage {
     }
 
     try {
-      // Create a local storage instance
-      this.localStorage = storage.create({
-        dir: this.storageDir,
-        stringify: JSON.stringify,
-        parse: JSON.parse,
-        encoding: 'utf8',
-        forgiveParseErrors: true,
-        expiredInterval: 0, // No automatic expiration
-      });
+      // Ensure the parent directory exists
+      const parentDir = path.dirname(this.tokenFilePath);
+      if (!fs.existsSync(parentDir)) {
+        fs.mkdirSync(parentDir, { recursive: true });
+      }
 
-      await this.localStorage.init();
+      // Create empty token file if it doesn't exist
+      if (!fs.existsSync(this.tokenFilePath)) {
+        fs.writeFileSync(this.tokenFilePath, '{}', 'utf8');
+      }
 
       this.initialized = true;
       this.logger.debug('✅ Token storage initialized successfully');
@@ -62,15 +61,17 @@ export class TokenStorage {
     await this.ensureInitialized();
 
     try {
+      const tokens = this.readTokenFile();
       const tokenKey = this.getTokenKey();
-      const tokenData = {
+      
+      tokens[tokenKey] = {
         refreshToken,
         vin: this.vin,
         updatedAt: new Date().toISOString(),
         source: 'volvo-oauth-rotation',
       };
 
-      await this.localStorage.setItem(tokenKey, tokenData);
+      fs.writeFileSync(this.tokenFilePath, JSON.stringify(tokens, null, 2), 'utf8');
       this.logger.debug(`💾 Stored refresh token for VIN ${this.vin.substring(0, 8)}... (${refreshToken.substring(0, 12)}...)`);
     } catch (error) {
       this.logger.error('❌ Failed to store refresh token:', error);
@@ -85,8 +86,9 @@ export class TokenStorage {
     await this.ensureInitialized();
 
     try {
+      const tokens = this.readTokenFile();
       const tokenKey = this.getTokenKey();
-      const tokenData = await this.localStorage.getItem(tokenKey);
+      const tokenData = tokens[tokenKey];
 
       if (tokenData && tokenData.refreshToken) {
         this.logger.debug(`💾 Retrieved stored refresh token for VIN ${this.vin.substring(0, 8)}... (updated: ${tokenData.updatedAt})`);
@@ -108,8 +110,9 @@ export class TokenStorage {
     await this.ensureInitialized();
 
     try {
+      const tokens = this.readTokenFile();
       const tokenKey = this.getTokenKey();
-      const tokenData = await this.localStorage.getItem(tokenKey);
+      const tokenData = tokens[tokenKey];
 
       if (tokenData) {
         return {
@@ -136,8 +139,11 @@ export class TokenStorage {
     await this.ensureInitialized();
 
     try {
+      const tokens = this.readTokenFile();
       const tokenKey = this.getTokenKey();
-      await this.localStorage.removeItem(tokenKey);
+      delete tokens[tokenKey];
+      
+      fs.writeFileSync(this.tokenFilePath, JSON.stringify(tokens, null, 2), 'utf8');
       this.logger.debug(`💾 Cleared stored refresh token for VIN ${this.vin.substring(0, 8)}...`);
     } catch (error) {
       this.logger.error('❌ Failed to clear stored token:', error);
@@ -170,6 +176,22 @@ export class TokenStorage {
    */
   private getTokenKey(): string {
     return `refresh_token_${this.vin}`;
+  }
+
+  /**
+   * Read token file safely
+   */
+  private readTokenFile(): any {
+    try {
+      if (!fs.existsSync(this.tokenFilePath)) {
+        return {};
+      }
+      const data = fs.readFileSync(this.tokenFilePath, 'utf8');
+      return JSON.parse(data);
+    } catch (error) {
+      this.logger.warn('⚠️ Failed to read token file, returning empty object:', error);
+      return {};
+    }
   }
 
   /**
