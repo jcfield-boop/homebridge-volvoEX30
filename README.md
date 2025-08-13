@@ -299,6 +299,12 @@ npm list -g --depth=0 | grep homebridge-volvo-ex30
 - **Key Discovery**: Volvo rotates refresh tokens on every use - v1.2.32 handles this properly
 - **Result**: Tokens should now work continuously for 7-day lifecycle without manual intervention
 
+**Important Token Storage Behavior:**
+- ✅ **Initial token**: Read from config.json on startup
+- ✅ **Refreshed tokens**: Stored in memory only (not written back to config.json)
+- ✅ **7-day lifecycle**: Original config.json token remains valid for 7 days with regular use
+- ⚠️ **Restart behavior**: Plugin uses original config.json token after Homebridge restart
+
 **If you still see this error after v1.2.32:**
 1. **Update immediately**: `npm update -g homebridge-volvo-ex30`  
 2. **Get ONE fresh token** using Postman or OAuth script
@@ -307,10 +313,12 @@ npm list -g --depth=0 | grep homebridge-volvo-ex30
 
 ### HomeKit Display Issues
 
-**Device shows as "Not Supported" with house icon (Fixed in v1.2.30)**
-- ✅ **Fixed**: Set proper accessory category and primary service configuration
+**Device shows as "Not Supported" with house icon (Fixed in v1.2.30, Enhanced in v1.2.33)**
+- ✅ **Fixed in v1.2.30**: Set proper accessory category and primary service configuration
+- ✅ **Enhanced in v1.2.33**: Fixed cached accessory category for existing installations
 - ✅ **Fixed**: Enhanced device information and service characteristics
-- After updating to v1.2.30, remove and re-add the accessory in HomeKit for best results
+- **What you should see**: Battery sensor icon instead of house icon, no "Not Supported" text
+- **If still showing house icon**: Restart Homebridge to apply cached accessory fix
 
 ### API Errors
 

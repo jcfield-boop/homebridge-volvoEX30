@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.33] - 2025-08-13
+
+### Fixed
+- **HomeKit Display**: Fixed cached accessory category for existing installations showing as "Not Supported"
+- **Cached Accessory Handling**: Ensure proper sensor category is set when restoring accessories from cache
+- **Version Synchronization**: Updated accessory firmware/software versions to current release
+
+### Changed
+- **Accessory Category**: Now explicitly sets Categories.SENSOR for both new and cached accessories
+- **Version Display**: Accessory information now shows current plugin version (1.2.32 → 1.2.33)
+
+### Technical Details
+- **Issue**: HomeKit cached accessories from before v1.2.30 still showed house icon
+- **Solution**: Force proper category assignment during cache restoration
+- **Result**: All accessories now display as battery sensors regardless of cache state
+
 ## [1.2.32] - 2025-08-13
 
 ### Fixed
