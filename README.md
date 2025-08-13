@@ -267,6 +267,21 @@ npm list -g --depth=0 | grep homebridge-volvo-ex30
 2. **Expired refresh token**: Run the OAuth setup again to get a new refresh token
 3. **Region mismatch**: Ensure your region setting matches your vehicle's region
 
+**Error: "OAuth token refresh failed" (Fixed in v1.2.30)**
+- ✅ **Fixed**: Improved token handling to use config values instead of cached tokens
+- ✅ **Fixed**: Added detailed error messages for different OAuth failure scenarios
+- If you still see this error, verify your refresh token is valid using the test script:
+  ```bash
+  node scripts/test-refresh-token.js
+  ```
+
+### HomeKit Display Issues
+
+**Device shows as "Not Supported" with house icon (Fixed in v1.2.30)**
+- ✅ **Fixed**: Set proper accessory category and primary service configuration
+- ✅ **Fixed**: Enhanced device information and service characteristics
+- After updating to v1.2.30, remove and re-add the accessory in HomeKit for best results
+
 ### API Errors
 
 1. **Rate limit exceeded**: Increase polling interval or reduce API calls

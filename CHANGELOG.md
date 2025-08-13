@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.30] - 2025-08-13
+
+### Fixed
+- **OAuth Token Handling**: Fixed issue where plugin used cached/old refresh tokens instead of config values
+- **HomeKit Display**: Resolved "Not Supported" status by setting proper accessory category and primary service
+- **Token Refresh**: Fixed token refresh failures by properly passing refresh token to API client
+- **TypeScript Compilation**: Fixed build errors related to missing refreshToken property
+
+### Added
+- **Enhanced Error Handling**: Detailed OAuth error messages with specific troubleshooting guidance
+- **Token Debugging**: Added comprehensive logging for token operations and debugging
+- **Test Script**: New `test-refresh-token.js` script for validating refresh token status
+- **Custom UI Improvements**: Better config loading with enhanced error handling and logging
+
+### Changed
+- **Accessory Category**: Set to SENSOR for proper HomeKit recognition instead of default
+- **Battery Service**: Configured as primary service with enhanced characteristics and properties
+- **Device Information**: Improved manufacturer, model, and firmware version reporting
+- **API Client**: Enhanced token passing and error handling throughout the OAuth flow
+
 ## [1.2.28] - 2025-08-12
 
 ### Fixed
