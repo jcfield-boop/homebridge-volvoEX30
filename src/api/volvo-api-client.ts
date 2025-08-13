@@ -16,6 +16,8 @@ export class VolvoApiClient {
     private readonly config: VolvoApiConfig,
     private readonly vccApiKey: string,
     private readonly logger: Logger,
+    private readonly vin?: string,
+    private readonly homebridgeStorageDir?: string,
   ) {
     this.httpClient = axios.create({
       baseURL: 'https://api.volvocars.com/energy/v2',
@@ -27,7 +29,7 @@ export class VolvoApiClient {
       },
     });
 
-    this.oAuthHandler = new OAuthHandler(config, logger);
+    this.oAuthHandler = new OAuthHandler(config, logger, vin, homebridgeStorageDir);
     this.cache = new NodeCache({ stdTTL: 300 });
 
     this.setupRequestInterceptors();

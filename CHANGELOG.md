@@ -5,6 +5,40 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.34] - 2025-08-13
+
+### Added
+- **Persistent Token Storage**: Refreshed tokens now automatically saved to disk using node-persist
+- **Smart Token Management**: Uses stored tokens > config.json tokens > error fallback
+- **Token Storage Location**: `~/.homebridge/persist/volvo-ex30/` (survives plugin updates)
+- **Token Storage API**: New TokenStorage class for robust token persistence
+
+### Fixed
+- **Token Persistence**: Solved restart issue where plugin reverted to old config.json tokens
+- **Complete Token Lifecycle**: 7-day token rotation now works seamlessly across restarts
+- **Update Survival**: Tokens persist through plugin updates and system reboots
+
+### Changed
+- **OAuth Handler**: Enhanced to integrate with persistent token storage
+- **API Client**: Updated to pass VIN and storage directory for token management
+- **Platform**: Added token storage initialization and debugging
+
+### Technical Implementation
+- **Storage Pattern**: Plugin-specific directory using standard Homebridge storage location
+- **Token Rotation**: Automatic storage of rotated refresh tokens from Volvo
+- **Graceful Fallback**: Continues working even if storage fails (uses config tokens)
+- **VIN-based Storage**: Supports multiple vehicles with separate token storage
+
+### Dependencies
+- **Added**: `node-persist@^3.1.3` for persistent storage
+- **Added**: `@types/node-persist@^3.1.8` for TypeScript support
+
+### Result
+- ✅ **Complete Solution**: No more manual token management needed
+- ✅ **Restart Safe**: Tokens work immediately after Homebridge restart
+- ✅ **Update Safe**: Plugin updates don't affect stored tokens
+- ✅ **7-Day Lifecycle**: Full token rotation without manual intervention
+
 ## [1.2.33] - 2025-08-13
 
 ### Fixed

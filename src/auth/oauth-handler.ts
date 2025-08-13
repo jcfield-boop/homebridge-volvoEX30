@@ -1,6 +1,7 @@
 import axios, { AxiosInstance } from 'axios';
 import { Logger } from 'homebridge';
 import { OAuthTokens, VolvoApiConfig } from '../types/config';
+import { TokenStorage } from '../storage/token-storage';
 import * as crypto from 'crypto';
 
 export class OAuthHandler {
@@ -8,10 +9,13 @@ export class OAuthHandler {
   private tokens: OAuthTokens | null = null;
   private codeVerifier: string | null = null;
   private refreshPromise: Promise<OAuthTokens> | null = null;
+  private tokenStorage: TokenStorage | null = null;
 
   constructor(
     private readonly config: VolvoApiConfig,
     private readonly logger: Logger,
+    private readonly vin?: string,
+    private readonly homebridgeStorageDir?: string,
   ) {
     this.httpClient = axios.create({
       baseURL: 'https://volvoid.eu.volvocars.com',
@@ -24,6 +28,30 @@ export class OAuthHandler {
 
     if (config.region === 'na') {
       this.httpClient.defaults.baseURL = 'https://volvoid.volvocars.com';
+    }
+
+    // Initialize token storage if VIN is provided
+    if (vin) {
+      this.tokenStorage = new TokenStorage(logger, vin, homebridgeStorageDir);
+      this.initializeTokenStorage();
+    }
+  }
+
+  /**
+   * Initialize token storage and load existing tokens
+   */
+  private async initializeTokenStorage(): Promise<void> {
+    if (!this.tokenStorage) {
+      return;
+    }
+
+    try {
+      await this.tokenStorage.initialize();
+      this.logger.debug('💾 Token storage initialized for OAuth handler');
+    } catch (error) {
+      this.logger.error('❌ Failed to initialize token storage:', error);
+      // Continue without storage - fallback to config-only mode
+      this.tokenStorage = null;
     }
   }
 
@@ -121,6 +149,13 @@ export class OAuthHandler {
       };
 
       this.tokens = tokens;
+      
+      // Store the new refresh token persistently (if rotated)
+      if (response.data.refresh_token && response.data.refresh_token !== refreshToken) {
+        this.logger.debug('🔄 Token rotated by Volvo - storing new refresh token');
+        await this.storeRefreshToken(response.data.refresh_token);
+      }
+      
       this.logger.debug('✅ Successfully refreshed OAuth tokens');
       
       return tokens;
@@ -156,13 +191,16 @@ export class OAuthHandler {
   }
 
   async getValidAccessToken(refreshToken?: string): Promise<string> {
-    if (!this.tokens && !refreshToken) {
+    // Get the best available refresh token (stored > config)
+    const bestToken = await this.getBestRefreshToken(refreshToken);
+    
+    if (!this.tokens && !bestToken) {
       throw new Error('No tokens available. Please complete OAuth flow first.');
     }
 
-    if (!this.tokens && refreshToken) {
-      this.logger.debug('🔄 Initial token refresh with provided refresh token');
-      this.tokens = await this.refreshAccessToken(refreshToken);
+    if (!this.tokens && bestToken) {
+      this.logger.debug(`🔄 Initial token refresh with ${bestToken.source} refresh token`);
+      this.tokens = await this.refreshAccessToken(bestToken.token);
     }
 
     if (this.tokens) {
@@ -174,12 +212,14 @@ export class OAuthHandler {
         const reason = isExpired ? 'expired' : 'proactive refresh (Volvo tokens are short-lived)';
         this.logger.debug(`🔄 Refreshing token - reason: ${reason}`);
         
-        if (!this.tokens.refreshToken && !refreshToken) {
+        if (!this.tokens.refreshToken && !bestToken) {
           throw new Error('Token expired and no refresh token available');
         }
         
         try {
-          this.tokens = await this.refreshAccessToken(this.tokens.refreshToken || refreshToken!);
+          // Use the current token's refresh token, or fall back to best available
+          const tokenToUse = this.tokens.refreshToken || bestToken!.token;
+          this.tokens = await this.refreshAccessToken(tokenToUse);
           this.logger.debug('✅ Token refreshed successfully');
         } catch (error) {
           this.logger.error(`❌ Token refresh failed: ${error}`);
@@ -231,5 +271,54 @@ export class OAuthHandler {
   private generateCodeChallenge(codeVerifier: string): string {
     const hash = crypto.createHash('sha256').update(codeVerifier).digest();
     return hash.toString('base64url');
+  }
+
+  /**
+   * Store refresh token persistently
+   */
+  private async storeRefreshToken(refreshToken: string): Promise<void> {
+    if (this.tokenStorage) {
+      try {
+        await this.tokenStorage.storeRefreshToken(refreshToken);
+      } catch (error) {
+        this.logger.error('❌ Failed to store refresh token:', error);
+        // Don't throw - storage failure shouldn't break OAuth flow
+      }
+    }
+  }
+
+  /**
+   * Get the best available refresh token (stored > config)
+   */
+  private async getBestRefreshToken(configToken?: string): Promise<{ token: string; source: 'stored' | 'config' } | null> {
+    if (this.tokenStorage) {
+      try {
+        return await this.tokenStorage.getBestRefreshToken(configToken);
+      } catch (error) {
+        this.logger.error('❌ Failed to get best refresh token:', error);
+        // Fallback to config token only
+      }
+    }
+
+    // No storage available - use config token if provided
+    if (configToken) {
+      return { token: configToken, source: 'config' };
+    }
+
+    return null;
+  }
+
+  /**
+   * Get token storage info for debugging
+   */
+  async getTokenStorageInfo(): Promise<any> {
+    if (this.tokenStorage) {
+      try {
+        return await this.tokenStorage.getTokenInfo();
+      } catch (error) {
+        return { error: error instanceof Error ? error.message : String(error) };
+      }
+    }
+    return { storage: 'not_available' };
   }
 }

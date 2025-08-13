@@ -52,6 +52,8 @@ export class VolvoEX30Platform implements DynamicPlatformPlugin {
       },
       this.config.vccApiKey,
       this.log,
+      this.config.vin, // Pass VIN for token storage
+      this.api.user.storagePath(), // Pass Homebridge storage directory
     );
 
     // Set the refresh token if provided
@@ -69,6 +71,9 @@ export class VolvoEX30Platform implements DynamicPlatformPlugin {
       });
       
       this.log.info('✅ Fresh tokens set from config');
+      
+      // Log token storage info for debugging
+      this.logTokenStorageInfo();
     } else {
       this.log.error('❌ No refresh token found in config!');
     }
@@ -124,5 +129,28 @@ export class VolvoEX30Platform implements DynamicPlatformPlugin {
 
   getApiClient(): VolvoApiClient {
     return this.apiClient;
+  }
+
+  /**
+   * Log token storage information for debugging
+   */
+  private async logTokenStorageInfo(): Promise<void> {
+    try {
+      // Get OAuth handler from API client to check storage
+      const oAuthHandler = (this.apiClient as any).oAuthHandler;
+      if (oAuthHandler && typeof oAuthHandler.getTokenStorageInfo === 'function') {
+        const storageInfo = await oAuthHandler.getTokenStorageInfo();
+        
+        if (storageInfo.exists) {
+          this.log.info(`💾 Stored token found: VIN ${storageInfo.vin?.substring(0, 8)}..., updated ${storageInfo.updatedAt}`);
+        } else if (storageInfo.storage === 'not_available') {
+          this.log.debug('💾 Token storage not available (no VIN provided)');
+        } else {
+          this.log.debug('💾 No stored token found - will use config token');
+        }
+      }
+    } catch (error) {
+      this.log.debug('💾 Unable to check token storage:', error);
+    }
   }
 }
