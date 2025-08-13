@@ -26,9 +26,9 @@ export class VolvoEX30Accessory {
       .setCharacteristic(this.platform.Characteristic.Model, 'EX30')
       .setCharacteristic(this.platform.Characteristic.Name, this.accessory.context.device.name)
       .setCharacteristic(this.platform.Characteristic.SerialNumber, this.accessory.context.device.vin)
-      .setCharacteristic(this.platform.Characteristic.FirmwareRevision, '1.2.35')
+      .setCharacteristic(this.platform.Characteristic.FirmwareRevision, '1.2.36')
       .setCharacteristic(this.platform.Characteristic.HardwareRevision, '2025')
-      .setCharacteristic(this.platform.Characteristic.SoftwareRevision, '1.2.35');
+      .setCharacteristic(this.platform.Characteristic.SoftwareRevision, '1.2.36');
     
     this.platform.log.debug('✅ Accessory information service configured');
   }

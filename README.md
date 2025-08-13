@@ -253,6 +253,37 @@ The plugin includes:
 
 **Complete Solution:** After v1.2.35, tokens work continuously across restarts and updates without any manual intervention or plugin conflicts.
 
+## Storage Migration Cleanup (v1.2.34 → v1.2.35+)
+
+### **If Other Plugins Are Failing After v1.2.34**
+
+**Problem**: v1.2.34 created a persist directory that breaks other plugins like `homebridge-gpio-electromagnetic-lock`
+
+**Solution**: Clean up the old storage directory
+
+#### **Automatic Cleanup (Recommended)**
+```bash
+# Navigate to plugin directory
+cd /usr/local/lib/node_modules/homebridge-volvo-ex30
+# Run cleanup script
+./scripts/cleanup-old-storage.sh
+```
+
+#### **Manual Cleanup**
+```bash
+# Remove problematic directory
+sudo rm -rf /var/lib/homebridge/persist/volvo-ex30
+
+# Restart Homebridge
+sudo systemctl restart homebridge
+```
+
+#### **What This Fixes**
+- ✅ **Electromagnetic lock plugin** works normally
+- ✅ **Other node-persist plugins** function correctly  
+- ✅ **Volvo plugin** continues using new JSON storage
+- ✅ **No token loss** - automatic migration from config.json
+
 ## Troubleshooting
 
 ### OAuth Setup Issues
@@ -315,6 +346,11 @@ npm list -g --depth=0 | grep homebridge-volvo-ex30
 2. **Get ONE fresh token** using Postman or OAuth script
 3. **Restart Homebridge** and monitor for serialization logs
 4. **Wait 24 hours** for proper token rotation to establish
+
+**If updating from v1.2.34 and other plugins are failing:**
+1. **Update to v1.2.35+**: `npm update -g homebridge-volvo-ex30`
+2. **Clean up old storage**: Run cleanup script to remove problematic directory
+3. **Restart Homebridge**: All plugins should work normally
 
 ### HomeKit Display Issues
 

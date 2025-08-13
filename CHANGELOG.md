@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.36] - 2025-08-13
+
+### Added
+- **Cleanup Script**: Added automated cleanup script for v1.2.34 storage migration issues
+- **Migration Documentation**: Comprehensive guide for fixing plugin conflicts from v1.2.34
+- **Storage Troubleshooting**: Enhanced documentation for electromagnetic lock plugin conflicts
+
+### Fixed
+- **v1.2.34 Migration Issues**: Provides tools to remove problematic persist directory
+- **Plugin Conflict Resolution**: Clear instructions for fixing broken plugins after v1.2.34
+- **Documentation**: Added specific section for storage migration cleanup
+
+### Technical Implementation
+- **cleanup-old-storage.sh**: Interactive script to remove problematic `/persist/volvo-ex30/` directory
+- **Automatic Detection**: Script detects and safely removes old storage causing conflicts
+- **Migration Safety**: Preserves tokens through config.json fallback during cleanup
+
+### Result
+- ✅ **Easy Cleanup**: Simple script to fix v1.2.34 migration issues
+- ✅ **Clear Instructions**: Step-by-step guide for fixing plugin conflicts
+- ✅ **Safe Migration**: No token loss during cleanup process
+- ✅ **Plugin Compatibility**: Ensures all plugins work after migration
+
 ## [1.2.35] - 2025-08-13
 
 ### Fixed
