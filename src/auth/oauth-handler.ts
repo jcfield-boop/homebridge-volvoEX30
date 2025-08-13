@@ -102,9 +102,34 @@ export class OAuthHandler {
       this.logger.debug('Successfully refreshed OAuth tokens');
       
       return tokens;
-    } catch (error) {
-      this.logger.error('Failed to refresh tokens:', error);
-      throw new Error('OAuth token refresh failed');
+    } catch (error: any) {
+      // Log detailed error information for debugging
+      if (error.response) {
+        this.logger.error('OAuth refresh failed with HTTP error:', {
+          status: error.response.status,
+          statusText: error.response.statusText,
+          data: error.response.data,
+          refreshTokenLength: refreshToken?.length || 0
+        });
+
+        // Handle specific OAuth error cases
+        if (error.response.status === 400) {
+          const errorData = error.response.data;
+          if (errorData?.error === 'invalid_grant') {
+            throw new Error('Refresh token is invalid or expired. Please re-authorize the application.');
+          } else if (errorData?.error === 'invalid_client') {
+            throw new Error('Invalid client credentials. Check your Client ID and Client Secret.');
+          }
+        } else if (error.response.status === 401) {
+          throw new Error('Authentication failed. Your refresh token may be expired.');
+        }
+      } else if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
+        throw new Error('Unable to connect to Volvo OAuth server. Check your internet connection.');
+      } else {
+        this.logger.error('OAuth refresh failed with network error:', error.message);
+      }
+      
+      throw new Error(`OAuth token refresh failed: ${error.message || 'Unknown error'}`);
     }
   }
 

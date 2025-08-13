@@ -48,6 +48,7 @@ export class VolvoEX30Platform implements DynamicPlatformPlugin {
         clientId: this.config.clientId,
         clientSecret: this.config.clientSecret,
         region: this.config.region || 'eu',
+        refreshToken: this.config.refreshToken,
       },
       this.config.vccApiKey,
       this.log,
@@ -55,11 +56,21 @@ export class VolvoEX30Platform implements DynamicPlatformPlugin {
 
     // Set the refresh token if provided
     if (this.config.refreshToken) {
+      this.log.info(`🔑 Setting refresh token: ${this.config.refreshToken.substring(0, 12)}... (length: ${this.config.refreshToken.length})`);
+      
+      // Clear any existing tokens first
+      this.apiClient.clearCache();
+      
+      // Set the fresh token from config
       this.apiClient.setTokens({
         accessToken: '', // Will be refreshed automatically
         refreshToken: this.config.refreshToken,
         expiresAt: Date.now(), // Force immediate refresh
       });
+      
+      this.log.info('✅ Fresh tokens set from config');
+    } else {
+      this.log.error('❌ No refresh token found in config!');
     }
 
     this.api.on('didFinishLaunching', () => {
@@ -90,7 +101,9 @@ export class VolvoEX30Platform implements DynamicPlatformPlugin {
         new VolvoEX30Accessory(this, existingAccessory);
       } else {
         this.log.info('Adding new accessory:', this.config.name);
-        const accessory = new this.api.platformAccessory(this.config.name, uuid);
+        const accessory = new this.api.platformAccessory(this.config.name, uuid, this.api.hap.Categories.SENSOR);
+        
+        // Set proper accessory context
         accessory.context.device = {
           vin: this.config.vin,
           name: this.config.name,

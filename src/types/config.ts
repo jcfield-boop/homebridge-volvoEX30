@@ -24,4 +24,5 @@ export interface VolvoApiConfig {
   clientId: string;
   clientSecret: string;
   region: 'eu' | 'na';
+  refreshToken?: string;
 }

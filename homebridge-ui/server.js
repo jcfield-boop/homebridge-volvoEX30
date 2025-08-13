@@ -75,7 +75,9 @@ class VolvoEX30UiServer extends HomebridgePluginUiServer {
             // Clean old sessions
             this.cleanupOldSessions();
 
-            // Use discovered authorization endpoint
+            // Use OAuth redirect URI configured in Volvo Developer Portal
+            // For development/testing, we use the GitHub repo as per Volvo's test setup
+            // For production, this should match the registered redirect URI
             const redirectUri = 'https://github.com/jcfield-boop/homebridge-volvoEX30';
             
             const authParams = new URLSearchParams({
@@ -127,6 +129,7 @@ class VolvoEX30UiServer extends HomebridgePluginUiServer {
         const { codeVerifier, clientId, region, endpoints } = session;
 
         try {
+            // Must match the authorization request redirect URI exactly
             const redirectUri = 'https://github.com/jcfield-boop/homebridge-volvoEX30';
             
             const tokenParams = new URLSearchParams({
@@ -175,8 +178,20 @@ class VolvoEX30UiServer extends HomebridgePluginUiServer {
         if (request.method === 'GET') {
             try {
                 const currentConfig = await this.homebridgeConfig.getPluginConfig('VolvoEX30');
-                return currentConfig[0] || {};
+                console.log('🔍 Retrieved plugin config:', JSON.stringify(currentConfig, null, 2));
+                
+                if (Array.isArray(currentConfig) && currentConfig.length > 0) {
+                    console.log('✅ Returning first config from array:', currentConfig[0]);
+                    return currentConfig[0];
+                } else if (currentConfig && typeof currentConfig === 'object') {
+                    console.log('✅ Returning config object directly:', currentConfig);
+                    return currentConfig;
+                } else {
+                    console.log('📄 No existing config found, returning empty object');
+                    return {};
+                }
             } catch (error) {
+                console.error('❌ Error loading config:', error.message);
                 return {};
             }
         } else if (request.method === 'POST') {

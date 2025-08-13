@@ -24,8 +24,13 @@ export class VolvoEX30Accessory {
     this.informationService
       .setCharacteristic(this.platform.Characteristic.Manufacturer, 'Volvo')
       .setCharacteristic(this.platform.Characteristic.Model, 'EX30')
+      .setCharacteristic(this.platform.Characteristic.Name, this.accessory.context.device.name)
       .setCharacteristic(this.platform.Characteristic.SerialNumber, this.accessory.context.device.vin)
-      .setCharacteristic(this.platform.Characteristic.FirmwareRevision, '1.0.0');
+      .setCharacteristic(this.platform.Characteristic.FirmwareRevision, '1.2.29')
+      .setCharacteristic(this.platform.Characteristic.HardwareRevision, '2025')
+      .setCharacteristic(this.platform.Characteristic.SoftwareRevision, '1.2.29');
+    
+    this.platform.log.debug('✅ Accessory information service configured');
   }
 
   private setupBatteryService(): void {
@@ -33,19 +38,34 @@ export class VolvoEX30Accessory {
       return;
     }
 
+    // Get or create battery service
     this.batteryService = this.accessory.getService(this.platform.Service.Battery) ||
-      this.accessory.addService(this.platform.Service.Battery);
+      this.accessory.addService(this.platform.Service.Battery, 'EX30 Battery', 'battery');
 
+    // Set display name
     this.batteryService.setCharacteristic(this.platform.Characteristic.Name, 'EX30 Battery');
 
+    // Configure battery level characteristic
     this.batteryService.getCharacteristic(this.platform.Characteristic.BatteryLevel)
-      .onGet(this.getBatteryLevel.bind(this));
+      .onGet(this.getBatteryLevel.bind(this))
+      .setProps({
+        minValue: 0,
+        maxValue: 100,
+        minStep: 1,
+      });
 
+    // Configure low battery status
     this.batteryService.getCharacteristic(this.platform.Characteristic.StatusLowBattery)
       .onGet(this.getStatusLowBattery.bind(this));
 
+    // Configure charging state
     this.batteryService.getCharacteristic(this.platform.Characteristic.ChargingState)
       .onGet(this.getChargingState.bind(this));
+
+    // Set this service as the primary service for proper HomeKit display
+    this.batteryService.setPrimaryService(true);
+    
+    this.platform.log.debug('✅ Battery service configured as primary service');
   }
 
   private async getBatteryLevel(): Promise<CharacteristicValue> {

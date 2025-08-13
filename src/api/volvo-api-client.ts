@@ -42,10 +42,21 @@ export class VolvoApiClient {
         }
 
         try {
-          const accessToken = await this.oAuthHandler.getValidAccessToken();
+          const accessToken = await this.oAuthHandler.getValidAccessToken(this.config.refreshToken);
           config.headers.Authorization = `Bearer ${accessToken}`;
         } catch (error) {
           this.logger.error('Failed to get valid access token:', error);
+          
+          // Provide helpful error message for OAuth issues
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          if (errorMessage.includes('invalid or expired')) {
+            this.logger.error('');
+            this.logger.error('🔑 Your refresh token appears to be invalid or expired.');
+            this.logger.error('   Please use the Homebridge UI to re-authorize or generate a new token.');
+            this.logger.error('   Alternatively, use the production-oauth-setup.js script to get a fresh token.');
+            this.logger.error('');
+          }
+          
           throw error;
         }
 
