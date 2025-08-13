@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.31] - 2025-08-13
+
+### Fixed
+- **Aggressive Token Refresh**: Implemented proactive token refresh for Volvo's short-lived tokens
+- **Token Refresh Strategy**: Reduced refresh window from 5 to 3 minutes before expiry
+- **Token Expiry Buffer**: Increased buffer from 5 to 15 minutes for more aggressive refresh
+- **Invalid Token Handling**: Clear cached tokens when refresh tokens become invalid
+
+### Changed
+- **Token Lifecycle**: Much more aggressive refresh strategy to handle Volvo's very short token lifespans
+- **Error Recovery**: Better handling when refresh tokens expire, forcing clean re-authentication
+- **Logging**: Enhanced debug logging for token refresh operations and failure scenarios
+
 ## [1.2.30] - 2025-08-13
 
 ### Fixed
