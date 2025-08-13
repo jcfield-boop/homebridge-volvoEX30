@@ -5,6 +5,36 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.37] - 2025-08-13
+
+### Changed
+- **Config Field Renamed**: `refreshToken` → `initialRefreshToken` for better clarity
+- **Clearer Purpose**: Field name now indicates it's for initial setup only (plugin manages tokens automatically after)
+- **OAuth Setup Script**: Fixed default redirect URI from localhost (rejected by Volvo) to GitHub repository URL
+- **Custom UI**: Updated to use `initialRefreshToken` field throughout HTML, JavaScript, and server code
+
+### Fixed
+- **OAuth Setup Issues**: No more localhost rejection errors from Volvo OAuth server
+- **Custom UI Compatibility**: All UI components now work with renamed config field
+- **Error Messages**: Updated to reference `initialRefreshToken` for consistency
+- **Documentation**: Comprehensive updates explaining field rename and 7-day token expiration
+
+### Added
+- **7-Day Token Expiration Documentation**: Complete explanation of when tokens expire (7+ days offline only)
+- **Migration Guide**: Clear instructions for updating config.json field name
+- **Better Error Handling**: Improved OAuth error messages explaining token expiration scenarios
+
+### Technical Implementation
+- **Config Schema**: Updated to use `initialRefreshToken` with descriptive help text
+- **TypeScript Interface**: Updated `VolvoEX30Config` interface for new field name
+- **Platform Code**: All platform initialization uses new field name
+- **Custom UI Server**: Full update of server endpoints and validation
+
+### Migration Required
+- **IMPORTANT**: Existing users must rename `refreshToken` to `initialRefreshToken` in config.json before updating
+- **No Token Loss**: Same token value, just renamed field
+- **Why**: Makes purpose clear - this token is only for initial setup, plugin manages rotation automatically
+
 ## [1.2.36] - 2025-08-13
 
 ### Added

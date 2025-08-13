@@ -117,7 +117,7 @@ async function setupOAuth() {
       process.exit(1);
     }
 
-    const redirectUri = await question('Enter your OAuth Redirect URI [http://localhost:3000/callback]: ') || 'http://localhost:3000/callback';
+    const redirectUri = await question('Enter your OAuth Redirect URI [https://github.com/jcfield-boop/homebridge-volvoEX30]: ') || 'https://github.com/jcfield-boop/homebridge-volvoEX30';
     
     const oauthHandler = new OAuthHandler(
       {
@@ -139,17 +139,11 @@ async function setupOAuth() {
     console.log('\n📱 Authorization Required');
     console.log('Please open this URL in your browser and authorize the application:');
     console.log(`\n${authUrl}\n`);
-    if (redirectUri.includes('localhost')) {
-      console.log('After authorization, you will be redirected to a localhost URL.');
-      console.log('Copy the "code" parameter from the redirected URL.');
-      console.log('Example: http://localhost:3000/callback?code=ABC123&state=xyz');
-      console.log('Copy "ABC123" from the code parameter.\n');
-    } else {
-      console.log('After authorization, you will be redirected to your configured redirect URI.');
-      console.log('Copy the "code" parameter from the redirected URL.');
-      console.log(`Example: ${redirectUri}?code=ABC123&state=xyz`);
-      console.log('Copy "ABC123" from the code parameter.\n');
-    }
+    console.log('After authorization, you will be redirected to your configured redirect URI.');
+    console.log('The redirect will show an error page (this is normal).');
+    console.log('Copy the "code" parameter from the redirected URL.');
+    console.log(`Example: ${redirectUri}?code=ABC123&state=xyz`);
+    console.log('Copy "ABC123" from the code parameter.\n');
     
     const authCode = await question('Enter the authorization code from the redirect URL: ');
     

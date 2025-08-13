@@ -153,7 +153,7 @@ async function exchangeTokens() {
         console.log('✅ Token exchange successful');
         
         // Store the refresh token
-        $('#refreshToken').val(response.refresh_token);
+        $('#initialRefreshToken').val(response.refresh_token);
         $('#tokenDisplay').text(response.refresh_token);
         
         // Update UI
@@ -189,7 +189,7 @@ async function useManualToken() {
     
     try {
         // Set the refresh token in the hidden field for saving
-        $('#refreshToken').val(manualToken);
+        $('#initialRefreshToken').val(manualToken);
         $('#tokenDisplay').text(manualToken.substring(0, 20) + '...');
         
         // Hide all OAuth steps and show success
@@ -217,7 +217,7 @@ async function saveConfiguration() {
         clientId: $('#clientId').val().trim(),
         clientSecret: $('#clientSecret').val().trim(),
         vccApiKey: $('#vccApiKey').val().trim(),
-        refreshToken: $('#refreshToken').val().trim(),
+        initialRefreshToken: $('#initialRefreshToken').val().trim(),
         region: $('#region').val(),
         pollingInterval: parseInt($('#pollingInterval').val()) || 5,
         enableBattery: $('#enableBattery').is(':checked'),
@@ -237,7 +237,7 @@ async function saveConfiguration() {
         return;
     }
     
-    if (!config.refreshToken) {
+    if (!config.initialRefreshToken) {
         showError('Please complete OAuth authorization to get a refresh token.');
         return;
     }
@@ -272,7 +272,7 @@ async function loadCurrentConfig() {
             $('#clientId').val(config.clientId || '');
             $('#clientSecret').val(config.clientSecret || '');
             $('#vccApiKey').val(config.vccApiKey || '');
-            $('#refreshToken').val(config.refreshToken || '');
+            $('#initialRefreshToken').val(config.initialRefreshToken || '');
             $('#region').val(config.region || 'eu');
             $('#pollingInterval').val(config.pollingInterval || 5);
             $('#enableBattery').prop('checked', config.enableBattery !== false);
@@ -280,8 +280,8 @@ async function loadCurrentConfig() {
             $('#enableLocks').prop('checked', config.enableLocks === true);
             $('#enableDoors').prop('checked', config.enableDoors === true);
             
-            if (config.refreshToken) {
-                $('#tokenDisplay').text(config.refreshToken);
+            if (config.initialRefreshToken) {
+                $('#tokenDisplay').text(config.initialRefreshToken);
                 $('#step1').removeClass('active').addClass('complete');
                 $('#step2').removeClass('active').addClass('complete');
                 $('#step3').removeClass('active').addClass('complete');

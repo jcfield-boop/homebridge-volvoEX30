@@ -22,10 +22,10 @@ export class VolvoEX30Platform implements DynamicPlatformPlugin {
       return;
     }
 
-    if (!this.config.refreshToken) {
-      this.log.error('❌ Missing refreshToken in configuration!');
+    if (!this.config.initialRefreshToken) {
+      this.log.error('❌ Missing initialRefreshToken in configuration!');
       this.log.error('');
-      this.log.error('🔑 QUICK SETUP - Get your refresh token with Postman:');
+      this.log.error('🔑 QUICK SETUP - Get your initial refresh token with Postman:');
       this.log.error('   1. Download Postman (https://www.postman.com/downloads/)');
       this.log.error('   2. Create new request → Authorization tab → OAuth 2.0');
       this.log.error('   3. Configure: Grant Type "Authorization Code (With PKCE)"');
@@ -48,7 +48,7 @@ export class VolvoEX30Platform implements DynamicPlatformPlugin {
         clientId: this.config.clientId,
         clientSecret: this.config.clientSecret,
         region: this.config.region || 'eu',
-        refreshToken: this.config.refreshToken,
+        refreshToken: this.config.initialRefreshToken,
       },
       this.config.vccApiKey,
       this.log,
@@ -56,9 +56,9 @@ export class VolvoEX30Platform implements DynamicPlatformPlugin {
       this.api.user.storagePath(), // Pass Homebridge storage directory
     );
 
-    // Set the refresh token if provided
-    if (this.config.refreshToken) {
-      this.log.info(`🔑 Setting refresh token: ${this.config.refreshToken.substring(0, 12)}... (length: ${this.config.refreshToken.length})`);
+    // Set the initial refresh token if provided
+    if (this.config.initialRefreshToken) {
+      this.log.info(`🔑 Setting initial refresh token: ${this.config.initialRefreshToken.substring(0, 12)}... (length: ${this.config.initialRefreshToken.length})`);
       
       // Clear any existing tokens first
       this.apiClient.clearCache();
@@ -66,7 +66,7 @@ export class VolvoEX30Platform implements DynamicPlatformPlugin {
       // Set the fresh token from config
       this.apiClient.setTokens({
         accessToken: '', // Will be refreshed automatically
-        refreshToken: this.config.refreshToken,
+        refreshToken: this.config.initialRefreshToken,
         expiresAt: Date.now(), // Force immediate refresh
       });
       
@@ -75,7 +75,7 @@ export class VolvoEX30Platform implements DynamicPlatformPlugin {
       // Log token storage info for debugging
       this.logTokenStorageInfo();
     } else {
-      this.log.error('❌ No refresh token found in config!');
+      this.log.error('❌ No initial refresh token found in config!');
     }
 
     this.api.on('didFinishLaunching', () => {

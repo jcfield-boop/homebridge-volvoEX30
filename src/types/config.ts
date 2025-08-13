@@ -4,7 +4,7 @@ export interface VolvoEX30Config {
   clientId: string;
   clientSecret: string;
   vccApiKey: string;
-  refreshToken?: string;
+  initialRefreshToken?: string;
   region?: 'eu' | 'na';
   pollingInterval?: number;
   enableBattery?: boolean;

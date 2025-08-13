@@ -38,11 +38,11 @@
         "required": true,
         "description": "Primary or Secondary VCC API Key from Volvo Developer Portal"
       },
-      "refreshToken": {
-        "title": "Refresh Token",
+      "initialRefreshToken": {
+        "title": "Initial Refresh Token",
         "type": "string",
         "required": false,
-        "description": "OAuth refresh token (will be obtained automatically)"
+        "description": "Initial OAuth refresh token for first-time setup (plugin manages tokens automatically after initial setup)"
       },
       "region": {
         "title": "Region",
@@ -103,7 +103,7 @@
         "clientId",
         "clientSecret",
         "vccApiKey",
-        "refreshToken"
+        "initialRefreshToken"
       ]
     },
     {

@@ -179,7 +179,7 @@ Add the plugin to your Homebridge `config.json`:
       "clientId": "your-client-id",
       "clientSecret": "your-client-secret",
       "vccApiKey": "your-vcc-api-key",
-      "refreshToken": "your-refresh-token",
+      "initialRefreshToken": "your-initial-refresh-token",
       "region": "eu",
       "pollingInterval": 5,
       "enableBattery": true,
@@ -200,7 +200,7 @@ Add the plugin to your Homebridge `config.json`:
 | `clientId` | Yes | - | Client ID from Volvo Developer Portal |
 | `clientSecret` | Yes | - | Client Secret from Volvo Developer Portal |
 | `vccApiKey` | Yes | - | VCC API Key from Volvo Developer Portal |
-| `refreshToken` | No | - | OAuth refresh token (obtained via oauth-setup) |
+| `initialRefreshToken` | No | - | Initial OAuth refresh token for first-time setup (plugin manages tokens automatically after initial setup) |
 | `region` | No | `eu` | Your vehicle's region (`eu` or `na`) |
 | `pollingInterval` | No | `5` | Update interval in minutes (1-60) |
 | `enableBattery` | No | `true` | Show battery service |
@@ -253,6 +253,34 @@ The plugin includes:
 
 **Complete Solution:** After v1.2.35, tokens work continuously across restarts and updates without any manual intervention or plugin conflicts.
 
+## Token Expiration and 7-Day Limit
+
+### Understanding Volvo's 7-Day Token Expiration
+
+**When Tokens Expire:**
+- Refresh tokens expire after **7 days of inactivity** if not rotated
+- This only happens when Homebridge is completely offline for 7+ consecutive days
+- Normal operation keeps tokens fresh indefinitely through automatic rotation
+
+**Normal Operation (No Expiration Issues):**
+- ✅ **Daily Use**: Plugin polls every 5 minutes, tokens refresh regularly, never expires
+- ✅ **Weekend Away**: No problem (well under 7 days)
+- ✅ **Week Vacation**: Usually fine if system stays online
+- ✅ **Regular Restarts**: Tokens persist and continue working
+
+**When Re-authentication Is Needed:**
+- ❌ **Extended Outage**: Homebridge offline for 7+ consecutive days
+- ❌ **Long Vacation + Power Outage**: System down for over a week
+- ❌ **Hardware Failure**: Extended system downtime
+
+**What Happens After 7 Days:**
+- Plugin will show "invalid refresh token" or "token expired" errors
+- You'll need to generate a new initial refresh token using the same Postman method
+- Add the new token to your config as `initialRefreshToken`
+- Plugin will resume normal operation and manage tokens automatically
+
+**This is Volvo's security policy** - there's no way to extend the 7-day limit. However, for most users with normally running Homebridge systems, this limitation never becomes an issue because regular API polling keeps tokens fresh through automatic rotation.
+
 ## Storage Migration Cleanup (v1.2.34 → v1.2.35+)
 
 ### **If Other Plugins Are Failing After v1.2.34**
@@ -286,6 +314,23 @@ sudo systemctl restart homebridge
 
 ## Troubleshooting
 
+### Configuration Field Update (v1.2.37+)
+
+**If updating from v1.2.36 or earlier:**
+- ✅ **Config field renamed**: `refreshToken` → `initialRefreshToken`
+- ✅ **Before updating**: Change field name in your config.json manually
+- ✅ **Keep same token value**: Just rename the field, don't change the token
+- ✅ **Why the change**: Makes it clear this is for initial setup only
+
+**Example config update:**
+```json
+// OLD (v1.2.36 and earlier)
+"refreshToken": "your-token-here"
+
+// NEW (v1.2.37+)  
+"initialRefreshToken": "your-token-here"
+```
+
 ### OAuth Setup Issues
 
 **Error: "code_challenge is required"**
@@ -294,15 +339,15 @@ sudo systemctl restart homebridge
 - Make sure you're using the latest version: `npm update -g homebridge-volvo-ex30`
 - If still getting this error, try clearing browser cache and restart OAuth setup
 
-**Error: "Missing refreshToken in configuration"**
+**Error: "Missing initialRefreshToken in configuration"**
 - This is expected on first setup
 - Follow the step-by-step OAuth setup instructions above
-- Make sure to add the refresh token to your Homebridge config after getting it
+- Make sure to add the initial refresh token to your Homebridge config after getting it
 
 **Error: "No tokens available. Please complete OAuth flow first."**
-- You're missing the `refreshToken` field in your configuration
+- You're missing the `initialRefreshToken` field in your configuration
 - Run `npm run oauth-setup` in the plugin directory
-- Copy the refresh token to your Homebridge config
+- Copy the initial refresh token to your Homebridge config
 
 **OAuth setup command not found:**
 ```bash

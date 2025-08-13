@@ -198,7 +198,7 @@ class VolvoEX30UiServer extends HomebridgePluginUiServer {
             const config = request.body;
             
             // Validate required fields
-            if (!config.vin || !config.clientId || !config.clientSecret || !config.vccApiKey || !config.refreshToken) {
+            if (!config.vin || !config.clientId || !config.clientSecret || !config.vccApiKey || !config.initialRefreshToken) {
                 throw new RequestError('Missing required configuration fields', { status: 400 });
             }
 
@@ -215,7 +215,7 @@ class VolvoEX30UiServer extends HomebridgePluginUiServer {
                     clientId: config.clientId,
                     clientSecret: config.clientSecret,
                     vccApiKey: config.vccApiKey,
-                    refreshToken: config.refreshToken,
+                    initialRefreshToken: config.initialRefreshToken,
                     region: config.region,
                     pollingInterval: config.pollingInterval,
                     enableBattery: config.enableBattery,

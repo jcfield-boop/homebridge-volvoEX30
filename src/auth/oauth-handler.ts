@@ -173,12 +173,12 @@ export class OAuthHandler {
         if (error.response.status === 400) {
           const errorData = error.response.data;
           if (errorData?.error === 'invalid_grant') {
-            throw new Error('Refresh token is invalid or expired. Please re-authorize the application.');
+            throw new Error(`🔒 Refresh token has expired (7-day limit reached). Please generate a new initialRefreshToken using the same Postman method and update your Homebridge config. This happens when Homebridge is offline for 7+ consecutive days.`);
           } else if (errorData?.error === 'invalid_client') {
-            throw new Error('Invalid client credentials. Check your Client ID and Client Secret.');
+            throw new Error('Invalid client credentials. Check your Client ID and Client Secret in your Homebridge config.');
           }
         } else if (error.response.status === 401) {
-          throw new Error('Authentication failed. Your refresh token may be expired.');
+          throw new Error(`🔒 Authentication failed - refresh token has likely expired after 7 days of inactivity. Generate a new initialRefreshToken using the Postman method described in the README.`);
         }
       } else if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
         throw new Error('Unable to connect to Volvo OAuth server. Check your internet connection.');
@@ -195,7 +195,7 @@ export class OAuthHandler {
     const bestToken = await this.getBestRefreshToken(refreshToken);
     
     if (!this.tokens && !bestToken) {
-      throw new Error('No tokens available. Please complete OAuth flow first.');
+      throw new Error('🔑 No initialRefreshToken found in configuration. Please add your initial refresh token to the Homebridge config using the Postman setup method described in the README.');
     }
 
     if (!this.tokens && bestToken) {
