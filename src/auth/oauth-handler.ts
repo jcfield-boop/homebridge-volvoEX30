@@ -7,6 +7,7 @@ export class OAuthHandler {
   private readonly httpClient: AxiosInstance;
   private tokens: OAuthTokens | null = null;
   private codeVerifier: string | null = null;
+  private refreshPromise: Promise<OAuthTokens> | null = null;
 
   constructor(
     private readonly config: VolvoApiConfig,
@@ -82,7 +83,28 @@ export class OAuthHandler {
   }
 
   async refreshAccessToken(refreshToken: string): Promise<OAuthTokens> {
+    // Prevent concurrent refresh attempts - Volvo tokens are single-use!
+    if (this.refreshPromise) {
+      this.logger.debug('🔄 Token refresh already in progress, waiting for completion...');
+      return await this.refreshPromise;
+    }
+
+    // Create a refresh promise to serialize all concurrent requests
+    this.refreshPromise = this.doTokenRefresh(refreshToken);
+    
     try {
+      const result = await this.refreshPromise;
+      return result;
+    } finally {
+      // Clear the promise when done (success or failure)
+      this.refreshPromise = null;
+    }
+  }
+
+  private async doTokenRefresh(refreshToken: string): Promise<OAuthTokens> {
+    try {
+      this.logger.debug('🔄 Starting token refresh request...');
+      
       const params = new URLSearchParams({
         grant_type: 'refresh_token',
         client_id: this.config.clientId,
@@ -99,7 +121,7 @@ export class OAuthHandler {
       };
 
       this.tokens = tokens;
-      this.logger.debug('Successfully refreshed OAuth tokens');
+      this.logger.debug('✅ Successfully refreshed OAuth tokens');
       
       return tokens;
     } catch (error: any) {

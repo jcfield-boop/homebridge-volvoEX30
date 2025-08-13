@@ -13,7 +13,7 @@ const axios = require('axios');
 const config = {
     clientId: 'dc-s68ezw2gmvo5nmrmfre3j4c28',
     clientSecret: 'AAZIK89F1JF1BKCiJ3yuaW',
-    refreshToken: 'bWNChWOfpZgb0YBoWtxb24YFlHu6hr5RUgndoKSkEd',
+    refreshToken: 'oxSNqaNqPH8CG5t4B7FtRooitzpSvJcojYBqaKRRcm',
     region: 'eu' // or 'na'
 };
 
