@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.32] - 2025-08-13
+
+### Fixed
+- **CRITICAL: Token Exhaustion Fix**: Serialize concurrent refresh attempts to prevent token invalidation
+- **Token Rotation Conflicts**: Fixed multiple simultaneous API calls exhausting single-use refresh tokens
+- **Concurrent Request Handling**: Added promise-based queuing for token refresh operations
+
+### Technical Details
+- **Root Cause**: Volvo rotates refresh tokens on every use, invalidating previous tokens
+- **Issue**: Multiple concurrent API calls each tried to refresh tokens simultaneously
+- **Solution**: Serialize all refresh attempts through single promise queue
+- **Result**: Only one refresh attempt per token rotation cycle
+
+### Added
+- **Refresh Promise Queue**: Prevents concurrent token refresh attempts
+- **Enhanced Logging**: Detailed token refresh serialization logging
+- **Better Error Handling**: Improved debugging for token rotation conflicts
+
 ## [1.2.31] - 2025-08-13
 
 ### Fixed

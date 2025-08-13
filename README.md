@@ -227,21 +227,29 @@ The plugin includes:
 - **Aggressive automatic token refresh** (v1.2.31+)
 - Error handling and retry logic
 
-### Token Management (v1.2.31+)
+### Token Management (v1.2.31+ → v1.2.32 CRITICAL FIX)
 
-**Volvo's Unique Challenge**: Volvo's OAuth tokens expire much faster than typical implementations (minutes instead of hours), requiring very aggressive refresh strategies.
+**Volvo's Token Rotation System**: Volvo implements **automatic refresh token rotation** for security - each refresh creates a new token and invalidates the old one.
 
-**How the Plugin Handles This:**
-- **Proactive Refresh**: Refreshes tokens 3 minutes before expiry
-- **Aggressive Buffer**: 15-minute safety buffer for token expiry detection  
-- **Smart Recovery**: Automatically clears invalid refresh tokens
-- **Frequent Updates**: Token refresh every 2-3 minutes during active use
+**Critical Issue Fixed in v1.2.32:**
+- **Root Cause**: Multiple concurrent API calls each tried to refresh the same token
+- **Problem**: First refresh succeeded, subsequent ones failed with "invalid token"  
+- **Solution**: Serialized refresh operations - only one refresh at a time
+
+**How the Plugin Handles This (v1.2.32+):**
+- **Serialized Refresh**: All concurrent requests wait for single token refresh
+- **Promise Queuing**: Multiple API calls share the same refresh operation
+- **Proper Rotation**: Follows Volvo's token rotation security model
+- **7-Day Lifecycle**: Tokens automatically rotate and remain valid for 7 days
 
 **What You'll See in Logs:**
 ```
-🔄 Refreshing token - reason: proactive refresh (Volvo tokens are short-lived)
-✅ Token refreshed successfully
+🔄 Starting token refresh request...
+🔄 Token refresh already in progress, waiting for completion...
+✅ Successfully refreshed OAuth tokens
 ```
+
+**Key Improvement:** After v1.2.32, tokens should work continuously without manual intervention.
 
 ## Troubleshooting
 
@@ -283,16 +291,19 @@ npm list -g --depth=0 | grep homebridge-volvo-ex30
 2. **Expired refresh token**: Run the OAuth setup again to get a new refresh token
 3. **Region mismatch**: Ensure your region setting matches your vehicle's region
 
-**Error: "OAuth token refresh failed" (Fixed in v1.2.31)**
+**Error: "OAuth token refresh failed" (FIXED in v1.2.32)**
 - ✅ **Fixed in v1.2.30**: Improved token handling to use config values instead of cached tokens  
 - ✅ **Fixed in v1.2.31**: Implemented aggressive proactive token refresh for Volvo's short-lived tokens
-- ✅ **Enhanced**: Automatic token refresh every 2-3 minutes to prevent expiration
-- ✅ **Improved**: Smart error recovery when refresh tokens become invalid
-- **New in v1.2.31**: Plugin now handles Volvo's ultra-short token lifespans automatically
-- If you still see this error after v1.2.31, verify your refresh token is valid:
-  ```bash
-  node scripts/test-refresh-token.js
-  ```
+- ✅ **CRITICAL FIX in v1.2.32**: Serialized token refresh to prevent concurrent token exhaustion
+- ✅ **Root Cause Solved**: Fixed multiple API calls invalidating each other's refresh tokens
+- **Key Discovery**: Volvo rotates refresh tokens on every use - v1.2.32 handles this properly
+- **Result**: Tokens should now work continuously for 7-day lifecycle without manual intervention
+
+**If you still see this error after v1.2.32:**
+1. **Update immediately**: `npm update -g homebridge-volvo-ex30`  
+2. **Get ONE fresh token** using Postman or OAuth script
+3. **Restart Homebridge** and monitor for serialization logs
+4. **Wait 24 hours** for proper token rotation to establish
 
 ### HomeKit Display Issues
 
