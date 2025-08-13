@@ -139,14 +139,39 @@ export class OAuthHandler {
     }
 
     if (!this.tokens && refreshToken) {
+      this.logger.debug('🔄 Initial token refresh with provided refresh token');
       this.tokens = await this.refreshAccessToken(refreshToken);
     }
 
-    if (this.tokens && this.isTokenExpired(this.tokens)) {
-      if (!this.tokens.refreshToken && !refreshToken) {
-        throw new Error('Token expired and no refresh token available');
+    if (this.tokens) {
+      // Check if token is expired or should be proactively refreshed
+      const isExpired = this.isTokenExpired(this.tokens);
+      const shouldRefresh = this.shouldProactivelyRefresh(this.tokens);
+      
+      if (isExpired || shouldRefresh) {
+        const reason = isExpired ? 'expired' : 'proactive refresh (Volvo tokens are short-lived)';
+        this.logger.debug(`🔄 Refreshing token - reason: ${reason}`);
+        
+        if (!this.tokens.refreshToken && !refreshToken) {
+          throw new Error('Token expired and no refresh token available');
+        }
+        
+        try {
+          this.tokens = await this.refreshAccessToken(this.tokens.refreshToken || refreshToken!);
+          this.logger.debug('✅ Token refreshed successfully');
+        } catch (error) {
+          this.logger.error(`❌ Token refresh failed: ${error}`);
+          
+          // If refresh token is invalid, clear tokens to force re-auth
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          if (errorMessage.includes('invalid_grant') || errorMessage.includes('invalid or expired')) {
+            this.logger.warn('🔄 Refresh token appears invalid - clearing cached tokens');
+            this.tokens = null;
+          }
+          
+          throw error;
+        }
       }
-      this.tokens = await this.refreshAccessToken(this.tokens.refreshToken || refreshToken!);
     }
 
     return this.tokens!.accessToken;
@@ -161,8 +186,16 @@ export class OAuthHandler {
   }
 
   private isTokenExpired(tokens: OAuthTokens): boolean {
-    const buffer = 5 * 60 * 1000;
+    // Volvo tokens expire much faster than reported - use aggressive refresh
+    const buffer = 15 * 60 * 1000; // 15 minutes buffer instead of 5
     return Date.now() >= (tokens.expiresAt - buffer);
+  }
+
+  private shouldProactivelyRefresh(tokens: OAuthTokens): boolean {
+    // Refresh if token will expire in the next 3 minutes (very aggressive for Volvo)
+    const proactiveRefreshWindow = 3 * 60 * 1000; // 3 minutes before expiry
+    const timeUntilExpiry = tokens.expiresAt - Date.now();
+    return timeUntilExpiry <= proactiveRefreshWindow;
   }
 
   isAuthenticated(): boolean {
