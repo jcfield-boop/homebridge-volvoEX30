@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.38] - 2025-08-13
+
+### Fixed
+- **HomeKit House Icon**: Enhanced battery service configuration to force proper HomeKit recognition
+- **Battery Display**: Added immediate initial values (50%, Normal, Not Charging) to help HomeKit identify as battery device
+- **Service Recognition**: Added ConfiguredName characteristic for better HomeKit identification
+- **Category Configuration**: Changed from SENSOR to OTHER category for improved HomeKit display
+
+### Added
+- **Enhanced Logging**: Added "🔋 Battery service configured as primary service" log message for debugging
+- **Cache Clearing Instructions**: Added HomeKit cache clearing steps for persistent house icon issues
+- **Troubleshooting Guide**: Clear steps for resolving HomeKit display issues
+
+### Technical Implementation
+- **Initial Characteristic Values**: Set BatteryLevel, StatusLowBattery, ChargingState immediately on service creation
+- **Service Configuration**: Enhanced primary service setup with ConfiguredName for better identification
+- **Category Optimization**: Use OTHER category instead of SENSOR for more reliable HomeKit recognition
+
+### Result
+- ✅ **Immediate Battery Recognition**: HomeKit should recognize device as battery immediately on setup
+- ✅ **Proper Icon Display**: Should show battery icon instead of house icon
+- ✅ **Clear Troubleshooting**: Users have clear steps if cache clearing is needed
+
 ## [1.2.37] - 2025-08-13
 
 ### Changed

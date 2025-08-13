@@ -399,12 +399,19 @@ npm list -g --depth=0 | grep homebridge-volvo-ex30
 
 ### HomeKit Display Issues
 
-**Device shows as "Not Supported" with house icon (Fixed in v1.2.30, Enhanced in v1.2.33)**
+**Device shows as "Not Supported" with house icon (Fixed in v1.2.30, Enhanced in v1.2.37+)**
 - ✅ **Fixed in v1.2.30**: Set proper accessory category and primary service configuration
-- ✅ **Enhanced in v1.2.33**: Fixed cached accessory category for existing installations
-- ✅ **Fixed**: Enhanced device information and service characteristics
-- **What you should see**: Battery sensor icon instead of house icon, no "Not Supported" text
-- **If still showing house icon**: Restart Homebridge to apply cached accessory fix
+- ✅ **Enhanced in v1.2.33**: Fixed cached accessory category for existing installations  
+- ✅ **Enhanced in v1.2.37+**: Force battery service recognition with initial values
+- **What you should see**: Battery icon with charging state and percentage
+
+**If still showing house icon after v1.2.37:**
+1. **Update to latest version**: `npm update -g homebridge-volvo-ex30`
+2. **Restart Homebridge**: `sudo systemctl restart homebridge`
+3. **Clear HomeKit cache (if needed)**:
+   - In Home app: Remove EX30 accessory completely
+   - Restart Homebridge - accessory will be rediscovered with proper battery icon
+4. **Check logs**: Look for "🔋 Battery service configured as primary service" message
 
 ### API Errors
 

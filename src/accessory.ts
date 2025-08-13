@@ -26,9 +26,9 @@ export class VolvoEX30Accessory {
       .setCharacteristic(this.platform.Characteristic.Model, 'EX30')
       .setCharacteristic(this.platform.Characteristic.Name, this.accessory.context.device.name)
       .setCharacteristic(this.platform.Characteristic.SerialNumber, this.accessory.context.device.vin)
-      .setCharacteristic(this.platform.Characteristic.FirmwareRevision, '1.2.37')
+      .setCharacteristic(this.platform.Characteristic.FirmwareRevision, '1.2.38')
       .setCharacteristic(this.platform.Characteristic.HardwareRevision, '2025')
-      .setCharacteristic(this.platform.Characteristic.SoftwareRevision, '1.2.37');
+      .setCharacteristic(this.platform.Characteristic.SoftwareRevision, '1.2.38');
     
     this.platform.log.debug('✅ Accessory information service configured');
   }
@@ -38,12 +38,13 @@ export class VolvoEX30Accessory {
       return;
     }
 
-    // Get or create battery service
+    // Get or create battery service - force HomeKit to recognize as battery device
     this.batteryService = this.accessory.getService(this.platform.Service.Battery) ||
       this.accessory.addService(this.platform.Service.Battery, 'EX30 Battery', 'battery');
 
-    // Set display name and configure for car battery display
+    // Force service name and ensure visibility
     this.batteryService.setCharacteristic(this.platform.Characteristic.Name, 'EX30 Battery');
+    this.batteryService.setCharacteristic(this.platform.Characteristic.ConfiguredName, 'EX30 Battery');
 
     // Configure battery level characteristic
     this.batteryService.getCharacteristic(this.platform.Characteristic.BatteryLevel)
@@ -65,7 +66,14 @@ export class VolvoEX30Accessory {
     // Set this service as the primary service for proper HomeKit display
     this.batteryService.setPrimaryService(true);
     
-    this.platform.log.debug('✅ Battery service configured as primary service');
+    // Force initial values to help HomeKit recognize this as a battery
+    this.batteryService.setCharacteristic(this.platform.Characteristic.BatteryLevel, 50);
+    this.batteryService.setCharacteristic(this.platform.Characteristic.StatusLowBattery, 
+      this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL);
+    this.batteryService.setCharacteristic(this.platform.Characteristic.ChargingState, 
+      this.platform.Characteristic.ChargingState.NOT_CHARGING);
+    
+    this.platform.log.info('🔋 Battery service configured as primary service with initial values');
   }
 
   private async getBatteryLevel(): Promise<CharacteristicValue> {
