@@ -5,6 +5,39 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2025-08-14
+
+### Removed
+- **Confusing HomeKit Representations**: Removed temperature sensor that displayed battery percentage as temperature degrees
+- **Contact Sensor for Charging**: Removed contact sensor that showed charging state (Open=Charging, Closed=Not Charging)
+
+### Changed
+- **Battery Service**: Made battery service the primary HomeKit service for cleaner representation
+- **User Experience**: Simplified HomeKit interface to use only proper battery service with standard characteristics
+
+### Technical Details
+- **HomeKit Services**: Removed `setupBatteryTemperatureService()` and `setupChargingContactService()` methods
+- **Service Updates**: Eliminated temperature and contact sensor characteristic updates from polling loop
+- **Primary Service**: Battery service now set as primary instead of secondary service
+- **Code Cleanup**: Removed 85+ lines of confusing service implementation code
+
+### Why This Change?
+- **User Feedback**: Temperature sensor showing "73°" for 73% battery was confusing in HomeKit
+- **Intuitive Interface**: Contact sensors for charging state were not intuitive (Open/Closed states)
+- **Standard Compliance**: Battery service provides proper battery level, low battery alerts, and charging status
+- **Cleaner UI**: Users now see a single, clear battery representation in HomeKit
+
+### Migration
+- **No Action Required**: Existing refresh tokens and authentication continue to work
+- **Automatic Cleanup**: Old services will be removed automatically when plugin updates
+- **Same Functionality**: All battery monitoring features still available through proper battery service
+
+### Result
+- ✅ **Cleaner HomeKit**: Single battery service shows level, charging status, and low battery warnings
+- ✅ **No Confusion**: Eliminated confusing temperature and contact sensor representations
+- ✅ **Standard Interface**: Uses HomeKit's intended battery service characteristics
+- ✅ **Same Data**: All battery information still available, just presented properly
+
 ## [1.2.45] - 2025-08-14
 
 ### Fixed
