@@ -1,7 +1,18 @@
 #!/usr/bin/env node
 
 const readline = require('readline');
-const { SharedOAuthHandler } = require('../dist/auth/oauth-setup-shared');
+const axios = require('axios');
+const crypto = require('crypto');
+
+// Try to import SharedOAuthHandler, fallback if not available
+let SharedOAuthHandler;
+try {
+  SharedOAuthHandler = require('../dist/auth/oauth-setup-shared').SharedOAuthHandler;
+  console.log('✅ Using shared OAuth handler');
+} catch (error) {
+  console.log('🔄 Shared OAuth handler not available, using built-in implementation');
+  SharedOAuthHandler = null;
+}
 
 const rl = readline.createInterface({
   input: process.stdin,

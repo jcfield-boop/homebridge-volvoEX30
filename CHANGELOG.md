@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.45] - 2025-08-14
+
+### Fixed
+- **CLI OAuth Script**: Fixed "axios is not defined" error in oauth-setup.js script
+- **Missing Dependencies**: Restored axios and crypto imports in CLI script
+- **Regression Fix**: CLI OAuth setup now works correctly again
+
+### Technical Details
+- **Import Issue**: Previous update accidentally removed axios import from CLI script
+- **Dependency Restoration**: Added back required axios and crypto imports
+- **Fallback Support**: CLI now gracefully handles both shared and built-in OAuth implementations
+- **Error Prevention**: Added proper error handling for missing shared modules
+
+### Result
+- ✅ **CLI OAuth Works**: `npm run oauth-setup` now functions correctly
+- ✅ **Custom UI Works**: Both Custom UI and CLI OAuth methods available
+- ✅ **No Regressions**: All existing functionality preserved
+- ✅ **Error Handling**: Clear messaging when dependencies are missing
+
 ## [1.2.44] - 2025-08-14
 
 ### Fixed
