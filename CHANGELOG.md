@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.42] - 2025-08-14
+
+### Updated
+- **Documentation**: Updated README with comprehensive temperature sensor solution guidance
+- **Troubleshooting**: Enhanced error resolution steps for v1.2.41 token fixes
+- **Feature Highlights**: Added prominent temperature sensor solution section
+- **User Guide**: Clear explanation of always-visible battery display solution
+
+### Documentation Improvements
+- **Temperature Sensor Prominence**: Featured temperature sensor solution at top of README
+- **Apple Home Solution**: Clear documentation that house icon issue is solved
+- **Token Fix Documentation**: Updated troubleshooting to reflect v1.2.41 fixes
+- **User Experience**: Enhanced feature descriptions with real-world examples
+
+### Result
+- ✅ **Clear User Guidance**: Users understand the temperature sensor solution immediately
+- ✅ **Updated Troubleshooting**: Reflects latest token fixes and solutions
+- ✅ **Feature Visibility**: Temperature sensor solution prominently featured
+- ✅ **Comprehensive Guide**: All issues and solutions clearly documented
+
 ## [1.2.41] - 2025-08-14
 
 ### Fixed

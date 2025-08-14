@@ -4,12 +4,19 @@ A Homebridge plugin that integrates your Volvo EX30 with Apple HomeKit using the
 
 ## Features
 
+### 🌡️ Temperature Sensor Solution (v1.2.40+)
+- **Always-Visible Battery Level**: "EX30 Battery Level" temperature sensor where 73° = 73% battery
+- **Clear Charging Indication**: "EX30 Charging" contact sensor (Open=Charging, Closed=Not Charging)  
+- **Perfect Apple Home Support**: Temperature sensors work flawlessly, no house icon issues
+- **Intuitive Display**: Battery percentage always visible regardless of charging state
+
+### 🔋 Core Functionality
 - **Battery Monitoring**: View battery level, charging status, and low battery alerts in HomeKit
 - **Real-time Updates**: Automatically polls your vehicle for status updates
 - **Rate Limiting**: Respects Volvo API rate limits (100 requests/minute)
 - **Secure Authentication**: Uses OAuth2 with PKCE (Proof Key for Code Exchange) for enhanced security
-- **Legacy API Support**: Compatible with both modern and legacy Volvo API endpoints
-- **Flexible OAuth**: Supports custom redirect URIs including GitHub repository URLs
+- **Token Persistence**: Smart token storage survives restarts and updates (v1.2.35+)
+- **Bug-Free Tokens**: Fixed false expiration detection (v1.2.41)
 
 ## Requirements
 
@@ -369,13 +376,14 @@ npm list -g --depth=0 | grep homebridge-volvo-ex30
 2. **Expired refresh token**: Run the OAuth setup again to get a new refresh token
 3. **Region mismatch**: Ensure your region setting matches your vehicle's region
 
-**Error: "OAuth token refresh failed" (FIXED in v1.2.32)**
+**Error: "OAuth token refresh failed" (FIXED in v1.2.41)**
 - ✅ **Fixed in v1.2.30**: Improved token handling to use config values instead of cached tokens  
 - ✅ **Fixed in v1.2.31**: Implemented aggressive proactive token refresh for Volvo's short-lived tokens
 - ✅ **CRITICAL FIX in v1.2.32**: Serialized token refresh to prevent concurrent token exhaustion
-- ✅ **Root Cause Solved**: Fixed multiple API calls invalidating each other's refresh tokens
-- **Key Discovery**: Volvo rotates refresh tokens on every use - v1.2.32 handles this properly
-- **Result**: Tokens should now work continuously for 7-day lifecycle without manual intervention
+- ✅ **CRITICAL FIX in v1.2.41**: Fixed false "expired" detection on valid tokens (even 4-hour-old tokens)
+- ✅ **Root Cause Solved**: Fixed stored tokens being incorrectly flagged as expired immediately after loading
+- **Key Discovery**: Plugin was treating missing access token expiry as "expired" instead of "needs refresh"
+- **Result**: Valid tokens work immediately, no more false 7-day expiration messages
 
 **Enhanced Token Storage System (v1.2.35+):**
 - ✅ **Persistent token storage**: Refreshed tokens automatically saved to disk
@@ -386,11 +394,11 @@ npm list -g --depth=0 | grep homebridge-volvo-ex30
 - ✅ **Storage location**: `~/.homebridge/volvo-ex30-tokens.json` (clean, isolated)
 - ✅ **7-day lifecycle**: Tokens rotate properly with automatic persistence
 
-**If you still see this error after v1.2.32:**
+**If you still see this error after v1.2.41:**
 1. **Update immediately**: `npm update -g homebridge-volvo-ex30`  
-2. **Get ONE fresh token** using Postman or OAuth script
-3. **Restart Homebridge** and monitor for serialization logs
-4. **Wait 24 hours** for proper token rotation to establish
+2. **Check debug logs**: Look for detailed token expiry calculations and OAuth responses
+3. **Restart Homebridge**: Existing tokens should work immediately
+4. **Only if still failing**: Generate fresh token using Postman method
 
 **If updating from v1.2.34 and other plugins are failing:**
 1. **Update to v1.2.35+**: `npm update -g homebridge-volvo-ex30`
@@ -409,24 +417,25 @@ npm list -g --depth=0 | grep homebridge-volvo-ex30
 
 **This is a known Apple Home app limitation** - the battery service works correctly but Apple's Home app shows it as "Not Supported" with a house icon.
 
-**Solutions:**
+**✅ SOLVED in v1.2.40+**: **Temperature Sensor Solution**
+- **"EX30 Battery Level"**: Temperature sensor showing battery percentage (73° = 73% battery)
+- **"EX30 Charging"**: Contact sensor showing charging state (Open=Charging, Closed=Not Charging)
+- **Always Visible**: Battery level always displayed regardless of charging state
+- **Perfect Apple Home Support**: Temperature sensors work flawlessly in Apple Home app
+
+**Alternative Solutions:**
 1. **Use Alternative HomeKit Apps**: 
    - **Controller for HomeKit** (iOS/macOS) - Displays battery services correctly
    - **Eve for HomeKit** (iOS) - Shows proper battery information
    - **Home Assistant** - Full HomeKit compatibility
    - **HomeKit Device Manager** - Developer tool with full service support
 
-2. **Use the Humidity Sensor Workaround** (v1.2.39+):
-   - Plugin creates both a battery service AND a humidity sensor
-   - Humidity sensor shows battery percentage (0-100%) with proper sensor icon
-   - Look for "EX30 Battery %" sensor in Home app
-
-3. **Clear HomeKit Cache (last resort)**:
+2. **Clear HomeKit Cache (if needed)**:
    - Remove EX30 accessory from Home app completely
-   - Restart Homebridge - accessory rediscovered with both services
-   - Check logs for "💧 Battery humidity sensor configured" message
+   - Restart Homebridge - accessory rediscovered with temperature and contact sensors
+   - Check logs for "🌡️ Battery temperature sensor configured" message
 
-**Why This Happens**: Apple's Home app has limited support for battery services compared to other HomeKit apps. The functionality works perfectly - it's just a display limitation.
+**Why This Was an Issue**: Apple's Home app has limited support for battery services. The temperature sensor solution provides perfect visibility and intuitive display.
 
 ### API Errors
 
