@@ -148,6 +148,8 @@ export class OAuthHandler {
         expiresAt: Date.now() + (response.data.expires_in * 1000),
       };
 
+      this.logger.debug(`🔄 Token refresh successful - expires_in: ${response.data.expires_in}s, new expiresAt: ${new Date(tokens.expiresAt).toISOString()}`);
+
       this.tokens = tokens;
       
       // Store the new refresh token persistently (if rotated)
@@ -166,7 +168,8 @@ export class OAuthHandler {
           status: error.response.status,
           statusText: error.response.statusText,
           data: error.response.data,
-          refreshTokenLength: refreshToken?.length || 0
+          refreshTokenLength: refreshToken?.length || 0,
+          refreshTokenPrefix: refreshToken?.substring(0, 8) + '...'
         });
 
         // Handle specific OAuth error cases
@@ -201,6 +204,7 @@ export class OAuthHandler {
     if (!this.tokens && bestToken) {
       this.logger.debug(`🔄 Initial token refresh with ${bestToken.source} refresh token`);
       this.tokens = await this.refreshAccessToken(bestToken.token);
+      return this.tokens.accessToken;
     }
 
     if (this.tokens) {
@@ -250,7 +254,13 @@ export class OAuthHandler {
   private isTokenExpired(tokens: OAuthTokens): boolean {
     // Volvo tokens expire much faster than reported - use aggressive refresh
     const buffer = 15 * 60 * 1000; // 15 minutes buffer instead of 5
-    return Date.now() >= (tokens.expiresAt - buffer);
+    const now = Date.now();
+    const expiryWithBuffer = tokens.expiresAt - buffer;
+    const isExpired = now >= expiryWithBuffer;
+    
+    this.logger.debug(`🔍 Token expiry check - now: ${new Date(now).toISOString()}, expiresAt: ${new Date(tokens.expiresAt).toISOString()}, buffer: ${buffer/1000}s, isExpired: ${isExpired}`);
+    
+    return isExpired;
   }
 
   private shouldProactivelyRefresh(tokens: OAuthTokens): boolean {

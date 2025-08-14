@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.41] - 2025-08-14
+
+### Fixed
+- **Token Expiration Bug**: Fixed false "expired" detection causing unnecessary refresh attempts on valid tokens
+- **Debug Logging**: Added detailed token expiry debug logging to identify refresh issues
+- **Initial Token Flow**: Improved handling of stored refresh tokens to avoid false expiration triggers
+- **Error Logging**: Enhanced OAuth error logging with token prefix for better debugging
+
+### Technical Details
+- Fixed issue where stored refresh tokens were incorrectly flagged as expired immediately after loading
+- Added debug logging for token expiry calculations and OAuth response details
+- Improved initial token refresh flow to return immediately after successful refresh
+- Enhanced error reporting to show actual HTTP status and response data from Volvo
+
+### Result
+- ✅ **Tokens work correctly**: No more false expiration on valid 4-hour-old tokens
+- ✅ **Better debugging**: Clear logs show actual token expiry times and refresh reasons
+- ✅ **Proper error handling**: Real OAuth errors are logged instead of generic 7-day messages
+- ✅ **Temperature sensor ready**: Plugin ready for temperature sensor testing once tokens work
+
 ## [1.2.40] - 2025-08-14
 
 ### Added
