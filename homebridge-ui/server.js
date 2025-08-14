@@ -1,21 +1,24 @@
-console.log('🚗 Starting Volvo EX30 UI Server...');
+console.log('🚗 Starting Volvo EX30 UI Server v1.3.0...');
 
-const { HomebridgePluginUiServer, RequestError } = require('@homebridge/plugin-ui-utils');
-const path = require('path');
-const axios = require('axios');
-
-// Import the shared OAuth handler (will be compiled to JavaScript)
-let SharedOAuthHandler;
 try {
-    SharedOAuthHandler = require('../dist/auth/oauth-setup-shared').SharedOAuthHandler;
-    console.log('✅ SharedOAuthHandler loaded successfully');
-} catch (error) {
-    console.error('❌ Failed to load SharedOAuthHandler:', error.message);
-    console.log('🔄 Falling back to built-in OAuth implementation');
-    SharedOAuthHandler = null;
-}
+    const { HomebridgePluginUiServer, RequestError } = require('@homebridge/plugin-ui-utils');
+    const path = require('path');
+    const axios = require('axios');
+    
+    console.log('✅ Core dependencies loaded successfully');
 
-console.log('✅ Dependencies loaded successfully');
+    // Import the shared OAuth handler (will be compiled to JavaScript)
+    let SharedOAuthHandler;
+    try {
+        SharedOAuthHandler = require('../dist/auth/oauth-setup-shared').SharedOAuthHandler;
+        console.log('✅ SharedOAuthHandler loaded successfully');
+    } catch (error) {
+        console.error('❌ Failed to load SharedOAuthHandler:', error.message);
+        console.log('🔄 Falling back to built-in OAuth implementation');
+        SharedOAuthHandler = null;
+    }
+
+    console.log('✅ All dependencies loaded successfully');
 
 class VolvoEX30UiServer extends HomebridgePluginUiServer {
     constructor() {
@@ -36,7 +39,7 @@ class VolvoEX30UiServer extends HomebridgePluginUiServer {
             return { 
                 status: 'Volvo EX30 UI Server Running', 
                 timestamp: new Date().toISOString(),
-                version: '1.2.24',
+                version: '1.3.0',
                 activeSessions: this.authSessions.size,
                 uptime: process.uptime()
             };
@@ -332,7 +335,40 @@ class VolvoEX30UiServer extends HomebridgePluginUiServer {
     }
 }
 
-// Direct instantiation following Mercedes plugin pattern
-console.log('🚀 Creating VolvoEX30UiServer instance...');
-new VolvoEX30UiServer();
-console.log('🎉 Volvo EX30 UI Server started successfully!');
+    // Direct instantiation following Mercedes plugin pattern
+    console.log('🚀 Creating VolvoEX30UiServer instance...');
+    new VolvoEX30UiServer();
+    console.log('🎉 Volvo EX30 UI Server started successfully!');
+
+} catch (error) {
+    console.error('❌ Failed to start Volvo EX30 UI Server:', error.message);
+    console.error('❌ Stack trace:', error.stack);
+    
+    // Fallback minimal server to prevent complete failure
+    try {
+        const { HomebridgePluginUiServer } = require('@homebridge/plugin-ui-utils');
+        
+        class FallbackUiServer extends HomebridgePluginUiServer {
+            constructor() {
+                super();
+                console.log('🔄 Starting fallback UI server...');
+                
+                this.onRequest('/health', async () => {
+                    return { 
+                        status: 'Fallback UI Server Running', 
+                        error: 'Main server failed to load',
+                        timestamp: new Date().toISOString()
+                    };
+                });
+                
+                this.ready();
+                console.log('✅ Fallback UI server ready');
+            }
+        }
+        
+        new FallbackUiServer();
+    } catch (fallbackError) {
+        console.error('❌ Even fallback server failed:', fallbackError.message);
+        process.exit(1);
+    }
+}
