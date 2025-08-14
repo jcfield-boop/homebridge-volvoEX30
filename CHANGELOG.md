@@ -5,6 +5,40 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.2] - 2025-08-14
+
+### Fixed
+- **Custom UI Server Recognition**: Added `"customUI": true` flag to package.json for proper Homebridge detection
+- **Server Startup Reliability**: Completely rewrote server.js with simplified, more reliable implementation
+- **OAuth Setup Failures**: Eliminated complex error handling that prevented Custom UI server from starting
+- **HTML Fallback Issue**: Fixed Custom UI returning HTML responses instead of JSON
+
+### Changed
+- **Server Implementation**: Replaced complex server with streamlined OAuth-focused implementation
+- **Dependency Management**: Removed shared module dependencies that could cause startup failures
+- **Error Handling**: Simplified error handling to prevent server initialization issues
+
+### Removed
+- **Complex Fallback Logic**: Removed elaborate error handling that was preventing proper server startup
+- **Shared OAuth Handler Dependencies**: Eliminated optional dependencies that could fail to load
+
+### Technical Details
+- **Package Configuration**: Added Homebridge Custom UI flag for proper plugin recognition
+- **Server Architecture**: Direct OAuth implementation without shared module complexity
+- **Session Management**: Simplified session storage using Map instead of complex patterns
+- **Module Loading**: Removed try-catch imports that could cause server recognition issues
+
+### Result
+- ✅ **Custom UI Recognized**: Homebridge now properly detects and loads the Custom UI server
+- ✅ **OAuth Works**: Streamlined OAuth flow without dependency failures
+- ✅ **No HTML Responses**: Server returns proper JSON instead of falling back to HTML
+- ✅ **Reliable Startup**: Server starts consistently without initialization errors
+
+### Migration
+- **Restart Required**: Homebridge restart required for Custom UI changes to take effect
+- **No Config Changes**: Existing configurations continue to work without modification
+- **Backup Available**: Complex server implementation backed up to server-complex.js
+
 ## [1.3.1] - 2025-08-14
 
 ### Fixed
