@@ -2,9 +2,18 @@ console.log('🚗 Starting Volvo EX30 UI Server...');
 
 const { HomebridgePluginUiServer, RequestError } = require('@homebridge/plugin-ui-utils');
 const path = require('path');
+const axios = require('axios');
 
 // Import the shared OAuth handler (will be compiled to JavaScript)
-const { SharedOAuthHandler } = require('../dist/auth/oauth-setup-shared');
+let SharedOAuthHandler;
+try {
+    SharedOAuthHandler = require('../dist/auth/oauth-setup-shared').SharedOAuthHandler;
+    console.log('✅ SharedOAuthHandler loaded successfully');
+} catch (error) {
+    console.error('❌ Failed to load SharedOAuthHandler:', error.message);
+    console.log('🔄 Falling back to built-in OAuth implementation');
+    SharedOAuthHandler = null;
+}
 
 console.log('✅ Dependencies loaded successfully');
 
@@ -55,23 +64,47 @@ class VolvoEX30UiServer extends HomebridgePluginUiServer {
         }
 
         try {
-            // Create shared OAuth handler
-            const oauthHandler = new SharedOAuthHandler({ clientId, region });
+            let authUrl, codeVerifier, state;
             
-            // Use OAuth redirect URI configured in Volvo Developer Portal
-            const redirectUri = 'https://github.com/jcfield-boop/homebridge-volvoEX30';
-            
-            // Generate authorization URL with PKCE parameters
-            const authResult = oauthHandler.generateAuthorizationUrl(redirectUri);
+            if (SharedOAuthHandler) {
+                // Use shared OAuth handler if available
+                const oauthHandler = new SharedOAuthHandler({ clientId, region });
+                const redirectUri = 'https://github.com/jcfield-boop/homebridge-volvoEX30';
+                const authResult = oauthHandler.generateAuthorizationUrl(redirectUri);
+                
+                authUrl = authResult.authUrl;
+                codeVerifier = authResult.codeVerifier;
+                state = authResult.state;
+            } else {
+                // Fallback OAuth implementation
+                const crypto = require('crypto');
+                codeVerifier = this.generateCodeVerifier();
+                const codeChallenge = this.generateCodeChallenge(codeVerifier);
+                state = crypto.randomBytes(16).toString('hex');
+                
+                const baseURL = region === 'na' ? 'https://volvoid.volvocars.com' : 'https://volvoid.eu.volvocars.com';
+                const redirectUri = 'https://github.com/jcfield-boop/homebridge-volvoEX30';
+                
+                const authParams = new URLSearchParams({
+                    response_type: 'code',
+                    client_id: clientId,
+                    redirect_uri: redirectUri,
+                    scope: 'conve:fuel_status conve:climatization_start_stop conve:unlock conve:lock_status conve:lock openid energy:state:read energy:capability:read conve:battery_charge_level conve:diagnostics_engine_status conve:warnings',
+                    code_challenge: codeChallenge,
+                    code_challenge_method: 'S256',
+                    state: state
+                });
+
+                authUrl = `${baseURL}/as/authorization.oauth2?${authParams.toString()}`;
+            }
             
             // Store session data
             const sessionId = require('crypto').randomBytes(16).toString('hex');
             this.authSessions.set(sessionId, {
-                codeVerifier: authResult.codeVerifier,
-                state: authResult.state,
+                codeVerifier,
+                state,
                 clientId,
                 region,
-                oauthHandler,
                 createdAt: Date.now()
             });
 
@@ -81,9 +114,9 @@ class VolvoEX30UiServer extends HomebridgePluginUiServer {
             console.log(`✅ Generated auth URL for session ${sessionId}`);
             
             const response = {
-                authUrl: authResult.authUrl,
+                authUrl,
                 sessionId,
-                state: authResult.state
+                state
             };
             
             console.log('📤 Returning response:', response);
@@ -115,19 +148,47 @@ class VolvoEX30UiServer extends HomebridgePluginUiServer {
         const { codeVerifier, clientId, region } = session;
 
         try {
-            // Create shared OAuth handler with client secret for token exchange
-            const oauthHandler = new SharedOAuthHandler({ 
-                clientId, 
-                clientSecret, 
-                region 
-            });
-            
-            // Must match the authorization request redirect URI exactly
             const redirectUri = 'https://github.com/jcfield-boop/homebridge-volvoEX30';
-            
             console.log('🌍 Exchanging authorization code for tokens...');
 
-            const tokens = await oauthHandler.exchangeCodeForTokens(code, redirectUri, codeVerifier);
+            let tokens;
+            
+            if (SharedOAuthHandler) {
+                // Use shared OAuth handler if available
+                const oauthHandler = new SharedOAuthHandler({ 
+                    clientId, 
+                    clientSecret, 
+                    region 
+                });
+                tokens = await oauthHandler.exchangeCodeForTokens(code, redirectUri, codeVerifier);
+            } else {
+                // Fallback token exchange implementation
+                const axios = require('axios');
+                const baseURL = region === 'na' ? 'https://volvoid.volvocars.com' : 'https://volvoid.eu.volvocars.com';
+                
+                const params = new URLSearchParams({
+                    grant_type: 'authorization_code',
+                    client_id: clientId,
+                    client_secret: clientSecret,
+                    code: code,
+                    redirect_uri: redirectUri,
+                    code_verifier: codeVerifier
+                });
+
+                const response = await axios.post(`${baseURL}/as/token.oauth2`, params, {
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'Accept': 'application/json'
+                    },
+                    timeout: 30000
+                });
+
+                tokens = {
+                    access_token: response.data.access_token,
+                    refresh_token: response.data.refresh_token,
+                    expires_in: response.data.expires_in
+                };
+            }
 
             console.log('✅ Token exchange successful!');
 
@@ -247,6 +308,27 @@ class VolvoEX30UiServer extends HomebridgePluginUiServer {
                 this.authSessions.delete(sessionId);
             }
         }
+    }
+
+    // Fallback OAuth methods (used when SharedOAuthHandler fails to load)
+    generateCodeVerifier() {
+        // Generate 128 bytes of random data, base64url encode
+        // This follows RFC 7636 specification for PKCE
+        return require('crypto').randomBytes(32)
+            .toString('base64')
+            .replace(/\+/g, '-')
+            .replace(/\//g, '_')
+            .replace(/=/g, '');
+    }
+
+    generateCodeChallenge(codeVerifier) {
+        // SHA256 hash of code verifier, base64url encoded
+        // This follows RFC 7636 specification for PKCE
+        const hash = require('crypto').createHash('sha256').update(codeVerifier).digest();
+        return hash.toString('base64')
+            .replace(/\+/g, '-')
+            .replace(/\//g, '_')
+            .replace(/=/g, '');
     }
 }
 

@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.44] - 2025-08-14
+
+### Fixed
+- **Custom UI Server Loading**: Fixed Custom UI server falling back to main Homebridge UI
+- **OAuth Handler Import**: Added fallback OAuth implementation when shared handler fails to load
+- **Module Dependencies**: Enhanced error handling for missing compiled modules
+- **Server Initialization**: Improved server startup with graceful fallback for dependencies
+
+### Added
+- **Fallback OAuth Methods**: Built-in OAuth implementation when shared module unavailable
+- **Enhanced Error Handling**: Better error reporting when modules fail to load
+- **Debug Logging**: Added logging for OAuth handler loading status
+- **Dependency Resilience**: Server starts successfully even with missing optional dependencies
+
+### Technical Details
+- **Import Safety**: Wrapped shared OAuth handler import in try-catch with fallback
+- **PKCE Implementation**: Ensured PKCE compliance in both shared and fallback implementations
+- **Axios Import**: Added missing axios dependency for fallback token exchange
+- **Session Management**: Maintained session handling regardless of OAuth implementation used
+
+### Result
+- ✅ **Custom UI Loads**: Server starts successfully regardless of shared module status
+- ✅ **OAuth Works**: Either shared handler or fallback implementation provides OAuth functionality
+- ✅ **Error Recovery**: Clear logging when shared modules fail to load
+- ✅ **Backward Compatibility**: Existing setups continue working without issues
+
 ## [1.2.43] - 2025-08-14
 
 ### Fixed
