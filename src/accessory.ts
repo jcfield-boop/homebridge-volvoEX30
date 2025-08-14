@@ -4,8 +4,6 @@ import { EnergyState } from './types/energy-api';
 
 export class VolvoEX30Accessory {
   private batteryService?: Service;
-  private batteryTemperatureService?: Service; // Temperature sensor to display battery % (always visible)
-  private chargingContactService?: Service; // Contact sensor to show charging state visually
   private informationService: Service;
   
   private currentEnergyState: EnergyState | null = null;
@@ -19,8 +17,6 @@ export class VolvoEX30Accessory {
     
     this.setupInformationService();
     this.setupBatteryService();
-    this.setupBatteryTemperatureService(); // Add temperature sensor for always-visible battery level
-    this.setupChargingContactService(); // Add contact sensor for charging state display
     this.startPolling();
   }
 
@@ -67,8 +63,8 @@ export class VolvoEX30Accessory {
     this.batteryService.getCharacteristic(this.platform.Characteristic.ChargingState)
       .onGet(this.getChargingState.bind(this));
 
-    // Battery service is secondary - humidity sensor will be primary
-    this.batteryService.setPrimaryService(false);
+    // Battery service is the primary service
+    this.batteryService.setPrimaryService(true);
     
     // Force initial values to help HomeKit recognize this as a battery
     this.batteryService.setCharacteristic(this.platform.Characteristic.BatteryLevel, 50);
@@ -77,59 +73,9 @@ export class VolvoEX30Accessory {
     this.batteryService.setCharacteristic(this.platform.Characteristic.ChargingState, 
       this.platform.Characteristic.ChargingState.NOT_CHARGING);
     
-    this.platform.log.info('🔋 Battery service configured as primary service with initial values');
+    this.platform.log.info('🔋 Battery service configured as primary service');
   }
 
-  private setupBatteryTemperatureService(): void {
-    if (!this.platform.config.enableBattery) {
-      return;
-    }
-
-    // Add temperature sensor to display battery percentage (always visible regardless of charging state)
-    this.batteryTemperatureService = this.accessory.getService('EX30 Battery Level') ||
-      this.accessory.addService(this.platform.Service.TemperatureSensor, 'EX30 Battery Level', 'battery-temperature');
-
-    this.batteryTemperatureService.setCharacteristic(this.platform.Characteristic.Name, 'EX30 Battery Level');
-    this.batteryTemperatureService.setCharacteristic(this.platform.Characteristic.ConfiguredName, 'EX30 Battery Level');
-
-    // Configure temperature as battery level (0-100° = 0-100%)
-    this.batteryTemperatureService.getCharacteristic(this.platform.Characteristic.CurrentTemperature)
-      .onGet(this.getBatteryLevel.bind(this))
-      .setProps({
-        minValue: 0,
-        maxValue: 100,
-        minStep: 1,
-      });
-
-    // Set initial value and make this the primary service
-    this.batteryTemperatureService.setCharacteristic(this.platform.Characteristic.CurrentTemperature, 50);
-    this.batteryTemperatureService.setPrimaryService(true);
-
-    this.platform.log.info('🌡️ Battery temperature sensor configured as PRIMARY service (73° = 73% battery, always visible)');
-  }
-
-  private setupChargingContactService(): void {
-    if (!this.platform.config.enableBattery) {
-      return;
-    }
-
-    // Add contact sensor to show charging state (Open = Charging, Closed = Not Charging)
-    this.chargingContactService = this.accessory.getService('EX30 Charging') ||
-      this.accessory.addService(this.platform.Service.ContactSensor, 'EX30 Charging', 'charging-contact');
-
-    this.chargingContactService.setCharacteristic(this.platform.Characteristic.Name, 'EX30 Charging');
-    this.chargingContactService.setCharacteristic(this.platform.Characteristic.ConfiguredName, 'EX30 Charging');
-
-    // Configure contact state as charging indicator
-    this.chargingContactService.getCharacteristic(this.platform.Characteristic.ContactSensorState)
-      .onGet(this.getChargingContactState.bind(this));
-
-    // Set initial value (Closed = Not Charging)
-    this.chargingContactService.setCharacteristic(this.platform.Characteristic.ContactSensorState, 
-      this.platform.Characteristic.ContactSensorState.CONTACT_NOT_DETECTED);
-
-    this.platform.log.info('🔌 Charging contact sensor configured (Open=Charging, Closed=Not Charging)');
-  }
 
   private async getBatteryLevel(): Promise<CharacteristicValue> {
     try {
@@ -191,28 +137,6 @@ export class VolvoEX30Accessory {
     }
   }
 
-  private async getChargingContactState(): Promise<CharacteristicValue> {
-    try {
-      const energyState = await this.getEnergyState();
-      
-      if (energyState.chargingStatus.status === 'OK') {
-        const chargingStatus = energyState.chargingStatus.value;
-        const isCharging = chargingStatus === 'CHARGING';
-        
-        this.platform.log.debug('Charging contact state:', chargingStatus, '-> Contact:', isCharging ? 'DETECTED (charging)' : 'NOT_DETECTED (not charging)');
-        
-        // Contact DETECTED = Charging, Contact NOT_DETECTED = Not Charging
-        return isCharging ? 
-          this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED : 
-          this.platform.Characteristic.ContactSensorState.CONTACT_NOT_DETECTED;
-      } else {
-        return this.platform.Characteristic.ContactSensorState.CONTACT_NOT_DETECTED;
-      }
-    } catch (error) {
-      this.platform.log.error('Failed to get charging contact state:', error);
-      return this.platform.Characteristic.ContactSensorState.CONTACT_NOT_DETECTED;
-    }
-  }
 
   private async getEnergyState(): Promise<EnergyState> {
     if (this.currentEnergyState) {
@@ -249,15 +173,6 @@ export class VolvoEX30Accessory {
           this.batteryService.updateCharacteristic(this.platform.Characteristic.ChargingState, await this.getChargingState());
         }
 
-        // Update temperature sensor with battery percentage (always visible)
-        if (this.batteryTemperatureService) {
-          this.batteryTemperatureService.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, batteryLevel);
-        }
-
-        // Update charging contact sensor
-        if (this.chargingContactService) {
-          this.chargingContactService.updateCharacteristic(this.platform.Characteristic.ContactSensorState, await this.getChargingContactState());
-        }
         
         this.platform.log.debug('Updated energy state from polling');
       } catch (error) {
