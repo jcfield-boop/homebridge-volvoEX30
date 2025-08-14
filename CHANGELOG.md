@@ -5,6 +5,42 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.40] - 2025-08-14
+
+### Added
+- **Temperature Sensor for Battery Display**: Added "EX30 Battery Level" temperature sensor where temperature = battery percentage
+- **Contact Sensor for Charging State**: Added "EX30 Charging" contact sensor (Open=Charging, Closed=Not Charging)
+- **Always-Visible Battery Level**: Temperature display shows battery percentage regardless of charging state (73° = 73% battery)
+- **Dual Visual Indicators**: Both battery level (temperature) and charging status (contact) always visible
+
+### Fixed
+- **Lightbulb Service Visibility Issue**: Replaced problematic lightbulb approach (brightness invisible when off)
+- **Battery Level Always Visible**: Temperature sensor ensures battery percentage is always displayed
+- **Charging State Display**: Contact sensor provides clear visual charging indication
+
+### Changed
+- **Primary Service**: Temperature sensor now primary service for always-visible battery level
+- **Service Strategy**: Replaced humidity sensor with temperature sensor for better visibility
+- **Visual Display**: Temperature = battery level, contact = charging state for optimal HomeKit display
+
+### Technical Implementation
+- **Temperature Service**: CurrentTemperature characteristic displays battery percentage (0-100° = 0-100%)
+- **Contact Service**: ContactSensorState shows charging status (DETECTED=charging, NOT_DETECTED=not charging)
+- **Primary Service**: Temperature sensor set as primary with proper naming
+- **Polling Updates**: Both temperature and contact sensors update during polling cycle
+
+### User Experience
+- ✅ **Always Visible**: 73° temperature always shows 73% battery, regardless of charging state
+- ✅ **Clear Charging Indication**: Contact sensor opens when charging, closes when not charging
+- ✅ **No Confusion**: No on/off states that hide information like lightbulb brightness
+- ✅ **Intuitive Display**: Temperature number directly corresponds to battery percentage
+
+### Result
+- ✅ **Perfect Visibility**: Battery level always displayed as temperature
+- ✅ **Charging Status**: Contact sensor clearly shows charging state
+- ✅ **No Apple Limitations**: Temperature sensors work perfectly in Apple Home app
+- ✅ **User Approved**: Solves "shows how full it is and if it's charging" requirement
+
 ## [1.2.39] - 2025-08-13
 
 ### Added

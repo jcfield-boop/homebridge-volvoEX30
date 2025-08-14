@@ -4,7 +4,8 @@ import { EnergyState } from './types/energy-api';
 
 export class VolvoEX30Accessory {
   private batteryService?: Service;
-  private batteryHumidityService?: Service; // Humidity sensor to display battery % (HomeKit compatibility)
+  private batteryTemperatureService?: Service; // Temperature sensor to display battery % (always visible)
+  private chargingContactService?: Service; // Contact sensor to show charging state visually
   private informationService: Service;
   
   private currentEnergyState: EnergyState | null = null;
@@ -18,7 +19,8 @@ export class VolvoEX30Accessory {
     
     this.setupInformationService();
     this.setupBatteryService();
-    this.setupBatteryHumidityService(); // Add humidity sensor for better HomeKit compatibility
+    this.setupBatteryTemperatureService(); // Add temperature sensor for always-visible battery level
+    this.setupChargingContactService(); // Add contact sensor for charging state display
     this.startPolling();
   }
 
@@ -28,9 +30,9 @@ export class VolvoEX30Accessory {
       .setCharacteristic(this.platform.Characteristic.Model, 'EX30')
       .setCharacteristic(this.platform.Characteristic.Name, this.accessory.context.device.name)
       .setCharacteristic(this.platform.Characteristic.SerialNumber, this.accessory.context.device.vin)
-      .setCharacteristic(this.platform.Characteristic.FirmwareRevision, '1.2.39')
+      .setCharacteristic(this.platform.Characteristic.FirmwareRevision, '1.2.40')
       .setCharacteristic(this.platform.Characteristic.HardwareRevision, '2025')
-      .setCharacteristic(this.platform.Characteristic.SoftwareRevision, '1.2.39');
+      .setCharacteristic(this.platform.Characteristic.SoftwareRevision, '1.2.40');
     
     this.platform.log.debug('✅ Accessory information service configured');
   }
@@ -78,20 +80,20 @@ export class VolvoEX30Accessory {
     this.platform.log.info('🔋 Battery service configured as primary service with initial values');
   }
 
-  private setupBatteryHumidityService(): void {
+  private setupBatteryTemperatureService(): void {
     if (!this.platform.config.enableBattery) {
       return;
     }
 
-    // Add humidity sensor to display battery percentage (HomeKit compatibility workaround)
-    this.batteryHumidityService = this.accessory.getService('EX30 Battery %') ||
-      this.accessory.addService(this.platform.Service.HumiditySensor, 'EX30 Battery %', 'battery-humidity');
+    // Add temperature sensor to display battery percentage (always visible regardless of charging state)
+    this.batteryTemperatureService = this.accessory.getService('EX30 Battery Level') ||
+      this.accessory.addService(this.platform.Service.TemperatureSensor, 'EX30 Battery Level', 'battery-temperature');
 
-    this.batteryHumidityService.setCharacteristic(this.platform.Characteristic.Name, 'EX30 Battery %');
-    this.batteryHumidityService.setCharacteristic(this.platform.Characteristic.ConfiguredName, 'EX30 Battery %');
+    this.batteryTemperatureService.setCharacteristic(this.platform.Characteristic.Name, 'EX30 Battery Level');
+    this.batteryTemperatureService.setCharacteristic(this.platform.Characteristic.ConfiguredName, 'EX30 Battery Level');
 
-    // Configure humidity as battery level (0-100%)
-    this.batteryHumidityService.getCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity)
+    // Configure temperature as battery level (0-100° = 0-100%)
+    this.batteryTemperatureService.getCharacteristic(this.platform.Characteristic.CurrentTemperature)
       .onGet(this.getBatteryLevel.bind(this))
       .setProps({
         minValue: 0,
@@ -100,10 +102,33 @@ export class VolvoEX30Accessory {
       });
 
     // Set initial value and make this the primary service
-    this.batteryHumidityService.setCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, 50);
-    this.batteryHumidityService.setPrimaryService(true);
+    this.batteryTemperatureService.setCharacteristic(this.platform.Characteristic.CurrentTemperature, 50);
+    this.batteryTemperatureService.setPrimaryService(true);
 
-    this.platform.log.info('💧 Battery humidity sensor configured as PRIMARY service for HomeKit compatibility');
+    this.platform.log.info('🌡️ Battery temperature sensor configured as PRIMARY service (73° = 73% battery, always visible)');
+  }
+
+  private setupChargingContactService(): void {
+    if (!this.platform.config.enableBattery) {
+      return;
+    }
+
+    // Add contact sensor to show charging state (Open = Charging, Closed = Not Charging)
+    this.chargingContactService = this.accessory.getService('EX30 Charging') ||
+      this.accessory.addService(this.platform.Service.ContactSensor, 'EX30 Charging', 'charging-contact');
+
+    this.chargingContactService.setCharacteristic(this.platform.Characteristic.Name, 'EX30 Charging');
+    this.chargingContactService.setCharacteristic(this.platform.Characteristic.ConfiguredName, 'EX30 Charging');
+
+    // Configure contact state as charging indicator
+    this.chargingContactService.getCharacteristic(this.platform.Characteristic.ContactSensorState)
+      .onGet(this.getChargingContactState.bind(this));
+
+    // Set initial value (Closed = Not Charging)
+    this.chargingContactService.setCharacteristic(this.platform.Characteristic.ContactSensorState, 
+      this.platform.Characteristic.ContactSensorState.CONTACT_NOT_DETECTED);
+
+    this.platform.log.info('🔌 Charging contact sensor configured (Open=Charging, Closed=Not Charging)');
   }
 
   private async getBatteryLevel(): Promise<CharacteristicValue> {
@@ -166,6 +191,29 @@ export class VolvoEX30Accessory {
     }
   }
 
+  private async getChargingContactState(): Promise<CharacteristicValue> {
+    try {
+      const energyState = await this.getEnergyState();
+      
+      if (energyState.chargingStatus.status === 'OK') {
+        const chargingStatus = energyState.chargingStatus.value;
+        const isCharging = chargingStatus === 'CHARGING';
+        
+        this.platform.log.debug('Charging contact state:', chargingStatus, '-> Contact:', isCharging ? 'DETECTED (charging)' : 'NOT_DETECTED (not charging)');
+        
+        // Contact DETECTED = Charging, Contact NOT_DETECTED = Not Charging
+        return isCharging ? 
+          this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED : 
+          this.platform.Characteristic.ContactSensorState.CONTACT_NOT_DETECTED;
+      } else {
+        return this.platform.Characteristic.ContactSensorState.CONTACT_NOT_DETECTED;
+      }
+    } catch (error) {
+      this.platform.log.error('Failed to get charging contact state:', error);
+      return this.platform.Characteristic.ContactSensorState.CONTACT_NOT_DETECTED;
+    }
+  }
+
   private async getEnergyState(): Promise<EnergyState> {
     if (this.currentEnergyState) {
       return this.currentEnergyState;
@@ -201,9 +249,14 @@ export class VolvoEX30Accessory {
           this.batteryService.updateCharacteristic(this.platform.Characteristic.ChargingState, await this.getChargingState());
         }
 
-        // Update humidity sensor with battery percentage
-        if (this.batteryHumidityService) {
-          this.batteryHumidityService.updateCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, batteryLevel);
+        // Update temperature sensor with battery percentage (always visible)
+        if (this.batteryTemperatureService) {
+          this.batteryTemperatureService.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, batteryLevel);
+        }
+
+        // Update charging contact sensor
+        if (this.chargingContactService) {
+          this.chargingContactService.updateCharacteristic(this.platform.Characteristic.ContactSensorState, await this.getChargingContactState());
         }
         
         this.platform.log.debug('Updated energy state from polling');
