@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.1] - 2025-08-14
+
+### Fixed
+- **Custom UI Server Loading**: Fixed Custom UI server falling back to main Homebridge HTML interface
+- **OAuth Setup Failures**: Resolved "Invalid JSON response from server" errors during OAuth token generation
+- **Server Initialization**: Added proper error handling wrapper around server startup process
+
+### Added
+- **Fallback Server**: Added fallback minimal server to prevent complete UI failure when main server fails
+- **Enhanced Error Logging**: Added detailed error logging and stack traces for debugging server issues
+- **Graceful Degradation**: Server now starts successfully even with initialization errors
+
+### Technical Details
+- **Error Handling**: Wrapped entire server initialization in try-catch block
+- **Module Loading**: Enhanced error handling for dependency loading failures
+- **Server Structure**: Fixed server module structure for proper Homebridge recognition
+- **Debugging Output**: Added comprehensive logging for server startup process
+
+### Result
+- ✅ **Custom UI Works**: OAuth setup now works properly through Custom UI interface
+- ✅ **No HTML Fallback**: Server returns proper JSON responses instead of HTML
+- ✅ **Better Debugging**: Clear error messages when server issues occur
+- ✅ **Reliable Startup**: Server starts successfully even with partial failures
+
 ## [1.3.0] - 2025-08-14
 
 ### Removed
