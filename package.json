@@ -44,6 +44,9 @@
   "peerDependencies": {
     "homebridge": ">=1.6.0"
   },
+  "homebridge": {
+    "customUI": true
+  },
   "funding": {
     "type": "github",
     "url": "https://github.com/sponsors/jcfield-boop"
