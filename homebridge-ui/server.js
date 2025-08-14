@@ -1,8 +1,10 @@
 console.log('🚗 Starting Volvo EX30 UI Server...');
 
 const { HomebridgePluginUiServer, RequestError } = require('@homebridge/plugin-ui-utils');
-const axios = require('axios');
-const crypto = require('crypto');
+const path = require('path');
+
+// Import the shared OAuth handler (will be compiled to JavaScript)
+const { SharedOAuthHandler } = require('../dist/auth/oauth-setup-shared');
 
 console.log('✅ Dependencies loaded successfully');
 
@@ -53,51 +55,35 @@ class VolvoEX30UiServer extends HomebridgePluginUiServer {
         }
 
         try {
-            // Discover OpenID endpoints following official Volvo sample
-            const endpoints = await this.discoverVolvoEndpoints(region);
+            // Create shared OAuth handler
+            const oauthHandler = new SharedOAuthHandler({ clientId, region });
             
-            // Generate PKCE parameters
-            const codeVerifier = this.generateCodeVerifier();
-            const codeChallenge = this.generateCodeChallenge(codeVerifier);
-            const state = crypto.randomBytes(16).toString('hex');
+            // Use OAuth redirect URI configured in Volvo Developer Portal
+            const redirectUri = 'https://github.com/jcfield-boop/homebridge-volvoEX30';
+            
+            // Generate authorization URL with PKCE parameters
+            const authResult = oauthHandler.generateAuthorizationUrl(redirectUri);
             
             // Store session data
-            const sessionId = crypto.randomBytes(16).toString('hex');
+            const sessionId = require('crypto').randomBytes(16).toString('hex');
             this.authSessions.set(sessionId, {
-                codeVerifier,
-                state,
+                codeVerifier: authResult.codeVerifier,
+                state: authResult.state,
                 clientId,
                 region,
-                endpoints,
+                oauthHandler,
                 createdAt: Date.now()
             });
 
             // Clean old sessions
             this.cleanupOldSessions();
-
-            // Use OAuth redirect URI configured in Volvo Developer Portal
-            // For development/testing, we use the GitHub repo as per Volvo's test setup
-            // For production, this should match the registered redirect URI
-            const redirectUri = 'https://github.com/jcfield-boop/homebridge-volvoEX30';
-            
-            const authParams = new URLSearchParams({
-                response_type: 'code',
-                client_id: clientId,
-                redirect_uri: redirectUri,
-                scope: 'conve:fuel_status conve:climatization_start_stop conve:unlock conve:lock_status conve:lock openid energy:state:read energy:capability:read conve:battery_charge_level conve:diagnostics_engine_status conve:warnings',
-                code_challenge: codeChallenge,
-                code_challenge_method: 'S256',
-                state: state
-            });
-
-            const authUrl = `${endpoints.authorization_endpoint}?${authParams.toString()}`;
             
             console.log(`✅ Generated auth URL for session ${sessionId}`);
             
             const response = {
-                authUrl,
+                authUrl: authResult.authUrl,
                 sessionId,
-                state
+                state: authResult.state
             };
             
             console.log('📤 Returning response:', response);
@@ -126,47 +112,35 @@ class VolvoEX30UiServer extends HomebridgePluginUiServer {
             throw new RequestError('Invalid or expired session', { status: 400 });
         }
 
-        const { codeVerifier, clientId, region, endpoints } = session;
+        const { codeVerifier, clientId, region } = session;
 
         try {
+            // Create shared OAuth handler with client secret for token exchange
+            const oauthHandler = new SharedOAuthHandler({ 
+                clientId, 
+                clientSecret, 
+                region 
+            });
+            
             // Must match the authorization request redirect URI exactly
             const redirectUri = 'https://github.com/jcfield-boop/homebridge-volvoEX30';
             
-            const tokenParams = new URLSearchParams({
-                grant_type: 'authorization_code',
-                client_id: clientId,
-                client_secret: clientSecret,
-                code: code,
-                redirect_uri: redirectUri,
-                code_verifier: codeVerifier
-            });
+            console.log('🌍 Exchanging authorization code for tokens...');
 
-            console.log(`🌍 Making token request to: ${endpoints.token_endpoint}`);
-
-            const tokenResponse = await axios.post(endpoints.token_endpoint, tokenParams, {
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                    'Accept': 'application/json'
-                },
-                timeout: 30000
-            });
+            const tokens = await oauthHandler.exchangeCodeForTokens(code, redirectUri, codeVerifier);
 
             console.log('✅ Token exchange successful!');
 
             // Clean up session
             this.authSessions.delete(sessionId);
 
-            return {
-                access_token: tokenResponse.data.access_token,
-                refresh_token: tokenResponse.data.refresh_token,
-                expires_in: tokenResponse.data.expires_in
-            };
+            return tokens;
 
         } catch (error) {
-            console.error('❌ Token exchange failed:', error.response?.data || error.message);
+            console.error('❌ Token exchange failed:', error.message);
             
             throw new RequestError(
-                `Token exchange failed: ${error.response?.data?.error_description || error.message}`,
+                `Token exchange failed: ${error.message}`,
                 { status: 400 }
             );
         }
@@ -177,17 +151,20 @@ class VolvoEX30UiServer extends HomebridgePluginUiServer {
         
         if (request.method === 'GET') {
             try {
-                const currentConfig = await this.homebridgeConfig.getPluginConfig('VolvoEX30');
-                console.log('🔍 Retrieved plugin config:', JSON.stringify(currentConfig, null, 2));
+                // Read the complete Homebridge config to access platforms array
+                const homebridgeConfig = await this.homebridgeConfig.getConfig();
+                const platforms = homebridgeConfig.platforms || [];
                 
-                if (Array.isArray(currentConfig) && currentConfig.length > 0) {
-                    console.log('✅ Returning first config from array:', currentConfig[0]);
-                    return currentConfig[0];
-                } else if (currentConfig && typeof currentConfig === 'object') {
-                    console.log('✅ Returning config object directly:', currentConfig);
-                    return currentConfig;
+                // Find the first VolvoEX30 platform configuration
+                const volvoConfig = platforms.find(platform => platform.platform === 'VolvoEX30');
+                
+                if (volvoConfig) {
+                    console.log('✅ Found VolvoEX30 config:', JSON.stringify(volvoConfig, null, 2));
+                    // Return config without the 'platform' field as it's not needed in the UI
+                    const { platform, ...configWithoutPlatform } = volvoConfig;
+                    return configWithoutPlatform;
                 } else {
-                    console.log('📄 No existing config found, returning empty object');
+                    console.log('📄 No VolvoEX30 platform found in config, returning empty object');
                     return {};
                 }
             } catch (error) {
@@ -208,7 +185,12 @@ class VolvoEX30UiServer extends HomebridgePluginUiServer {
             }
 
             try {
-                const newConfig = [{
+                // Read current Homebridge config
+                const homebridgeConfig = await this.homebridgeConfig.getConfig();
+                let platforms = homebridgeConfig.platforms || [];
+                
+                // Create the platform config object
+                const platformConfig = {
                     platform: 'VolvoEX30',
                     name: config.name,
                     vin: config.vin,
@@ -222,14 +204,33 @@ class VolvoEX30UiServer extends HomebridgePluginUiServer {
                     enableClimate: config.enableClimate,
                     enableLocks: config.enableLocks,
                     enableDoors: config.enableDoors
-                }];
+                };
 
-                await this.homebridgeConfig.updatePluginConfig('VolvoEX30', newConfig);
+                // Find and update existing VolvoEX30 config, or add new one
+                const existingIndex = platforms.findIndex(platform => platform.platform === 'VolvoEX30');
+                
+                if (existingIndex >= 0) {
+                    // Update existing configuration
+                    platforms[existingIndex] = platformConfig;
+                    console.log('🔄 Updated existing VolvoEX30 platform config');
+                } else {
+                    // Add new configuration
+                    platforms.push(platformConfig);
+                    console.log('➕ Added new VolvoEX30 platform config');
+                }
+
+                // Update the platforms array in the config
+                homebridgeConfig.platforms = platforms;
+                
+                // Save the updated config
+                await this.homebridgeConfig.updateConfig(homebridgeConfig);
                 
                 this.pushEvent('config-saved', { success: true });
+                console.log('✅ Configuration saved to platforms array successfully');
                 return { success: true, message: 'Configuration saved successfully' };
 
             } catch (error) {
+                console.error('❌ Failed to save config:', error);
                 this.pushEvent('config-error', { message: error.message });
                 throw new RequestError(`Failed to save configuration: ${error.message}`, { status: 500 });
             }
@@ -238,48 +239,6 @@ class VolvoEX30UiServer extends HomebridgePluginUiServer {
         }
     }
 
-    generateCodeVerifier() {
-        // Generate 128 bytes of random data, base64url encode
-        // This follows RFC 7636 specification for PKCE
-        return crypto.randomBytes(32)
-            .toString('base64')
-            .replace(/\+/g, '-')
-            .replace(/\//g, '_')
-            .replace(/=/g, '');
-    }
-
-    generateCodeChallenge(codeVerifier) {
-        // SHA256 hash of code verifier, base64url encoded
-        // This follows RFC 7636 specification for PKCE
-        const hash = crypto.createHash('sha256').update(codeVerifier).digest();
-        return hash.toString('base64')
-            .replace(/\+/g, '-')
-            .replace(/\//g, '_')
-            .replace(/=/g, '');
-    }
-
-    async discoverVolvoEndpoints(region = 'eu') {
-        // Discover Volvo ID OpenID configuration
-        // Following official Volvo sample pattern
-        const baseUrl = region === 'na' ? 'https://volvoid.volvocars.com' : 'https://volvoid.eu.volvocars.com';
-        
-        try {
-            const response = await axios.get(`${baseUrl}/.well-known/openid_configuration`);
-            console.log('🔍 Discovered Volvo ID endpoints:', {
-                authorization_endpoint: response.data.authorization_endpoint,
-                token_endpoint: response.data.token_endpoint,
-                issuer: response.data.issuer
-            });
-            return response.data;
-        } catch (error) {
-            console.warn('⚠️ Failed to discover OpenID endpoints, using defaults:', error.message);
-            return {
-                authorization_endpoint: `${baseUrl}/as/authorization.oauth2`,
-                token_endpoint: `${baseUrl}/as/token.oauth2`,
-                issuer: baseUrl
-            };
-        }
-    }
 
     cleanupOldSessions() {
         const oneHourAgo = Date.now() - (60 * 60 * 1000);

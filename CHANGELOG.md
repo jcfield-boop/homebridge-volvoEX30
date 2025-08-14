@@ -5,6 +5,45 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.43] - 2025-08-14
+
+### Fixed
+- **Custom UI Configuration**: Fixed config.json handling to properly read/write platforms array
+- **OAuth Integration**: Integrated Custom UI with shared OAuth handler for consistency with CLI
+- **Config Loading Reliability**: Enhanced frontend config loading with better retry logic and error handling
+- **Server Implementation**: Updated to use proper Homebridge config APIs instead of plugin-specific methods
+- **Error Reporting**: Improved error messages and user feedback throughout Custom UI
+
+### Added
+- **Shared OAuth Handler**: New shared OAuth implementation used by both Custom UI and CLI scripts
+- **Enhanced Frontend**: Better loading states, error handling, and user feedback in Custom UI
+- **Config Validation**: Improved validation and error reporting for configuration issues
+- **Debug Logging**: Enhanced logging throughout Custom UI server for better troubleshooting
+
+### Changed
+- **Config Structure**: Custom UI now properly handles Homebridge platforms array
+- **OAuth Consistency**: Both Custom UI and CLI now use identical OAuth implementation
+- **Error Handling**: More informative error messages with specific guidance for users
+- **User Experience**: Streamlined config loading with visual feedback and retry mechanisms
+
+### Technical Implementation
+- **Platforms Array**: Proper manipulation of config.json platforms array instead of plugin config
+- **Shared OAuth**: Extracted OAuth logic to shared TypeScript module for consistency
+- **Error Recovery**: Enhanced retry logic with exponential backoff for config loading
+- **Type Safety**: Improved TypeScript types and error handling throughout
+
+### Result
+- ✅ **Config Persistence**: Custom UI now correctly saves/loads configuration to config.json
+- ✅ **OAuth Reliability**: Consistent OAuth behavior between Custom UI and CLI methods
+- ✅ **Error Clarity**: Clear error messages help users troubleshoot setup issues
+- ✅ **User Experience**: Smooth config loading with proper loading states and feedback
+- ✅ **Multiple Vehicles**: Proper support for multiple EX30 vehicle configurations
+
+### Migration Notes
+- Existing configurations will be automatically migrated to proper platforms array structure
+- Custom UI now works reliably for both new setups and existing configurations
+- No user action required - improvements are automatic on upgrade
+
 ## [1.2.42] - 2025-08-14
 
 ### Updated

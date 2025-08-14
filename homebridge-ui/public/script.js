@@ -261,34 +261,29 @@ async function saveConfiguration() {
 async function loadCurrentConfig(retryCount = 0) {
     console.log(`📥 Loading current configuration (attempt ${retryCount + 1})`);
     
+    // Show loading indicator
+    if (retryCount === 0) {
+        showConfigLoadingState(true);
+    }
+    
     try {
         const config = await makeRequest('/config', 'GET');
         
-        if (Object.keys(config).length > 0) {
+        if (config && Object.keys(config).length > 0) {
             console.log('📋 Config loaded successfully:', config);
             
-            $('#name').val(config.name || 'Volvo EX30');
-            $('#vin').val(config.vin || '');
-            $('#clientId').val(config.clientId || '');
-            $('#clientSecret').val(config.clientSecret || '');
-            $('#vccApiKey').val(config.vccApiKey || '');
-            $('#initialRefreshToken').val(config.initialRefreshToken || '');
-            $('#region').val(config.region || 'eu');
-            $('#pollingInterval').val(config.pollingInterval || 5);
-            $('#enableBattery').prop('checked', config.enableBattery !== false);
-            $('#enableClimate').prop('checked', config.enableClimate === true);
-            $('#enableLocks').prop('checked', config.enableLocks === true);
-            $('#enableDoors').prop('checked', config.enableDoors === true);
+            // Populate form fields with config data
+            populateConfigForm(config);
             
+            // Update OAuth flow state if token exists
             if (config.initialRefreshToken) {
-                $('#tokenDisplay').text(config.initialRefreshToken);
-                $('#step1').removeClass('active').addClass('complete');
-                $('#step2').removeClass('active').addClass('complete');
-                $('#step3').removeClass('active').addClass('complete');
-                $('#step4').show().addClass('complete');
+                updateOAuthUIState(config.initialRefreshToken);
             }
             
+            showConfigLoadingState(false);
+            showSuccess('✅ Configuration loaded successfully');
             console.log('✅ Configuration loaded and UI updated successfully');
+            
         } else {
             console.log('📄 No existing configuration found');
             
@@ -298,6 +293,10 @@ async function loadCurrentConfig(retryCount = 0) {
                 console.log(`⏰ Retrying config load in ${delay}ms...`);
                 setTimeout(() => loadCurrentConfig(retryCount + 1), delay);
                 return;
+            } else {
+                // No config found after retries - this is normal for new setups
+                showConfigLoadingState(false);
+                console.log('ℹ️ No existing configuration found - starting fresh setup');
             }
         }
         
@@ -310,8 +309,42 @@ async function loadCurrentConfig(retryCount = 0) {
             console.log(`⏰ Retrying config load in ${delay}ms due to error...`);
             setTimeout(() => loadCurrentConfig(retryCount + 1), delay);
         } else {
+            showConfigLoadingState(false);
+            showError(`Failed to load configuration: ${error.message}. Please check Homebridge logs.`);
             console.error('❌ Failed to load configuration after 3 attempts');
         }
+    }
+}
+
+function populateConfigForm(config) {
+    $('#name').val(config.name || 'Volvo EX30');
+    $('#vin').val(config.vin || '');
+    $('#clientId').val(config.clientId || '');
+    $('#clientSecret').val(config.clientSecret || '');
+    $('#vccApiKey').val(config.vccApiKey || '');
+    $('#initialRefreshToken').val(config.initialRefreshToken || '');
+    $('#region').val(config.region || 'eu');
+    $('#pollingInterval').val(config.pollingInterval || 5);
+    $('#enableBattery').prop('checked', config.enableBattery !== false);
+    $('#enableClimate').prop('checked', config.enableClimate === true);
+    $('#enableLocks').prop('checked', config.enableLocks === true);
+    $('#enableDoors').prop('checked', config.enableDoors === true);
+}
+
+function updateOAuthUIState(refreshToken) {
+    $('#tokenDisplay').text(refreshToken.substring(0, 20) + '...');
+    $('#step1').removeClass('active').addClass('complete');
+    $('#step2').removeClass('active').addClass('complete');
+    $('#step3').removeClass('active').addClass('complete');
+    $('#step4').show().addClass('complete');
+}
+
+function showConfigLoadingState(loading) {
+    if (loading) {
+        $('#loadConfig').prop('disabled', true).text('⏳ Loading...');
+        console.log('🔄 Loading configuration...');
+    } else {
+        $('#loadConfig').prop('disabled', false).text('🔄 Reload Configuration');
     }
 }
 
@@ -322,7 +355,8 @@ async function makeRequest(endpoint, method, data = null) {
         method,
         headers: {
             'Content-Type': 'application/json',
-        }
+        },
+        timeout: 30000  // 30 second timeout
     };
     
     if (data && method !== 'GET') {
@@ -332,10 +366,10 @@ async function makeRequest(endpoint, method, data = null) {
     try {
         const response = await fetch(endpoint, options);
         
-        console.log(`📡 Response status: ${response.status}`);
+        console.log(`📡 Response status: ${response.status} ${response.statusText}`);
         
         if (!response.ok) {
-            let errorMessage = `HTTP ${response.status}`;
+            let errorMessage = `HTTP ${response.status} ${response.statusText}`;
             let responseText = '';
             
             try {
@@ -347,10 +381,10 @@ async function makeRequest(endpoint, method, data = null) {
                 errorMessage = errorData.message || errorData.error || errorMessage;
             } catch (e) {
                 // Response is not JSON - likely HTML from main Homebridge UI
-                console.error('❌ Non-JSON error response (HTML fallback detected):', responseText.substring(0, 200) + '...');
+                console.error('❌ Non-JSON error response detected:', responseText.substring(0, 200) + '...');
                 
                 if (responseText.includes('<html') || responseText.includes('<!DOCTYPE')) {
-                    errorMessage = 'Custom UI server not responding. Request falling back to main Homebridge UI. Check server logs.';
+                    errorMessage = 'Custom UI server not loaded. Homebridge may still be starting up or there may be a server configuration issue.';
                 } else {
                     errorMessage = `Server error: ${responseText.substring(0, 100)}`;
                 }
@@ -360,7 +394,14 @@ async function makeRequest(endpoint, method, data = null) {
         
         // Get response text first to debug JSON parsing issues
         const responseText = await response.text();
-        console.log('📄 Raw response text:', responseText);
+        
+        // Handle empty responses
+        if (!responseText.trim()) {
+            console.log('📄 Empty response received');
+            return {};
+        }
+        
+        console.log('📄 Raw response text:', responseText.substring(0, 500) + (responseText.length > 500 ? '...' : ''));
         
         let result;
         try {
@@ -369,12 +410,18 @@ async function makeRequest(endpoint, method, data = null) {
         } catch (parseError) {
             console.error('❌ JSON Parse Error:', parseError);
             console.error('❌ Raw response that failed to parse:', responseText);
-            throw new Error(`Invalid JSON response: ${parseError.message}. Response: ${responseText.substring(0, 200)}`);
+            throw new Error(`Invalid JSON response from server. This may indicate the custom UI server is not running properly. Response: ${responseText.substring(0, 200)}`);
         }
         
         return result;
         
     } catch (error) {
+        // Enhanced error context
+        if (error.name === 'TypeError' && error.message.includes('fetch')) {
+            console.error('❌ Network error - custom UI server may not be running');
+            throw new Error('Cannot connect to custom UI server. Please check that Homebridge is running and the plugin is properly installed.');
+        }
+        
         console.error('❌ Request failed:', error);
         throw error;
     }

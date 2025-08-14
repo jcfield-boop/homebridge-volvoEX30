@@ -1,8 +1,7 @@
 #!/usr/bin/env node
 
 const readline = require('readline');
-const axios = require('axios');
-const crypto = require('crypto');
+const { SharedOAuthHandler } = require('../dist/auth/oauth-setup-shared');
 
 const rl = readline.createInterface({
   input: process.stdin,
