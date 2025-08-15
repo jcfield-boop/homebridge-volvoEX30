@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.1] - 2025-08-15
+
+### Fixed
+- **CHANGELOG.md**: Added missing v2.0.0 entry that was preventing Homebridge UI from showing correct update information
+- **Documentation**: Ensure Homebridge Config UI X displays proper release notes for major update
+
 ## [2.0.0] - 2025-08-15
 
 ### 🚀 Major Release - Connected Vehicle API v2 Integration
