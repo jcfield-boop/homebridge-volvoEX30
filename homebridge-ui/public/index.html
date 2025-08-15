@@ -69,7 +69,7 @@
         <div class="row">
             <div class="col-12">
                 <h2>🚗 Volvo EX30 Plugin Configuration</h2>
-                <p class="text-muted">Configure your Volvo EX30 integration with HomeKit</p>
+                <p class="text-muted">Configure your Volvo EX30 integration with HomeKit - Now with full Connected Vehicle API support!</p>
 
                 <!-- Basic Configuration -->
                 <div class="card mb-4">
@@ -286,6 +286,17 @@
                             <input type="number" class="form-control" id="pollingInterval" min="1" max="60" value="5">
                             <small class="form-text text-muted">How often to check vehicle status (respects API rate limits)</small>
                         </div>
+                        
+                        <div class="form-group">
+                            <label for="apiPreference">API Preference</label>
+                            <select class="form-control" id="apiPreference">
+                                <option value="connected-first">Connected Vehicle First (Recommended)</option>
+                                <option value="energy-first">Energy API First</option>
+                                <option value="connected-only">Connected Vehicle Only</option>
+                                <option value="energy-only">Energy API Only</option>
+                            </select>
+                            <small class="form-text text-muted">Connected Vehicle API provides much richer data including doors, windows, locks, and diagnostics</small>
+                        </div>
 
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" id="enableBattery" checked>
@@ -295,24 +306,35 @@
                         </div>
 
                         <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="enableClimate">
+                            <input class="form-check-input" type="checkbox" id="enableClimate" checked>
                             <label class="form-check-label" for="enableClimate">
-                                Enable Climate Service (Future)
+                                Enable Climate Control Service
                             </label>
+                            <small class="form-text text-muted">Remote climatization start/stop via Connected Vehicle API</small>
                         </div>
 
                         <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="enableLocks">
+                            <input class="form-check-input" type="checkbox" id="enableLocks" checked>
                             <label class="form-check-label" for="enableLocks">
-                                Enable Lock Service (Future)
+                                Enable Vehicle Lock Service
                             </label>
+                            <small class="form-text text-muted">Remote lock/unlock control via Connected Vehicle API</small>
                         </div>
 
                         <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="enableDoors">
+                            <input class="form-check-input" type="checkbox" id="enableDoors" checked>
                             <label class="form-check-label" for="enableDoors">
-                                Enable Door Sensors (Future)
+                                Enable Door & Window Sensors
                             </label>
+                            <small class="form-text text-muted">Individual contact sensors for all doors, windows, hood, and tailgate</small>
+                        </div>
+                        
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="enableDiagnostics" checked>
+                            <label class="form-check-label" for="enableDiagnostics">
+                                Enable Diagnostic Sensors
+                            </label>
+                            <small class="form-text text-muted">Service warnings, odometer reading, and tyre pressure monitoring</small>
                         </div>
                     </div>
                 </div>

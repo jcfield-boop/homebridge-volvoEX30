@@ -30,7 +30,7 @@ class VolvoUiServer extends HomebridgePluginUiServer {
       response_type: 'code',
       client_id: clientId,
       redirect_uri: redirectUri,
-      scope: 'conve:fuel_status conve:climatization_start_stop conve:unlock conve:lock_status conve:lock openid energy:state:read energy:capability:read conve:battery_charge_level conve:diagnostics_engine_status conve:warnings',
+      scope: 'conve:fuel_status conve:climatization_start_stop conve:unlock conve:lock_status conve:lock openid energy:state:read energy:capability:read conve:battery_charge_level conve:diagnostics_engine_status conve:warnings conve:odometer conve:vehicle_relation conve:windows conve:doors conve:tyre_status conve:commands conve:statistics',
       code_challenge: codeChallenge,
       code_challenge_method: 'S256',
       state: state
@@ -125,6 +125,11 @@ class VolvoUiServer extends HomebridgePluginUiServer {
       if (!config.vin || !config.clientId || !config.clientSecret || !config.vccApiKey || !config.initialRefreshToken) {
         throw new RequestError('Missing required configuration fields', { status: 400 });
       }
+      
+      // Validate VCC API Key format (should be 32 characters)
+      if (!config.vccApiKey || config.vccApiKey.length !== 32) {
+        throw new RequestError('VCC API Key must be exactly 32 characters long', { status: 400 });
+      }
 
       if (!/^[A-HJ-NPR-Z0-9]{17}$/.test(config.vin)) {
         throw new RequestError('Invalid VIN format', { status: 400 });
@@ -142,12 +147,14 @@ class VolvoUiServer extends HomebridgePluginUiServer {
           clientSecret: config.clientSecret,
           vccApiKey: config.vccApiKey,
           initialRefreshToken: config.initialRefreshToken,
-          region: config.region,
-          pollingInterval: config.pollingInterval,
-          enableBattery: config.enableBattery,
-          enableClimate: config.enableClimate,
-          enableLocks: config.enableLocks,
-          enableDoors: config.enableDoors
+          region: config.region || 'eu',
+          pollingInterval: config.pollingInterval || 5,
+          enableBattery: config.enableBattery !== false,
+          enableClimate: config.enableClimate !== false,
+          enableLocks: config.enableLocks !== false,
+          enableDoors: config.enableDoors !== false,
+          enableDiagnostics: config.enableDiagnostics !== false,
+          apiPreference: config.apiPreference || 'connected-first'
         };
 
         const existingIndex = platforms.findIndex(platform => platform.platform === 'VolvoEX30');

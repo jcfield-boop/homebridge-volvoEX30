@@ -220,10 +220,12 @@ async function saveConfiguration() {
         initialRefreshToken: $('#initialRefreshToken').val().trim(),
         region: $('#region').val(),
         pollingInterval: parseInt($('#pollingInterval').val()) || 5,
+        apiPreference: $('#apiPreference').val() || 'connected-first',
         enableBattery: $('#enableBattery').is(':checked'),
         enableClimate: $('#enableClimate').is(':checked'),
         enableLocks: $('#enableLocks').is(':checked'),
-        enableDoors: $('#enableDoors').is(':checked')
+        enableDoors: $('#enableDoors').is(':checked'),
+        enableDiagnostics: $('#enableDiagnostics').is(':checked')
     };
     
     // Validate required fields
@@ -325,10 +327,12 @@ function populateConfigForm(config) {
     $('#initialRefreshToken').val(config.initialRefreshToken || '');
     $('#region').val(config.region || 'eu');
     $('#pollingInterval').val(config.pollingInterval || 5);
+    $('#apiPreference').val(config.apiPreference || 'connected-first');
     $('#enableBattery').prop('checked', config.enableBattery !== false);
-    $('#enableClimate').prop('checked', config.enableClimate === true);
-    $('#enableLocks').prop('checked', config.enableLocks === true);
-    $('#enableDoors').prop('checked', config.enableDoors === true);
+    $('#enableClimate').prop('checked', config.enableClimate !== false);
+    $('#enableLocks').prop('checked', config.enableLocks !== false);
+    $('#enableDoors').prop('checked', config.enableDoors !== false);
+    $('#enableDiagnostics').prop('checked', config.enableDiagnostics !== false);
 }
 
 function updateOAuthUIState(refreshToken) {

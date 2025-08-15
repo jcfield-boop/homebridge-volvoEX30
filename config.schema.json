@@ -3,8 +3,8 @@
   "pluginType": "platform",
   "singular": false,
   "customUi": true,
-  "headerDisplay": "🚗 **Volvo EX30 Plugin** - Connect your EX30 to HomeKit with battery monitoring, charging status, and more. [Custom Configuration UI Available]",
-  "footerDisplay": "💡 **Tip**: Use the custom configuration interface above for easy OAuth setup, or configure manually using the form below.",
+  "headerDisplay": "🚗 **Volvo EX30 Plugin** - Connect your EX30 to HomeKit with comprehensive vehicle monitoring including battery, doors, windows, locks, climate control, and diagnostics. [Custom Configuration UI Available]",
+  "footerDisplay": "💡 **Tip**: Use the custom configuration interface above for easy OAuth setup, or configure manually using the form below. The Connected Vehicle API provides much richer data than the Energy API.",
   "schema": {
     "type": "object",
     "properties": {
@@ -79,10 +79,24 @@
         "description": "Show door lock status and control (requires Connected Vehicle API)"
       },
       "enableDoors": {
-        "title": "Enable Door Sensors",
+        "title": "Enable Door & Window Sensors",
         "type": "boolean",
         "default": true,
-        "description": "Show individual door and window status (requires Extended Vehicle API)"
+        "description": "Show individual door and window status sensors (requires Connected Vehicle API)"
+      },
+      "enableDiagnostics": {
+        "title": "Enable Diagnostic Sensors",
+        "type": "boolean",
+        "default": true,
+        "description": "Show service warnings, odometer, and tyre pressure sensors"
+      },
+      "apiPreference": {
+        "title": "API Preference",
+        "type": "string",
+        "default": "connected-first",
+        "enum": ["connected-first", "energy-first", "connected-only", "energy-only"],
+        "enumNames": ["Connected Vehicle First (Recommended)", "Energy API First", "Connected Vehicle Only", "Energy API Only"],
+        "description": "Which API to prefer for vehicle data. Connected Vehicle API provides much richer data."
       }
     }
   },
@@ -111,10 +125,12 @@
       "title": "Feature Settings",
       "items": [
         "pollingInterval",
+        "apiPreference",
         "enableBattery",
         "enableClimate",
         "enableLocks",
-        "enableDoors"
+        "enableDoors",
+        "enableDiagnostics"
       ]
     }
   ]
