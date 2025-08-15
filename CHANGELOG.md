@@ -5,6 +5,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.2] - 2025-08-15
+
+### 🚑 Critical Hotfix - Stop Automatic Command Execution
+
+#### Fixed
+- **🔥 CRITICAL**: Fixed automatic climate command execution during plugin startup
+- **Rate Limit Issue**: Plugin was accidentally calling `stopClimatization` command when setting initial values
+- **Command vs Update**: Changed `setCharacteristic` to `updateCharacteristic` for initial values to prevent triggering onSet handlers
+- **Lock Commands**: Fixed same issue with lock service initialization
+- **Battery Service**: Fixed potential command triggers during battery service setup
+
+#### Enhanced
+- **Rate Limit Handling**: Added user-friendly messages for 429 rate limit errors
+- **Error Context**: Better explanation that Volvo limits commands to 10/minute for safety
+- **Graceful Degradation**: Commands that hit rate limits now show helpful tips instead of confusing errors
+
+#### Root Cause
+The plugin was using `setCharacteristic()` during initialization, which **triggers the onSet handlers**, causing climate stop commands to be sent to the API automatically. Changed to `updateCharacteristic()` which sets the value without triggering command handlers.
+
+#### Impact
+- ✅ **No more automatic commands** during plugin startup or polling
+- ✅ **Rate limit errors eliminated** for normal usage
+- ✅ **Commands only execute** when user manually triggers them in HomeKit
+- ✅ **Better error messages** when rate limits are hit
+
+### Migration
+- **Automatic**: No configuration changes needed
+- **Immediate Effect**: Update and restart Homebridge to fix the issue
+
 ## [2.0.1] - 2025-08-15
 
 ### Fixed

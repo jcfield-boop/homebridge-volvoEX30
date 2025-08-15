@@ -93,11 +93,11 @@ export class VolvoEX30Accessory {
     // Battery service is the primary service
     this.batteryService.setPrimaryService(true);
     
-    // Force initial values to help HomeKit recognize this as a battery
-    this.batteryService.setCharacteristic(this.platform.Characteristic.BatteryLevel, 50);
-    this.batteryService.setCharacteristic(this.platform.Characteristic.StatusLowBattery, 
+    // Force initial values to help HomeKit recognize this as a battery (without triggering handlers)
+    this.batteryService.updateCharacteristic(this.platform.Characteristic.BatteryLevel, 50);
+    this.batteryService.updateCharacteristic(this.platform.Characteristic.StatusLowBattery, 
       this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL);
-    this.batteryService.setCharacteristic(this.platform.Characteristic.ChargingState, 
+    this.batteryService.updateCharacteristic(this.platform.Characteristic.ChargingState, 
       this.platform.Characteristic.ChargingState.NOT_CHARGING);
     
     this.platform.log.info('🔋 Battery service configured as primary service');
@@ -194,10 +194,10 @@ export class VolvoEX30Accessory {
         .onGet(this.getTargetLockState.bind(this))
         .onSet(this.setTargetLockState.bind(this));
       
-      // Set initial lock state
-      this.lockService.setCharacteristic(this.platform.Characteristic.LockCurrentState, 
+      // Set initial lock state without triggering commands
+      this.lockService.updateCharacteristic(this.platform.Characteristic.LockCurrentState, 
         this.platform.Characteristic.LockCurrentState.SECURED);
-      this.lockService.setCharacteristic(this.platform.Characteristic.LockTargetState,
+      this.lockService.updateCharacteristic(this.platform.Characteristic.LockTargetState,
         this.platform.Characteristic.LockTargetState.SECURED);
         
       this.platform.log.info('🔒 Vehicle lock service configured');
@@ -214,8 +214,8 @@ export class VolvoEX30Accessory {
         .onGet(this.getClimatizationState.bind(this))
         .onSet(this.setClimatizationState.bind(this));
       
-      // Set initial climate state
-      this.climateService.setCharacteristic(this.platform.Characteristic.On, false);
+      // Set initial climate state without triggering commands
+      this.climateService.updateCharacteristic(this.platform.Characteristic.On, false);
       
       this.platform.log.info('🌡️ Climate control service configured');
     }
@@ -747,17 +747,23 @@ export class VolvoEX30Accessory {
       this.currentUnifiedData = null;
       
     } catch (error) {
-      this.platform.log.error('Failed to set lock state:', error);
+      // Handle rate limiting gracefully
+      if (error && typeof error === 'object' && 'status' in error && error.status === 429) {
+        this.platform.log.warn('⏰ Vehicle lock command rate limited. Please wait before trying again.');
+        this.platform.log.warn('💡 Tip: Volvo limits vehicle commands to 10 per minute for safety.');
+      } else {
+        this.platform.log.error('Failed to set lock state:', error);
+      }
       
-      // Revert target state on error
+      // Revert target state on error (without triggering commands)
       const currentState = await this.getCurrentLockState();
       if (currentState === this.platform.Characteristic.LockCurrentState.SECURED) {
-        this.lockService?.setCharacteristic(
+        this.lockService?.updateCharacteristic(
           this.platform.Characteristic.LockTargetState,
           this.platform.Characteristic.LockTargetState.SECURED
         );
       } else {
-        this.lockService?.setCharacteristic(
+        this.lockService?.updateCharacteristic(
           this.platform.Characteristic.LockTargetState,
           this.platform.Characteristic.LockTargetState.UNSECURED
         );
@@ -796,10 +802,16 @@ export class VolvoEX30Accessory {
       this.currentUnifiedData = null;
       
     } catch (error) {
-      this.platform.log.error('Failed to set climatization state:', error);
+      // Handle rate limiting gracefully
+      if (error && typeof error === 'object' && 'status' in error && error.status === 429) {
+        this.platform.log.warn('⏰ Climate control rate limited. Please wait before trying again.');
+        this.platform.log.warn('💡 Tip: Volvo limits vehicle commands to 10 per minute for safety.');
+      } else {
+        this.platform.log.error('Failed to set climatization state:', error);
+      }
       
-      // Revert the switch state on error
-      this.climateService?.setCharacteristic(this.platform.Characteristic.On, !value);
+      // Revert the switch state on error (without triggering commands)
+      this.climateService?.updateCharacteristic(this.platform.Characteristic.On, !value);
       throw error;
     }
   }
