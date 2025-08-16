@@ -1,6 +1,5 @@
 import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
 import { VolvoEX30Platform } from './platform';
-import { EnergyState } from './types/energy-api';
 import { UnifiedVehicleData } from './api/volvo-api-client';
 
 export class VolvoEX30Accessory {
@@ -29,9 +28,21 @@ export class VolvoEX30Accessory {
   private odometerSensor?: Service;
   private tyrePressureSensor?: Service;
   
-  private currentEnergyState: EnergyState | null = null;
   private currentUnifiedData: UnifiedVehicleData | null = null;
   private updateInterval?: NodeJS.Timeout;
+  
+  // Failure state tracking for graceful degradation
+  private authFailureState: {
+    hasAuthFailed: boolean;
+    lastErrorTime: number;
+    errorLogged: boolean;
+    retryAttempts: number;
+  } = {
+    hasAuthFailed: false,
+    lastErrorTime: 0,
+    errorLogged: false,
+    retryAttempts: 0
+  };
 
   constructor(
     private readonly platform: VolvoEX30Platform,
@@ -259,16 +270,7 @@ export class VolvoEX30Accessory {
         this.platform.log.debug(`Battery level: ${batteryLevel}% (source: ${unifiedData.dataSource})`);
         return batteryLevel;
       } else {
-        this.platform.log.warn('Battery level not available from unified data');
-        
-        // Fallback to Energy API if unified data fails
-        const energyState = await this.getEnergyState();
-        if (energyState.batteryChargeLevel.status === 'OK') {
-          const batteryLevel = Math.round(energyState.batteryChargeLevel.value);
-          this.platform.log.debug('Battery level (Energy API fallback):', batteryLevel + '%');
-          return batteryLevel;
-        }
-        
+        this.platform.log.warn('Battery level not available from Connected Vehicle API');
         return 0;
       }
     } catch (error) {
@@ -289,16 +291,7 @@ export class VolvoEX30Accessory {
           this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW : 
           this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
       } else {
-        // Fallback to Energy API
-        const energyState = await this.getEnergyState();
-        if (energyState.batteryChargeLevel.status === 'OK') {
-          const batteryLevel = energyState.batteryChargeLevel.value;
-          const isLowBattery = batteryLevel <= 20;
-          return isLowBattery ? 
-            this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW : 
-            this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
-        }
-        
+        this.platform.log.warn('Battery level not available for low battery check');
         return this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
       }
     } catch (error) {
@@ -320,16 +313,7 @@ export class VolvoEX30Accessory {
           this.platform.Characteristic.ChargingState.CHARGING : 
           this.platform.Characteristic.ChargingState.NOT_CHARGING;
       } else {
-        // Fallback to Energy API
-        const energyState = await this.getEnergyState();
-        if (energyState.chargingStatus.status === 'OK') {
-          const chargingStatus = energyState.chargingStatus.value;
-          const isCharging = chargingStatus === 'CHARGING';
-          return isCharging ? 
-            this.platform.Characteristic.ChargingState.CHARGING : 
-            this.platform.Characteristic.ChargingState.NOT_CHARGING;
-        }
-        
+        this.platform.log.warn('Charging state not available from Connected Vehicle API');
         return this.platform.Characteristic.ChargingState.NOT_CHARGING;
       }
     } catch (error) {
@@ -351,17 +335,6 @@ export class VolvoEX30Accessory {
     return unifiedData;
   }
   
-  private async getEnergyState(): Promise<EnergyState> {
-    if (this.currentEnergyState) {
-      return this.currentEnergyState;
-    }
-
-    const apiClient = this.platform.getApiClient();
-    const energyState = await apiClient.getEnergyState(this.platform.config.vin);
-    this.currentEnergyState = energyState;
-    
-    return energyState;
-  }
 
   private startPolling(): void {
     const pollingInterval = (this.platform.config.pollingInterval || 5) * 60 * 1000;
@@ -370,6 +343,12 @@ export class VolvoEX30Accessory {
     
     this.updateInterval = setInterval(async () => {
       try {
+        // Skip polling if we're in failure state
+        if (this.shouldSkipPolling()) {
+          this.platform.log.debug('Skipping polling due to previous authentication failure');
+          return;
+        }
+        
         this.platform.log.debug('Polling for vehicle data updates');
         
         const apiClient = this.platform.getApiClient();
@@ -377,10 +356,15 @@ export class VolvoEX30Accessory {
         
         // Clear cached data to force fresh fetch
         this.currentUnifiedData = null;
-        this.currentEnergyState = null;
         
         const unifiedData = await apiClient.getUnifiedVehicleData(this.platform.config.vin);
         this.currentUnifiedData = unifiedData;
+        
+        // If we get here, auth is working - reset failure state
+        if (this.authFailureState.hasAuthFailed) {
+          this.platform.log.info('✅ Authentication recovered - resuming normal operation');
+          this.resetFailureState();
+        }
         
         const batteryLevel = await this.getBatteryLevel();
 
@@ -405,7 +389,12 @@ export class VolvoEX30Accessory {
 
         this.platform.log.debug(`Updated vehicle data from polling (source: ${unifiedData.dataSource})`);
       } catch (error) {
-        this.platform.log.error('Error during polling:', error);
+        // Use graceful error handling to prevent log spam
+        const shouldSuppressLog = this.handlePollingError(error);
+        
+        if (!shouldSuppressLog) {
+          this.platform.log.error('Error during polling:', error);
+        }
       }
     }, pollingInterval);
     
@@ -420,16 +409,14 @@ export class VolvoEX30Accessory {
       this.currentUnifiedData = unifiedData;
       this.platform.log.debug(`Got initial vehicle data (source: ${unifiedData.dataSource})`);
     } catch (error) {
-      this.platform.log.error('Failed to get initial vehicle data:', error);
-      // Fallback to Energy API
-      try {
-        const apiClient = this.platform.getApiClient();
-        const energyState = await apiClient.getEnergyState(this.platform.config.vin);
-        this.currentEnergyState = energyState;
-        this.platform.log.debug('Got initial energy state as fallback');
-      } catch (fallbackError) {
-        this.platform.log.error('Fallback to Energy API also failed:', fallbackError);
+      // Use graceful error handling for initial load too
+      const shouldSuppressLog = this.handlePollingError(error);
+      
+      if (!shouldSuppressLog) {
+        this.platform.log.error('Failed to get initial vehicle data:', error);
       }
+      
+      // No fallback needed - Connected Vehicle API provides all required data
     }
   }
   
@@ -939,13 +926,94 @@ export class VolvoEX30Accessory {
     }
   }
 
+  /**
+   * Check if an error is an authentication/token error and handle gracefully
+   */
+  private handlePollingError(error: any): boolean {
+    const now = Date.now();
+    const isAuthError = this.isAuthenticationError(error);
+    
+    if (isAuthError) {
+      this.authFailureState.hasAuthFailed = true;
+      this.authFailureState.lastErrorTime = now;
+      this.authFailureState.retryAttempts++;
+      
+      // Only log the error once to avoid spam
+      if (!this.authFailureState.errorLogged) {
+        this.platform.log.error('🔒 Authentication failed - token likely expired. Stopping API polling to prevent log spam.');
+        this.platform.log.error('📋 To fix: Generate new token and update config:');
+        this.platform.log.error('   1. Run: node scripts/working-oauth.js');
+        this.platform.log.error('   2. Run: node scripts/token-exchange.js [AUTH_CODE]');
+        this.platform.log.error('   3. Update initialRefreshToken in config and restart Homebridge');
+        this.authFailureState.errorLogged = true;
+      }
+      
+      return true; // Don't log further
+    }
+    
+    // For non-auth errors, use exponential backoff
+    const timeSinceLastError = now - this.authFailureState.lastErrorTime;
+    const backoffTime = Math.min(300000, 30000 * Math.pow(2, this.authFailureState.retryAttempts)); // Max 5 min
+    
+    if (timeSinceLastError < backoffTime) {
+      return true; // Suppress logging during backoff
+    }
+    
+    // Reset retry attempts for non-auth errors after successful backoff
+    this.authFailureState.retryAttempts = 0;
+    this.authFailureState.lastErrorTime = now;
+    
+    return false; // Allow logging
+  }
+  
+  /**
+   * Check if error indicates authentication failure
+   */
+  private isAuthenticationError(error: any): boolean {
+    const errorMessage = error?.message || error?.toString() || '';
+    
+    return errorMessage.includes('refresh token has expired') ||
+           errorMessage.includes('Authentication failed') ||
+           errorMessage.includes('invalid_grant') ||
+           errorMessage.includes('401') ||
+           errorMessage.includes('403') ||
+           (error?.response?.status === 401) ||
+           (error?.response?.status === 403) ||
+           (error?.code === 'invalid_grant');
+  }
+  
+  /**
+   * Check if polling should be skipped due to failure state
+   */
+  private shouldSkipPolling(): boolean {
+    if (!this.authFailureState.hasAuthFailed) {
+      return false;
+    }
+    
+    // Skip polling if auth failed and we haven't reached retry time
+    const now = Date.now();
+    const timeSinceFailure = now - this.authFailureState.lastErrorTime;
+    const retryInterval = Math.min(1800000, 300000 * Math.pow(2, this.authFailureState.retryAttempts)); // Max 30 min
+    
+    return timeSinceFailure < retryInterval;
+  }
+  
+  /**
+   * Reset failure state (e.g., when config is updated)
+   */
+  private resetFailureState(): void {
+    this.authFailureState.hasAuthFailed = false;
+    this.authFailureState.lastErrorTime = 0;
+    this.authFailureState.errorLogged = false;
+    this.authFailureState.retryAttempts = 0;
+  }
+
   destroy(): void {
     if (this.updateInterval) {
       clearInterval(this.updateInterval);
     }
     
     // Clear cached data
-    this.currentEnergyState = null;
     this.currentUnifiedData = null;
   }
 }

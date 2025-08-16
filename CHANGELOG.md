@@ -5,6 +5,50 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.5] - 2025-08-16
+
+### 🧹 API Simplification - Single Point of Failure
+
+#### Removed
+- **Energy API Fallback**: Eliminated redundant Energy API fallback logic that caused duplicate authentication failures
+- **API Preferences**: Removed `apiPreference` configuration option - now uses Connected Vehicle API exclusively
+- **Duplicate Error Handling**: No more multiple OAuth attempts from different APIs
+- **Complex Fallback Logic**: Simplified API client to single, reliable data source
+
+#### Enhanced
+- **Graceful Failure**: Plugin now fails cleanly after single authentication error instead of multiple attempts
+- **Reduced Log Spam**: Authentication failures logged once, then quiet until resolved
+- **Simplified Configuration**: Removed unnecessary API preference options from config schema
+- **Single API Strategy**: Connected Vehicle API provides all required data - no fallbacks needed
+
+#### Technical Details
+- **Removed Methods**: `getEnergyState()`, `mapEnergyApiData()`, `getCapabilities()`
+- **Simplified**: `getUnifiedVehicleData()` to single Connected Vehicle API call
+- **Cleaned Config**: Removed `apiPreference` from schema and types
+- **Streamlined Imports**: Removed Energy API type dependencies
+
+#### Root Cause Resolution
+**Problem**: Energy API was redundant subset of Connected Vehicle API, causing:
+- Duplicate authentication attempts on failures
+- Multiple error logs for same issue  
+- Unnecessary complexity and maintenance overhead
+
+**Solution**: Use Connected Vehicle API exclusively since it provides:
+- All data that Energy API offered plus much more
+- Single authentication point = cleaner error handling
+- Simpler codebase with fewer failure points
+
+#### Impact
+- ✅ **Clean Failures**: Single authentication error instead of multiple
+- ✅ **No Log Spam**: One error message, then quiet until resolved
+- ✅ **Simplified Setup**: Removed confusing API preference options
+- ✅ **Better Reliability**: Single API source eliminates fallback complexity
+
+### Migration
+- **Automatic**: Existing users continue working without changes
+- **Config Cleanup**: `apiPreference` setting ignored (can be removed from config)
+- **Error Handling**: Much cleaner error messages and logging behavior
+
 ## [2.0.4] - 2025-08-16
 
 ### 🔧 OAuth Fixes - Working Scripts Delivered

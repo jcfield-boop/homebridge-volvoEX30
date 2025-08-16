@@ -56,15 +56,16 @@ const params = new URLSearchParams({
 - **Token Exchange**: `https://volvoid.eu.volvocars.com/as/token.oauth2` ✅
 - **Discovery**: `https://volvoid.eu.volvocars.com/.well-known/openid_configuration` ✅
 
-## Connected Vehicle API v2 (Primary API)
+## Connected Vehicle API v2 (Exclusive API)
 
 ### ✅ EX30 Full Support Status
 - ✅ **EX30 is fully supported** by Connected Vehicle API v2
 - ✅ Base URL: `https://api.volvocars.com/connected-vehicle/v2`
 - ✅ 15+ endpoints with comprehensive vehicle data
-- ✅ **100% API success rate** (vs 0% for Energy API v2)
+- ✅ **Used exclusively** - no Energy API fallbacks
 - ✅ Vehicle commands: lock/unlock, climate control
 - ✅ Real-time data: doors, windows, diagnostics, battery
+- ✅ **Single point of failure** = cleaner error handling
 
 ### Approved OAuth Scopes (Production)
 ```
@@ -222,10 +223,10 @@ node scripts/token-exchange.js [AUTHORIZATION_CODE]
 **Status**: ✅ RESOLVED - PKCE is mandatory for new applications
 **Solution**: All OAuth URLs must include `code_challenge` and `code_challenge_method=S256`
 
-### ✅ Challenge 2: API Reliability
-**Issue**: Energy API v2 had 0% success rate with demo credentials
-**Status**: ✅ RESOLVED - Migrated to Connected Vehicle API v2
-**Result**: 100% success rate with 10x more data and full EX30 support
+### ✅ Challenge 2: API Reliability & Redundancy
+**Issue**: Energy API v2 had 0% success rate, and fallback logic caused duplicate failures
+**Status**: ✅ RESOLVED - Migrated to Connected Vehicle API v2 exclusively
+**Result**: 100% success rate, eliminated duplicate auth attempts, cleaner error handling
 
 ### ✅ Challenge 3: Automatic Command Execution Bug
 **Issue**: Plugin executing commands during initialization causing rate limits
@@ -234,7 +235,13 @@ node scripts/token-exchange.js [AUTHORIZATION_CODE]
 
 ## Version History
 
-### v2.0.4 (Current) - OAuth Scripts Fixed
+### v2.0.5 (Current) - API Simplification
+- ✅ Removed redundant Energy API fallback causing duplicate auth failures
+- ✅ Simplified to Connected Vehicle API exclusively 
+- ✅ Eliminated duplicate error logging and authentication attempts
+- ✅ Cleaner configuration without confusing API preferences
+
+### v2.0.4 - OAuth Scripts Fixed
 - ✅ Fixed syntax errors in OAuth scripts (unescaped quotes)
 - ✅ Removed Energy API scopes causing "invalid_scope" errors
 - ✅ Updated plugin error messages to point to working scripts
@@ -275,4 +282,4 @@ node scripts/token-exchange.js [AUTHORIZATION_CODE]
 ---
 
 *Last Updated: 2025-08-16*
-*Version: 2.0.4*
+*Version: 2.0.5*

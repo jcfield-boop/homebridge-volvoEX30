@@ -12,7 +12,6 @@ export interface VolvoEX30Config {
   enableLocks?: boolean;
   enableDoors?: boolean;
   enableDiagnostics?: boolean;
-  apiPreference?: 'connected-first' | 'energy-first' | 'connected-only' | 'energy-only';
 }
 
 export interface OAuthTokens {
@@ -27,5 +26,4 @@ export interface VolvoApiConfig {
   clientSecret: string;
   region: 'eu' | 'na';
   refreshToken?: string;
-  apiPreference?: 'connected-first' | 'energy-first' | 'connected-only' | 'energy-only';
 }

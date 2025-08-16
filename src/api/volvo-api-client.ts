@@ -2,7 +2,6 @@ import axios, { AxiosInstance, AxiosError } from 'axios';
 import { Logger } from 'homebridge';
 import NodeCache from 'node-cache';
 import { VolvoApiConfig, OAuthTokens } from '../types/config';
-import { EnergyState, Capabilities, ErrorResponse, DetailedErrorResponse } from '../types/energy-api';
 import { ConnectedVehicleState } from '../types/connected-vehicle-api';
 import { OAuthHandler } from '../auth/oauth-handler';
 import { ConnectedVehicleClient } from './connected-vehicle-client';
@@ -48,7 +47,7 @@ export interface UnifiedVehicleData {
   
   // Last update timestamp
   lastUpdated?: string;
-  dataSource?: 'energy-api' | 'connected-vehicle-api' | 'hybrid';
+  dataSource?: 'connected-vehicle-api';
 }
 
 export class VolvoApiClient {
@@ -61,8 +60,7 @@ export class VolvoApiClient {
   // Connected Vehicle API client
   private readonly connectedVehicleClient: ConnectedVehicleClient;
   
-  // API preference: 'energy-first', 'connected-first', 'energy-only', 'connected-only'
-  private apiPreference: 'energy-first' | 'connected-first' | 'energy-only' | 'connected-only' = 'connected-first';
+  // Using Connected Vehicle API exclusively - no preferences needed
 
   constructor(
     private readonly config: VolvoApiConfig,
@@ -93,24 +91,13 @@ export class VolvoApiClient {
       homebridgeStorageDir
     );
     
-    // Set API preference based on configuration or environment
-    this.determineApiPreference();
+    // Using Connected Vehicle API exclusively
+    this.logger.info('🔗 Using Connected Vehicle API v2 exclusively for comprehensive vehicle data');
 
     this.setupRequestInterceptors();
     this.setupResponseInterceptors();
   }
   
-  private determineApiPreference(): void {
-    // Use configuration setting if provided, otherwise default to connected-first
-    this.apiPreference = this.config.apiPreference || 'connected-first';
-    this.logger.debug(`API preference set to: ${this.apiPreference}`);
-    
-    if (this.apiPreference === 'connected-first' || this.apiPreference === 'connected-only') {
-      this.logger.info('🔗 Using Connected Vehicle API for richer vehicle data');
-    } else if (this.apiPreference === 'energy-first' || this.apiPreference === 'energy-only') {
-      this.logger.info('⚡ Using Energy API v2 for vehicle data');
-    }
-  }
 
   private setupRequestInterceptors(): void {
     this.httpClient.interceptors.request.use(
@@ -199,10 +186,10 @@ export class VolvoApiClient {
 
   private handleApiError(error: AxiosError): void {
     if (error.response?.data) {
-      const errorData = error.response.data as ErrorResponse | DetailedErrorResponse;
-      this.logger.error(`Volvo API Error [${error.response.status}]:`, errorData.error.message);
+      const errorData = error.response.data as any;
+      this.logger.error(`Volvo API Error [${error.response.status}]:`, errorData?.error?.message || 'Unknown error');
       
-      if ('details' in errorData.error && errorData.error.details) {
+      if (errorData?.error?.details) {
         for (const detail of errorData.error.details) {
           this.logger.error(`  - ${detail.code}: ${detail.message}`);
         }
@@ -212,68 +199,7 @@ export class VolvoApiClient {
     }
   }
 
-  async getCapabilities(vin: string): Promise<Capabilities> {
-    const cacheKey = `capabilities_${vin}`;
-    const cached = this.cache.get<Capabilities>(cacheKey);
-    
-    if (cached) {
-      this.logger.debug('Returning cached capabilities');
-      return cached;
-    }
 
-    try {
-      this.logger.debug(`Getting capabilities for VIN: ${vin}`);
-      // Use Energy API v2 endpoint for capabilities
-      const response = await this.httpClient.get<Capabilities>(`/vehicles/${vin}/capabilities`);
-      
-      this.cache.set(cacheKey, response.data, 3600);
-      return response.data;
-    } catch (error) {
-      // Fallback: assume basic capabilities are available
-      this.logger.warn('Failed to get capabilities, assuming basic support:', error);
-      const basicCapabilities: Capabilities = {
-        getEnergyState: {
-          isSupported: true,
-          batteryChargeLevel: { isSupported: true },
-          electricRange: { isSupported: true },
-          chargerConnectionStatus: { isSupported: true },
-          chargingSystemStatus: { isSupported: true },
-          chargingType: { isSupported: true },
-          chargerPowerStatus: { isSupported: true },
-          estimatedChargingTimeToTargetBatteryChargeLevel: { isSupported: true },
-          targetBatteryChargeLevel: { isSupported: true },
-          chargingCurrentLimit: { isSupported: true },
-          chargingPower: { isSupported: true },
-        },
-      };
-      this.cache.set(cacheKey, basicCapabilities, 3600);
-      return basicCapabilities;
-    }
-  }
-
-  async getEnergyState(vin: string): Promise<EnergyState> {
-    const cacheKey = `energy_state_${vin}`;
-    const cached = this.cache.get<EnergyState>(cacheKey);
-    
-    if (cached) {
-      this.logger.debug('Returning cached energy state');
-      return cached;
-    }
-
-    try {
-      this.logger.debug(`Getting energy state for VIN: ${vin}`);
-      // Use Energy API v2 endpoint to get complete energy state
-      const response = await this.httpClient.get<EnergyState>(`/vehicles/${vin}/state`);
-      
-      this.logger.debug('Energy API response:', JSON.stringify(response.data, null, 2));
-      
-      this.cache.set(cacheKey, response.data, 60);
-      return response.data;
-    } catch (error) {
-      this.logger.error('Failed to get energy state:', error);
-      throw error;
-    }
-  }
 
   getOAuthHandler(): OAuthHandler {
     return this.oAuthHandler;
@@ -302,58 +228,21 @@ export class VolvoApiClient {
       return cached;
     }
     
-    let unifiedData: UnifiedVehicleData = {
-      lastUpdated: new Date().toISOString()
-    };
-    
-    if (this.apiPreference === 'connected-first' || this.apiPreference === 'connected-only') {
-      try {
-        const connectedData = await this.connectedVehicleClient.getCompleteVehicleState(vin);
-        unifiedData = this.mapConnectedVehicleData(connectedData);
-        unifiedData.dataSource = 'connected-vehicle-api';
-        
-        // Cache unified data for 60 seconds
-        this.cache.set(cacheKey, unifiedData, 60);
-        return unifiedData;
-      } catch (error) {
-        this.logger.warn('Connected Vehicle API failed, trying Energy API fallback:', error);
-        
-        if (this.apiPreference === 'connected-only') {
-          throw error;
-        }
-      }
+    // Use Connected Vehicle API exclusively - it provides all data we need
+    // No fallbacks = single point of failure = cleaner error handling
+    try {
+      const connectedData = await this.connectedVehicleClient.getCompleteVehicleState(vin);
+      const unifiedData = this.mapConnectedVehicleData(connectedData);
+      unifiedData.dataSource = 'connected-vehicle-api';
+      unifiedData.lastUpdated = new Date().toISOString();
+      
+      // Cache unified data for 60 seconds
+      this.cache.set(cacheKey, unifiedData, 60);
+      return unifiedData;
+    } catch (error) {
+      this.logger.debug('Connected Vehicle API failed:', error);
+      throw error;
     }
-    
-    if (this.apiPreference === 'energy-first' || this.apiPreference === 'connected-first') {
-      try {
-        const energyState = await this.getEnergyState(vin);
-        const energyData = this.mapEnergyApiData(energyState);
-        
-        // If we have both sources, merge them
-        if (unifiedData.dataSource === 'connected-vehicle-api') {
-          unifiedData = { ...unifiedData, ...energyData };
-          unifiedData.dataSource = 'hybrid';
-        } else {
-          unifiedData = { ...unifiedData, ...energyData };
-          unifiedData.dataSource = 'energy-api';
-        }
-        
-        this.cache.set(cacheKey, unifiedData, 60);
-        return unifiedData;
-      } catch (error) {
-        this.logger.error('Both APIs failed to retrieve vehicle data:', error);
-        
-        if (unifiedData.dataSource) {
-          // Return partial data if we have some from Connected Vehicle API
-          return unifiedData;
-        }
-        
-        throw error;
-      }
-    }
-    
-    // This should not happen with current logic, but safety fallback
-    throw new Error('No valid API preference configured');
   }
   
   private mapConnectedVehicleData(cvData: ConnectedVehicleState): UnifiedVehicleData {
@@ -418,32 +307,21 @@ export class VolvoApiClient {
     return data;
   }
   
-  private mapEnergyApiData(energyState: EnergyState): UnifiedVehicleData {
-    const data: UnifiedVehicleData = {};
+  
+  /**
+   * Check if error indicates authentication failure to prevent duplicate failures
+   */
+  private isAuthenticationError(error: any): boolean {
+    const errorMessage = error?.message || error?.toString() || '';
     
-    // Battery information
-    if (energyState.batteryChargeLevel?.status === 'OK') {
-      data.batteryLevel = energyState.batteryChargeLevel.value;
-      data.batteryStatus = 'OK';
-    }
-    
-    // Charging state
-    if (energyState.chargingStatus?.status === 'OK') {
-      const chargingStatus = energyState.chargingStatus.value;
-      data.chargingState = chargingStatus === 'CHARGING' ? 'CHARGING' : 'NOT_CHARGING';
-    }
-    
-    // Electric range
-    if (energyState.electricRange?.status === 'OK') {
-      data.electricRange = energyState.electricRange.value;
-    }
-    
-    // Estimated charging time
-    if (energyState.estimatedChargingTimeToTargetBatteryChargeLevel?.status === 'OK') {
-      data.estimatedChargingTime = energyState.estimatedChargingTimeToTargetBatteryChargeLevel.value;
-    }
-    
-    return data;
+    return errorMessage.includes('refresh token has expired') ||
+           errorMessage.includes('Authentication failed') ||
+           errorMessage.includes('invalid_grant') ||
+           errorMessage.includes('401') ||
+           errorMessage.includes('403') ||
+           (error?.response?.status === 401) ||
+           (error?.response?.status === 403) ||
+           (error?.code === 'invalid_grant');
   }
   
   // Connected Vehicle API methods passthrough

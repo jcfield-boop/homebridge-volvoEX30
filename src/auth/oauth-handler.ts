@@ -162,9 +162,9 @@ export class OAuthHandler {
       
       return tokens;
     } catch (error: any) {
-      // Log detailed error information for debugging
+      // Log minimal error information to avoid spam
       if (error.response) {
-        this.logger.error('OAuth refresh failed with HTTP error:', {
+        this.logger.debug('OAuth refresh failed with HTTP error:', {
           status: error.response.status,
           statusText: error.response.statusText,
           data: error.response.data,
@@ -194,7 +194,7 @@ Generate a new token:
       } else if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
         throw new Error('Unable to connect to Volvo OAuth server. Check your internet connection.');
       } else {
-        this.logger.error('OAuth refresh failed with network error:', error.message);
+        this.logger.debug('OAuth refresh failed with network error:', error.message);
       }
       
       throw new Error(`OAuth token refresh failed: ${error.message || 'Unknown error'}`);

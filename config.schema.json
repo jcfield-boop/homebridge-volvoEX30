@@ -89,14 +89,6 @@
         "type": "boolean",
         "default": true,
         "description": "Show service warnings, odometer, and tyre pressure sensors"
-      },
-      "apiPreference": {
-        "title": "API Preference",
-        "type": "string",
-        "default": "connected-first",
-        "enum": ["connected-first", "energy-first", "connected-only", "energy-only"],
-        "enumNames": ["Connected Vehicle First (Recommended)", "Energy API First", "Connected Vehicle Only", "Energy API Only"],
-        "description": "Which API to prefer for vehicle data. Connected Vehicle API provides much richer data."
       }
     }
   },
@@ -125,7 +117,6 @@
       "title": "Feature Settings",
       "items": [
         "pollingInterval",
-        "apiPreference",
         "enableBattery",
         "enableClimate",
         "enableLocks",

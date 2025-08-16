@@ -87,12 +87,8 @@ export class VolvoEX30Platform implements DynamicPlatformPlugin {
 
   async discoverDevices() {
     try {
-      const capabilities = await this.apiClient.getCapabilities(this.config.vin);
-      
-      if (!capabilities.getEnergyState.isSupported) {
-        this.log.error('Energy API not supported for this vehicle');
-        return;
-      }
+      // Connected Vehicle API provides comprehensive vehicle data - no capability check needed
+      this.log.info('🔍 Discovering EX30 device using Connected Vehicle API...');
 
       const uuid = this.api.hap.uuid.generate(this.config.vin);
       const existingAccessory = this.accessories.find(accessory => accessory.UUID === uuid);
