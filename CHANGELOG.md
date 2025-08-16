@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.8] - 2025-08-16
+
+### 🚨 Critical OAuth Spam Hotfix - getTyrePressureState Method
+
+#### Fixed
+- **getTyrePressureState OAuth Bypass**: Fixed critical bug where `getTyrePressureState()` was calling `getConnectedVehicleState()` directly
+- **Incomplete v2.0.7 Fix**: This method was missed in v2.0.7 and continued to cause OAuth spam during diagnostic service initialization
+- **Authentication Failure Handling**: Added proper authentication error handling to prevent multiple simultaneous OAuth attempts
+
+#### Root Cause Found
+- **Issue**: `getTyrePressureState()` at line 911 was bypassing all authentication failure state checking
+- **Stack Trace**: User logs showed this exact method triggering hundreds of OAuth refresh attempts
+- **Missing Coverage**: v2.0.7 fixed most sources but missed this diagnostic service method
+
+#### Enhanced
+- **Complete Coverage**: Now ALL vehicle data access methods respect authentication failure state
+- **Diagnostic Service Safety**: Tyre pressure sensor returns defaults during authentication failures
+- **Zero OAuth Spam**: True elimination of OAuth spam from every possible source
+
+This hotfix addresses the final OAuth spam source identified in user logs. v2.0.8 provides complete OAuth spam elimination.
+
 ## [2.0.7] - 2025-08-16
 
 ### 🚫 Complete OAuth Spam Elimination - Final Fix

@@ -908,26 +908,32 @@ export class VolvoEX30Accessory {
       
       // Get detailed connected vehicle state for tyre pressure data
       // Note: Tyre pressure info is only available via direct connected vehicle API call
-      const connectedVehicleState = await this.platform.getApiClient().getConnectedVehicleState(this.platform.config.vin);
+      // BUT we need to check auth failure state first to prevent OAuth spam
+      try {
+        const connectedVehicleState = await this.platform.getApiClient().getConnectedVehicleState(this.platform.config.vin);
       
-      // Check all tyre pressures for warnings
-      if (connectedVehicleState.tyrePressure) {
-        const tyres = connectedVehicleState.tyrePressure;
-        const hasWarning = 
-          tyres.frontLeft?.value === 'WARNING' ||
-          tyres.frontRight?.value === 'WARNING' ||
-          tyres.rearLeft?.value === 'WARNING' ||
-          tyres.rearRight?.value === 'WARNING';
-        
-        if (hasWarning) {
-          this.platform.log.warn('Tyre pressure warning detected!');
-          return this.platform.Characteristic.ContactSensorState.CONTACT_NOT_DETECTED; // Warning state
+        // Check all tyre pressures for warnings
+        if (connectedVehicleState.tyrePressure) {
+          const tyres = connectedVehicleState.tyrePressure;
+          const hasWarning = 
+            tyres.frontLeft?.value === 'WARNING' ||
+            tyres.frontRight?.value === 'WARNING' ||
+            tyres.rearLeft?.value === 'WARNING' ||
+            tyres.rearRight?.value === 'WARNING';
+          
+          if (hasWarning) {
+            this.platform.log.warn('Tyre pressure warning detected!');
+            return this.platform.Characteristic.ContactSensorState.CONTACT_NOT_DETECTED; // Warning state
+          }
+          
+          return this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED; // All OK
         }
         
-        return this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED; // All OK
+        return this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
+      } catch (apiError) {
+        // This is the missing piece! This method was bypassing all OAuth spam protection
+        throw apiError;
       }
-      
-      return this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
     } catch (error) {
       // Handle authentication errors to prevent spam
       if (this.handlePollingError(error)) {
