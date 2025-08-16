@@ -93,7 +93,7 @@ export class VolvoApiClient {
     );
     
     // Using Connected Vehicle API exclusively
-    this.logger.info('🔗 Using Connected Vehicle API v2 exclusively for comprehensive vehicle data');
+    this.logger.debug('🔗 Using Connected Vehicle API v2 exclusively for comprehensive vehicle data');
 
     this.setupRequestInterceptors();
     this.setupResponseInterceptors();

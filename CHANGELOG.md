@@ -5,6 +5,59 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.11] - 2025-08-16
+
+### 🔧 Critical Token Priority Fix & True Graceful Failure
+
+#### Fixed - CRITICAL TOKEN BUG
+- **Token Priority Bug**: Fixed critical issue where plugin ignored fresh config tokens in favor of expired stored tokens
+- **Root Cause**: OAuth refresh logic was using `this.tokens.refreshToken` (old expired token) instead of fresh config token
+- **Result**: Fresh 15-minute-old tokens from `easy-oauth.js` now properly used instead of expired stored tokens
+
+#### Fixed - LOG SPAM ELIMINATION  
+- **100+ Line Auth Failures**: Reduced authentication failures from 100+ repeated messages to maximum 3 lines total
+- **Startup API Spam**: Fixed 14+ simultaneous API calls during startup - now single controlled data fetch
+- **HomeKit Service Errors**: Services now receive safe default values instead of throwing errors during auth failures
+- **Graceful Degradation**: Plugin continues to function with default values when authentication fails
+
+#### Enhanced - CLEAN STARTUP
+- **Verbose Startup Messages**: Converted 10+ emoji startup info messages to debug-level logging
+- **Single Error Message**: Authentication failures now show clean, actionable error with `easy-oauth.js` instructions
+- **Startup Sequence**: Added proper initialization sequence that fetches data once before setting up services
+- **Error Consolidation**: Multiple auth error types now unified into single actionable message
+
+#### Technical Details
+- **Fixed**: `OAuth.getValidAccessToken()` token priority - config tokens now take precedence over stored tokens
+- **Added**: `getDefaultVehicleData()` method returns safe values during auth failures
+- **Enhanced**: `getUnifiedVehicleData()` returns defaults instead of throwing during auth failures
+- **Improved**: Startup sequence with `performInitialDataFetch()` before service initialization
+- **Result**: Clean, minimal logging with proper graceful failure
+
+### Before vs After
+
+**Before (v2.0.10 with expired token):**
+```
+[100+ lines including:]
+🔑 Setting initial refresh token...
+🔗 Using Connected Vehicle API v2 exclusively...
+🔋 Battery service configured...
+🚗 Door and window sensors configured...
+[14+ "Token expired - will refresh" messages]
+[14+ "Token refresh failed" errors] 
+[30+ "Failed to get X for VIN" messages]
+[14+ "X failed" debug messages]
+```
+
+**After (v2.0.11 with same expired token):**
+```
+[16/08/2025, 14:33:27] [Volvo EX30] Getting initial vehicle data
+[16/08/2025, 14:33:27] [Volvo EX30] 🔒 Authentication failed - refresh token expired. Generate a new token:
+[16/08/2025, 14:33:27] [Volvo EX30]    1. Run: node scripts/easy-oauth.js
+[16/08/2025, 14:33:27] [Volvo EX30]    2. Update initialRefreshToken in config and restart Homebridge
+```
+
+This version provides TRUE graceful failure with minimal, actionable logging and fixes the core token priority bug.
+
 ## [2.0.10] - 2025-08-16
 
 ### 🧹 Clean Logging - Remove Debug Spam

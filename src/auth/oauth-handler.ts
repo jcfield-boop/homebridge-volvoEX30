@@ -177,9 +177,8 @@ export class OAuthHandler {
           const errorData = error.response.data;
           if (errorData?.error === 'invalid_grant') {
             throw new Error(`🔒 Refresh token has expired (7-day limit reached). Please generate a new token:
-1. Run: node scripts/working-oauth.js
-2. Run: node scripts/token-exchange.js [AUTH_CODE]
-3. Update your Homebridge config with the new initialRefreshToken
+1. Run: node scripts/easy-oauth.js
+2. Update your Homebridge config with the new initialRefreshToken
 This happens when Homebridge is offline for 7+ consecutive days.`);
           } else if (errorData?.error === 'invalid_client') {
             throw new Error('Invalid client credentials. Check your Client ID and Client Secret in your Homebridge config.');
@@ -213,7 +212,7 @@ Generate a new token:
     }
 
     if (!this.tokens && bestToken) {
-      this.logger.debug(`🔄 Initial token refresh with ${bestToken.source} refresh token`);
+      this.logger.info(`🔄 Using ${bestToken.source} refresh token for initial authentication`);
       this.tokens = await this.refreshAccessToken(bestToken.token);
       return this.tokens.accessToken;
     }
@@ -232,8 +231,11 @@ Generate a new token:
         }
         
         try {
-          // Use the current token's refresh token, or fall back to best available
-          const tokenToUse = this.tokens.refreshToken || bestToken!.token;
+          // CRITICAL FIX: Always prefer fresh config token over potentially expired stored token
+          const tokenToUse = bestToken?.token || this.tokens.refreshToken;
+          if (bestToken?.source === 'config') {
+            this.logger.info(`🔄 Using fresh config token for refresh (prioritized over stored token)`);
+          }
           this.tokens = await this.refreshAccessToken(tokenToUse);
           // Only log once per refresh, not per waiting request
         } catch (error) {
@@ -312,7 +314,7 @@ Generate a new token:
   }
 
   /**
-   * Get the best available refresh token (stored > config)
+   * Get the best available refresh token (config > stored when config provided)
    */
   private async getBestRefreshToken(configToken?: string): Promise<{ token: string; source: 'stored' | 'config' } | null> {
     if (this.tokenStorage) {

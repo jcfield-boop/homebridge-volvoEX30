@@ -50,12 +50,41 @@ export class VolvoEX30Accessory {
   ) {
     this.informationService = this.accessory.getService(this.platform.Service.AccessoryInformation)!;
     
+    this.initializeAccessory();
+  }
+
+  /**
+   * Initialize accessory with proper startup sequence
+   */
+  private async initializeAccessory(): Promise<void> {
     this.setupInformationService();
+    
+    // Attempt initial data fetch - this will set auth failure state if needed
+    await this.performInitialDataFetch();
+    
     this.setupBatteryService();
     this.setupDoorAndWindowSensors();
     this.setupVehicleControlServices();
     this.setupDiagnosticServices();
     this.startPolling();
+  }
+
+  /**
+   * Perform initial data fetch with proper error handling
+   */
+  private async performInitialDataFetch(): Promise<void> {
+    this.platform.log.info('Getting initial vehicle data');
+    
+    try {
+      const apiClient = this.platform.getApiClient();
+      const unifiedData = await apiClient.getUnifiedVehicleData(this.platform.config.vin);
+      this.currentUnifiedData = unifiedData;
+      this.platform.log.debug(`Got initial vehicle data (source: ${unifiedData.dataSource})`);
+    } catch (error) {
+      // Handle authentication errors gracefully
+      this.handlePollingError(error);
+      // Continue with setup using default data
+    }
   }
 
   private setupInformationService(): void {
@@ -111,7 +140,7 @@ export class VolvoEX30Accessory {
     this.batteryService.updateCharacteristic(this.platform.Characteristic.ChargingState, 
       this.platform.Characteristic.ChargingState.NOT_CHARGING);
     
-    this.platform.log.info('🔋 Battery service configured as primary service');
+    this.platform.log.debug('🔋 Battery service configured as primary service');
   }
   
   private setupDoorAndWindowSensors(): void {
@@ -187,7 +216,7 @@ export class VolvoEX30Accessory {
     this.sunroofSensor.getCharacteristic(this.platform.Characteristic.ContactSensorState)
       .onGet(this.getSunroofState.bind(this));
     
-    this.platform.log.info('🚗 Door and window sensors configured');
+    this.platform.log.debug('🚗 Door and window sensors configured');
   }
   
   private setupVehicleControlServices(): void {
@@ -211,7 +240,7 @@ export class VolvoEX30Accessory {
       this.lockService.updateCharacteristic(this.platform.Characteristic.LockTargetState,
         this.platform.Characteristic.LockTargetState.SECURED);
         
-      this.platform.log.info('🔒 Vehicle lock service configured');
+      this.platform.log.debug('🔒 Vehicle lock service configured');
     }
     
     // Climate control service
@@ -228,7 +257,7 @@ export class VolvoEX30Accessory {
       // Set initial climate state without triggering commands
       this.climateService.updateCharacteristic(this.platform.Characteristic.On, false);
       
-      this.platform.log.info('🌡️ Climate control service configured');
+      this.platform.log.debug('🌡️ Climate control service configured');
     }
   }
   
@@ -257,7 +286,7 @@ export class VolvoEX30Accessory {
     this.tyrePressureSensor.getCharacteristic(this.platform.Characteristic.ContactSensorState)
       .onGet(this.getTyrePressureState.bind(this));
     
-    this.platform.log.info('🔍 Diagnostic and maintenance services configured');
+    this.platform.log.debug('🔍 Diagnostic and maintenance services configured');
   }
 
 
@@ -339,7 +368,7 @@ export class VolvoEX30Accessory {
       
       if (timeSinceFailure < retryInterval) {
         // Still in quiet period - return default/unknown values to prevent service errors
-        throw new Error('Authentication failed - device in quiet mode');
+        return this.getDefaultVehicleData();
       }
     }
 
@@ -358,15 +387,46 @@ export class VolvoEX30Accessory {
     } catch (error) {
       // Handle authentication errors to prevent spam
       if (this.handlePollingError(error)) {
-        // Error was handled/suppressed - throw a clean error to prevent HomeKit errors
-        throw new Error('Authentication failed - device unavailable');
+        // Error was handled/suppressed - return safe defaults instead of throwing
+        return this.getDefaultVehicleData();
       }
       
       // Re-throw other errors for normal handling
       throw error;
     }
   }
-  
+
+  /**
+   * Return safe default vehicle data when authentication has failed
+   * This prevents HomeKit services from erroring out during auth failures
+   */
+  private getDefaultVehicleData(): UnifiedVehicleData {
+    return {
+      batteryLevel: 50, // Safe default
+      batteryStatus: 'OK',
+      chargingState: 'NOT_CHARGING',
+      centralLockStatus: 'UNKNOWN',
+      frontLeftDoor: 'UNKNOWN',
+      frontRightDoor: 'UNKNOWN',
+      rearLeftDoor: 'UNKNOWN',
+      rearRightDoor: 'UNKNOWN',
+      hood: 'UNKNOWN',
+      tailgate: 'UNKNOWN',
+      frontLeftWindow: 'UNKNOWN',
+      frontRightWindow: 'UNKNOWN',
+      rearLeftWindow: 'UNKNOWN',
+      rearRightWindow: 'UNKNOWN',
+      sunroof: 'UNKNOWN',
+      serviceWarning: 'UNKNOWN',
+      odometer: 0,
+      canLock: false,
+      canUnlock: false,
+      canStartClimatization: false,
+      canStopClimatization: false,
+      lastUpdated: new Date().toISOString(),
+      dataSource: 'connected-vehicle-api'
+    };
+  }
 
   private startPolling(): void {
     const pollingInterval = (this.platform.config.pollingInterval || 5) * 60 * 1000;
@@ -991,11 +1051,9 @@ export class VolvoEX30Accessory {
       
       // Only log the error once to avoid spam
       if (!this.authFailureState.errorLogged) {
-        this.platform.log.error('🔒 Authentication failed - token likely expired. Stopping API polling to prevent log spam.');
-        this.platform.log.error('📋 To fix: Generate new token and update config:');
-        this.platform.log.error('   1. Run: node scripts/working-oauth.js');
-        this.platform.log.error('   2. Run: node scripts/token-exchange.js [AUTH_CODE]');
-        this.platform.log.error('   3. Update initialRefreshToken in config and restart Homebridge');
+        this.platform.log.error('🔒 Authentication failed - refresh token expired. Generate a new token:');
+        this.platform.log.error('   1. Run: node scripts/easy-oauth.js');
+        this.platform.log.error('   2. Update initialRefreshToken in config and restart Homebridge');
         this.authFailureState.errorLogged = true;
       }
       

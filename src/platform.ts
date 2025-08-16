@@ -88,7 +88,7 @@ export class VolvoEX30Platform implements DynamicPlatformPlugin {
   async discoverDevices() {
     try {
       // Connected Vehicle API provides comprehensive vehicle data - no capability check needed
-      this.log.info('🔍 Discovering EX30 device using Connected Vehicle API...');
+      this.log.debug('🔍 Discovering EX30 device using Connected Vehicle API...');
 
       const uuid = this.api.hap.uuid.generate(this.config.vin);
       const existingAccessory = this.accessories.find(accessory => accessory.UUID === uuid);
@@ -98,7 +98,7 @@ export class VolvoEX30Platform implements DynamicPlatformPlugin {
         
         // Set as SENSOR category with humidity sensor as primary display
         existingAccessory.category = this.api.hap.Categories.SENSOR;
-        this.log.info('📊 Set accessory category to SENSOR for humidity sensor display');
+        this.log.debug('📊 Set accessory category to SENSOR for humidity sensor display');
         
         new VolvoEX30Accessory(this, existingAccessory);
       } else {
