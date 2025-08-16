@@ -225,7 +225,6 @@ export class VolvoApiClient {
     const cached = this.cache.get<UnifiedVehicleData>(cacheKey);
     
     if (cached) {
-      this.logger.debug('Returning cached unified vehicle data');
       return cached;
     }
     

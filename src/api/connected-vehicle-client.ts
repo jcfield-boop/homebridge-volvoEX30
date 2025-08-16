@@ -174,7 +174,6 @@ export class ConnectedVehicleClient {
   // Cache management
   clearCache(): void {
     this.cache.flushAll();
-    this.logger.debug('Cleared Connected Vehicle API cache');
   }
 
   private getCacheKey(endpoint: string, vin?: string): string {
@@ -187,7 +186,6 @@ export class ConnectedVehicleClient {
     const cached = this.cache.get<VehicleListResponse>(cacheKey);
     
     if (cached) {
-      this.logger.debug('Returning cached vehicle list');
       return cached;
     }
 
@@ -206,7 +204,6 @@ export class ConnectedVehicleClient {
     const cached = this.cache.get<VehicleDetails>(cacheKey);
     
     if (cached) {
-      this.logger.debug('Returning cached vehicle details');
       return cached;
     }
 
@@ -226,7 +223,6 @@ export class ConnectedVehicleClient {
     const cached = this.cache.get<DoorsResponse>(cacheKey);
     
     if (cached) {
-      this.logger.debug('Returning cached doors status');
       return cached;
     }
 
@@ -245,7 +241,6 @@ export class ConnectedVehicleClient {
     const cached = this.cache.get<WindowsResponse>(cacheKey);
     
     if (cached) {
-      this.logger.debug('Returning cached windows status');
       return cached;
     }
 
@@ -264,7 +259,6 @@ export class ConnectedVehicleClient {
     const cached = this.cache.get<OdometerResponse>(cacheKey);
     
     if (cached) {
-      this.logger.debug('Returning cached odometer reading');
       return cached;
     }
 
@@ -283,7 +277,6 @@ export class ConnectedVehicleClient {
     const cached = this.cache.get<DiagnosticsResponse>(cacheKey);
     
     if (cached) {
-      this.logger.debug('Returning cached diagnostics');
       return cached;
     }
 
@@ -302,7 +295,6 @@ export class ConnectedVehicleClient {
     const cached = this.cache.get<StatisticsResponse>(cacheKey);
     
     if (cached) {
-      this.logger.debug('Returning cached statistics');
       return cached;
     }
 
@@ -321,7 +313,6 @@ export class ConnectedVehicleClient {
     const cached = this.cache.get<TyrePressureResponse>(cacheKey);
     
     if (cached) {
-      this.logger.debug('Returning cached tyre pressure');
       return cached;
     }
 
@@ -340,7 +331,6 @@ export class ConnectedVehicleClient {
     const cached = this.cache.get<WarningsResponse>(cacheKey);
     
     if (cached) {
-      this.logger.debug('Returning cached warnings');
       return cached;
     }
 
@@ -359,7 +349,6 @@ export class ConnectedVehicleClient {
     const cached = this.cache.get<EngineStatusResponse>(cacheKey);
     
     if (cached) {
-      this.logger.debug('Returning cached engine status');
       return cached;
     }
 
@@ -378,7 +367,6 @@ export class ConnectedVehicleClient {
     const cached = this.cache.get<EngineDiagnosticsResponse>(cacheKey);
     
     if (cached) {
-      this.logger.debug('Returning cached engine diagnostics');
       return cached;
     }
 
@@ -397,7 +385,6 @@ export class ConnectedVehicleClient {
     const cached = this.cache.get<FuelResponse>(cacheKey);
     
     if (cached) {
-      this.logger.debug('Returning cached fuel status');
       return cached;
     }
 
@@ -416,7 +403,6 @@ export class ConnectedVehicleClient {
     const cached = this.cache.get<BrakeStatusResponse>(cacheKey);
     
     if (cached) {
-      this.logger.debug('Returning cached brake status');
       return cached;
     }
 
@@ -436,7 +422,6 @@ export class ConnectedVehicleClient {
     const cached = this.cache.get<CommandListResponse>(cacheKey);
     
     if (cached) {
-      this.logger.debug('Returning cached available commands');
       return cached;
     }
 

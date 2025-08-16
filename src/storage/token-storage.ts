@@ -157,17 +157,10 @@ export class TokenStorage {
     // If config token provided, prioritize it over stored token
     // This allows users to provide fresh tokens that override potentially expired stored ones
     if (configToken) {
-      this.logger.debug('💾 Using fresh token from config.json (prioritized over stored)');
-      
-      // Clear any old stored token when fresh config token provided
-      try {
-        const storedToken = await this.getStoredRefreshToken();
-        if (storedToken && storedToken !== configToken) {
-          this.logger.debug('💾 Clearing old stored token - using fresh config token');
-          await this.clearStoredToken();
-        }
-      } catch (error) {
-        this.logger.debug('💾 Could not clear old stored token:', error);
+      // Only clear stored token if it's different - avoid repetitive logging
+      const storedToken = await this.getStoredRefreshTokenSilently();
+      if (storedToken && storedToken !== configToken) {
+        await this.clearStoredTokenSilently();
       }
       
       return { token: configToken, source: 'config' };
@@ -204,6 +197,43 @@ export class TokenStorage {
     } catch (error) {
       this.logger.warn('⚠️ Failed to read token file, returning empty object:', error);
       return {};
+    }
+  }
+
+  /**
+   * Silent version of getStoredRefreshToken for internal use (no debug logging)
+   */
+  private async getStoredRefreshTokenSilently(): Promise<string | null> {
+    await this.ensureInitialized();
+
+    try {
+      const tokens = this.readTokenFile();
+      const tokenKey = this.getTokenKey();
+      const tokenData = tokens[tokenKey];
+
+      if (tokenData && tokenData.refreshToken) {
+        return tokenData.refreshToken;
+      }
+      return null;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  /**
+   * Silent version of clearStoredToken for internal use (no debug logging)
+   */
+  private async clearStoredTokenSilently(): Promise<void> {
+    await this.ensureInitialized();
+
+    try {
+      const tokens = this.readTokenFile();
+      const tokenKey = this.getTokenKey();
+      delete tokens[tokenKey];
+      
+      fs.writeFileSync(this.tokenFilePath, JSON.stringify(tokens, null, 2), 'utf8');
+    } catch (error) {
+      // Silent operation - no logging
     }
   }
 

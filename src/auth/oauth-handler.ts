@@ -235,7 +235,7 @@ Generate a new token:
           // Use the current token's refresh token, or fall back to best available
           const tokenToUse = this.tokens.refreshToken || bestToken!.token;
           this.tokens = await this.refreshAccessToken(tokenToUse);
-          this.logger.debug('✅ Token refreshed successfully');
+          // Only log once per refresh, not per waiting request
         } catch (error) {
           this.logger.error(`❌ Token refresh failed: ${error}`);
           
@@ -269,7 +269,10 @@ Generate a new token:
     const expiryWithBuffer = tokens.expiresAt - buffer;
     const isExpired = now >= expiryWithBuffer;
     
-    this.logger.debug(`🔍 Token expiry check - now: ${new Date(now).toISOString()}, expiresAt: ${new Date(tokens.expiresAt).toISOString()}, buffer: ${buffer/1000}s, isExpired: ${isExpired}`);
+    // Only log if token actually expired to reduce verbose output
+    if (isExpired) {
+      this.logger.debug(`🔍 Token expired - will refresh`);
+    }
     
     return isExpired;
   }

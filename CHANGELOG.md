@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.10] - 2025-08-16
+
+### 🧹 Clean Logging - Remove Debug Spam
+
+#### Fixed
+- **Excessive Debug Messages**: Removed verbose token storage debug messages that were appearing in normal logs
+- **Repetitive Cache Messages**: Eliminated 14+ "Returning cached X status" messages during startup
+- **Token Operation Spam**: Cleaned up repetitive token refresh success messages
+- **Silent Token Operations**: Token storage comparison operations now run silently to prevent log flooding
+
+#### Enhanced
+- **Cleaner Startup**: Startup logs now show only essential information and errors
+- **Debug-Only Verbose Logging**: Detailed token operations only appear when debug logging is enabled
+- **Streamlined Output**: Reduced log verbosity while maintaining error visibility
+
+#### Technical Details
+- **Added**: Silent versions of token storage operations for internal use
+- **Removed**: 14+ repetitive cache status debug messages
+- **Simplified**: Token expiry checks only log when tokens actually expire
+- **Result**: Clean, concise logging focused on actionable information
+
+This version provides clean, non-verbose logging while maintaining all debugging capabilities when needed.
+
 ## [2.0.9] - 2025-08-16
 
 ### 🎯 Final OAuth Spam Fix - Duplicate OAuth Handler Elimination
