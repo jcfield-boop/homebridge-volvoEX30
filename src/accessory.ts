@@ -31,18 +31,10 @@ export class VolvoEX30Accessory {
   private currentUnifiedData: UnifiedVehicleData | null = null;
   private updateInterval?: NodeJS.Timeout;
   
-  // Failure state tracking for graceful degradation
-  private authFailureState: {
-    hasAuthFailed: boolean;
-    lastErrorTime: number;
-    errorLogged: boolean;
-    retryAttempts: number;
-  } = {
-    hasAuthFailed: false,
-    lastErrorTime: 0,
-    errorLogged: false,
-    retryAttempts: 0
-  };
+  // Global authentication failure flag - blocks ALL API activity after first auth error
+  private globalAuthFailure: boolean = false;
+  private authFailureTime: number = 0;
+  private authErrorLogged: boolean = false;
 
   constructor(
     private readonly platform: VolvoEX30Platform,
@@ -70,20 +62,20 @@ export class VolvoEX30Accessory {
   }
 
   /**
-   * Perform initial data fetch with proper error handling
+   * Perform initial data fetch with fail-fast error handling
    */
   private async performInitialDataFetch(): Promise<void> {
-    this.platform.log.info('Getting initial vehicle data');
+    if (this.globalAuthFailure) {
+      return;
+    }
     
     try {
       const apiClient = this.platform.getApiClient();
       const unifiedData = await apiClient.getUnifiedVehicleData(this.platform.config.vin);
       this.currentUnifiedData = unifiedData;
-      this.platform.log.debug(`Got initial vehicle data (source: ${unifiedData.dataSource})`);
+      this.platform.log.debug('✅ Initial vehicle data loaded');
     } catch (error) {
-      // Handle authentication errors gracefully
-      this.handlePollingError(error);
-      // Continue with setup using default data
+      this.handleAuthFailure(error);
     }
   }
 
@@ -291,108 +283,84 @@ export class VolvoEX30Accessory {
 
 
   private async getBatteryLevel(): Promise<CharacteristicValue> {
+    if (this.globalAuthFailure) {
+      return 50; // Safe default
+    }
+    
     try {
-      const unifiedData = await this.safeGetUnifiedData();
+      const unifiedData = await this.getUnifiedVehicleData();
       
       if (unifiedData?.batteryLevel !== undefined && unifiedData.batteryStatus === 'OK') {
-        const batteryLevel = Math.round(unifiedData.batteryLevel);
-        this.platform.log.debug(`Battery level: ${batteryLevel}% (source: ${unifiedData.dataSource})`);
-        return batteryLevel;
-      } else if (unifiedData === null) {
-        // Auth failure - return default quietly
-        return 0;
-      } else {
-        this.platform.log.warn('Battery level not available from Connected Vehicle API');
-        return 0;
+        return Math.round(unifiedData.batteryLevel);
       }
+      return 0;
     } catch (error) {
-      this.platform.log.error('Failed to get battery level:', error);
+      this.handleAuthFailure(error);
       return 0;
     }
   }
 
   private async getStatusLowBattery(): Promise<CharacteristicValue> {
+    if (this.globalAuthFailure) {
+      return this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
+    }
+    
     try {
       const unifiedData = await this.getUnifiedVehicleData();
       
       if (unifiedData.batteryLevel !== undefined && unifiedData.batteryStatus === 'OK') {
-        const batteryLevel = unifiedData.batteryLevel;
-        const isLowBattery = batteryLevel <= 20;
-        this.platform.log.debug(`Low battery status: ${isLowBattery} (${batteryLevel}%)`);
+        const isLowBattery = unifiedData.batteryLevel <= 20;
         return isLowBattery ? 
           this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW : 
           this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
-      } else {
-        this.platform.log.warn('Battery level not available for low battery check');
-        return this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
       }
+      return this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
     } catch (error) {
-      this.platform.log.error('Failed to get low battery status:', error);
+      this.handleAuthFailure(error);
       return this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
     }
   }
 
   private async getChargingState(): Promise<CharacteristicValue> {
+    if (this.globalAuthFailure) {
+      return this.platform.Characteristic.ChargingState.NOT_CHARGING;
+    }
+    
     try {
       const unifiedData = await this.getUnifiedVehicleData();
       
       if (unifiedData.chargingState !== undefined) {
         const isCharging = unifiedData.chargingState === 'CHARGING';
-        
-        this.platform.log.debug(`Charging state: ${unifiedData.chargingState} -> HomeKit: ${isCharging ? 'CHARGING' : 'NOT_CHARGING'}`);
-        
         return isCharging ? 
           this.platform.Characteristic.ChargingState.CHARGING : 
           this.platform.Characteristic.ChargingState.NOT_CHARGING;
-      } else {
-        this.platform.log.warn('Charging state not available from Connected Vehicle API');
-        return this.platform.Characteristic.ChargingState.NOT_CHARGING;
       }
+      return this.platform.Characteristic.ChargingState.NOT_CHARGING;
     } catch (error) {
-      this.platform.log.error('Failed to get charging state:', error);
+      this.handleAuthFailure(error);
       return this.platform.Characteristic.ChargingState.NOT_CHARGING;
     }
   }
 
 
   private async getUnifiedVehicleData(): Promise<UnifiedVehicleData> {
+    // EMERGENCY FAIL-FAST: Block ALL API calls if authentication has failed
+    if (this.globalAuthFailure) {
+      return this.getDefaultVehicleData();
+    }
+    
     if (this.currentUnifiedData) {
       return this.currentUnifiedData;
-    }
-
-    // Check if we're in authentication failure state before attempting API calls
-    if (this.authFailureState.hasAuthFailed) {
-      const now = Date.now();
-      const timeSinceFailure = now - this.authFailureState.lastErrorTime;
-      const retryInterval = Math.min(1800000, 300000 * Math.pow(2, this.authFailureState.retryAttempts)); // Max 30 min
-      
-      if (timeSinceFailure < retryInterval) {
-        // Still in quiet period - return default/unknown values to prevent service errors
-        return this.getDefaultVehicleData();
-      }
     }
 
     try {
       const apiClient = this.platform.getApiClient();
       const unifiedData = await apiClient.getUnifiedVehicleData(this.platform.config.vin);
       this.currentUnifiedData = unifiedData;
-      
-      // If we get here, auth is working - reset failure state
-      if (this.authFailureState.hasAuthFailed) {
-        this.platform.log.info('✅ Authentication recovered - resuming normal operation');
-        this.resetFailureState();
-      }
-      
       return unifiedData;
     } catch (error) {
-      // Handle authentication errors to prevent spam
-      if (this.handlePollingError(error)) {
-        // Error was handled/suppressed - return safe defaults instead of throwing
-        return this.getDefaultVehicleData();
-      }
-      
-      // Re-throw other errors for normal handling
-      throw error;
+      this.handleAuthFailure(error);
+      return this.getDefaultVehicleData();
     }
   }
 
@@ -431,27 +399,20 @@ export class VolvoEX30Accessory {
   private startPolling(): void {
     const pollingInterval = (this.platform.config.pollingInterval || 5) * 60 * 1000;
     
-    this.platform.log.debug(`Starting polling every ${pollingInterval / 1000 / 60} minutes`);
+    this.platform.log.debug('📡 Starting periodic polling');
     
     this.updateInterval = setInterval(async () => {
+      // EMERGENCY FAIL-FAST: Skip all polling if authentication has failed
+      if (this.globalAuthFailure) {
+        return;
+      }
+      
       try {
-        // Skip polling if we're in failure state
-        if (this.shouldSkipPolling()) {
-          this.platform.log.debug('Skipping polling due to previous authentication failure');
-          return;
-        }
-        
-        this.platform.log.debug('Polling for vehicle data updates');
-        
         const apiClient = this.platform.getApiClient();
         apiClient.clearCache();
-        
-        // Clear cached data to force fresh fetch
         this.currentUnifiedData = null;
         
-        // Use the safe method that includes authentication failure checking
         const unifiedData = await this.getUnifiedVehicleData();
-        
         const batteryLevel = await this.getBatteryLevel();
 
         if (this.batteryService) {
@@ -460,27 +421,19 @@ export class VolvoEX30Accessory {
           this.batteryService.updateCharacteristic(this.platform.Characteristic.ChargingState, await this.getChargingState());
         }
 
-        // Update door and window sensors if enabled
         if (this.platform.config.enableDoors) {
           await this.updateDoorAndWindowSensors();
         }
         
-        // Update lock service if enabled
         if (this.platform.config.enableLocks) {
           await this.updateLockService();
         }
         
-        // Update diagnostic services
         await this.updateDiagnosticServices();
 
-        this.platform.log.debug(`Updated vehicle data from polling (source: ${unifiedData.dataSource})`);
+        this.platform.log.debug('📊 Vehicle data updated');
       } catch (error) {
-        // Use graceful error handling to prevent log spam
-        const shouldSuppressLog = this.handlePollingError(error);
-        
-        if (!shouldSuppressLog) {
-          this.platform.log.error('Error during polling:', error);
-        }
+        this.handleAuthFailure(error);
       }
     }, pollingInterval);
     
@@ -488,43 +441,46 @@ export class VolvoEX30Accessory {
   }
 
   private async updateEnergyStateImmediately(): Promise<void> {
+    if (this.globalAuthFailure) {
+      return;
+    }
+    
     try {
-      this.platform.log.debug('Getting initial vehicle data');
-      // Use the safe method that includes authentication failure checking
       const unifiedData = await this.getUnifiedVehicleData();
-      this.platform.log.debug(`Got initial vehicle data (source: ${unifiedData.dataSource})`);
+      this.platform.log.debug('📊 Initial vehicle data loaded');
     } catch (error) {
-      // Use graceful error handling for initial load too
-      const shouldSuppressLog = this.handlePollingError(error);
-      
-      if (!shouldSuppressLog) {
-        this.platform.log.error('Failed to get initial vehicle data:', error);
-      }
-      
-      // No fallback needed - Connected Vehicle API provides all required data
+      this.handleAuthFailure(error);
     }
   }
   
   // Door sensor getters
   private async getFrontLeftDoorState(): Promise<CharacteristicValue> {
+    if (this.globalAuthFailure) {
+      return this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
+    }
+    
     try {
       const unifiedData = await this.getUnifiedVehicleData();
       const doorState = unifiedData.frontLeftDoor;
       
       if (doorState === 'OPEN') {
-        return this.platform.Characteristic.ContactSensorState.CONTACT_NOT_DETECTED; // Open
+        return this.platform.Characteristic.ContactSensorState.CONTACT_NOT_DETECTED;
       } else if (doorState === 'CLOSED') {
-        return this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED; // Closed
+        return this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
       }
       
-      return this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED; // Default to closed
+      return this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
     } catch (error) {
-      this.platform.log.error('Failed to get front left door state:', error);
+      this.handleAuthFailure(error);
       return this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
     }
   }
   
   private async getFrontRightDoorState(): Promise<CharacteristicValue> {
+    if (this.globalAuthFailure) {
+      return this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
+    }
+    
     try {
       const unifiedData = await this.getUnifiedVehicleData();
       const doorState = unifiedData.frontRightDoor;
@@ -533,12 +489,16 @@ export class VolvoEX30Accessory {
         this.platform.Characteristic.ContactSensorState.CONTACT_NOT_DETECTED :
         this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
     } catch (error) {
-      this.platform.log.error('Failed to get front right door state:', error);
+      this.handleAuthFailure(error);
       return this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
     }
   }
   
   private async getRearLeftDoorState(): Promise<CharacteristicValue> {
+    if (this.globalAuthFailure) {
+      return this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
+    }
+    
     try {
       const unifiedData = await this.getUnifiedVehicleData();
       const doorState = unifiedData.rearLeftDoor;
@@ -547,12 +507,16 @@ export class VolvoEX30Accessory {
         this.platform.Characteristic.ContactSensorState.CONTACT_NOT_DETECTED :
         this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
     } catch (error) {
-      this.platform.log.error('Failed to get rear left door state:', error);
+      this.handleAuthFailure(error);
       return this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
     }
   }
   
   private async getRearRightDoorState(): Promise<CharacteristicValue> {
+    if (this.globalAuthFailure) {
+      return this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
+    }
+    
     try {
       const unifiedData = await this.getUnifiedVehicleData();
       const doorState = unifiedData.rearRightDoor;
@@ -561,12 +525,16 @@ export class VolvoEX30Accessory {
         this.platform.Characteristic.ContactSensorState.CONTACT_NOT_DETECTED :
         this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
     } catch (error) {
-      this.platform.log.error('Failed to get rear right door state:', error);
+      this.handleAuthFailure(error);
       return this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
     }
   }
   
   private async getHoodState(): Promise<CharacteristicValue> {
+    if (this.globalAuthFailure) {
+      return this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
+    }
+    
     try {
       const unifiedData = await this.getUnifiedVehicleData();
       const hoodState = unifiedData.hood;
@@ -575,12 +543,16 @@ export class VolvoEX30Accessory {
         this.platform.Characteristic.ContactSensorState.CONTACT_NOT_DETECTED :
         this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
     } catch (error) {
-      this.platform.log.error('Failed to get hood state:', error);
+      this.handleAuthFailure(error);
       return this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
     }
   }
   
   private async getTailgateState(): Promise<CharacteristicValue> {
+    if (this.globalAuthFailure) {
+      return this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
+    }
+    
     try {
       const unifiedData = await this.getUnifiedVehicleData();
       const tailgateState = unifiedData.tailgate;
@@ -589,13 +561,17 @@ export class VolvoEX30Accessory {
         this.platform.Characteristic.ContactSensorState.CONTACT_NOT_DETECTED :
         this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
     } catch (error) {
-      this.platform.log.error('Failed to get tailgate state:', error);
+      this.handleAuthFailure(error);
       return this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
     }
   }
   
   // Window sensor getters
   private async getFrontLeftWindowState(): Promise<CharacteristicValue> {
+    if (this.globalAuthFailure) {
+      return this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
+    }
+    
     try {
       const unifiedData = await this.getUnifiedVehicleData();
       const windowState = unifiedData.frontLeftWindow;
@@ -604,12 +580,16 @@ export class VolvoEX30Accessory {
         this.platform.Characteristic.ContactSensorState.CONTACT_NOT_DETECTED :
         this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
     } catch (error) {
-      this.platform.log.error('Failed to get front left window state:', error);
+      this.handleAuthFailure(error);
       return this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
     }
   }
   
   private async getFrontRightWindowState(): Promise<CharacteristicValue> {
+    if (this.globalAuthFailure) {
+      return this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
+    }
+    
     try {
       const unifiedData = await this.getUnifiedVehicleData();
       const windowState = unifiedData.frontRightWindow;
@@ -618,12 +598,16 @@ export class VolvoEX30Accessory {
         this.platform.Characteristic.ContactSensorState.CONTACT_NOT_DETECTED :
         this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
     } catch (error) {
-      this.platform.log.error('Failed to get front right window state:', error);
+      this.handleAuthFailure(error);
       return this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
     }
   }
   
   private async getRearLeftWindowState(): Promise<CharacteristicValue> {
+    if (this.globalAuthFailure) {
+      return this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
+    }
+    
     try {
       const unifiedData = await this.getUnifiedVehicleData();
       const windowState = unifiedData.rearLeftWindow;
@@ -632,12 +616,16 @@ export class VolvoEX30Accessory {
         this.platform.Characteristic.ContactSensorState.CONTACT_NOT_DETECTED :
         this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
     } catch (error) {
-      this.platform.log.error('Failed to get rear left window state:', error);
+      this.handleAuthFailure(error);
       return this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
     }
   }
   
   private async getRearRightWindowState(): Promise<CharacteristicValue> {
+    if (this.globalAuthFailure) {
+      return this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
+    }
+    
     try {
       const unifiedData = await this.getUnifiedVehicleData();
       const windowState = unifiedData.rearRightWindow;
@@ -646,12 +634,16 @@ export class VolvoEX30Accessory {
         this.platform.Characteristic.ContactSensorState.CONTACT_NOT_DETECTED :
         this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
     } catch (error) {
-      this.platform.log.error('Failed to get rear right window state:', error);
+      this.handleAuthFailure(error);
       return this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
     }
   }
   
   private async getSunroofState(): Promise<CharacteristicValue> {
+    if (this.globalAuthFailure) {
+      return this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
+    }
+    
     try {
       const unifiedData = await this.getUnifiedVehicleData();
       const sunroofState = unifiedData.sunroof;
@@ -660,14 +652,17 @@ export class VolvoEX30Accessory {
         this.platform.Characteristic.ContactSensorState.CONTACT_NOT_DETECTED :
         this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
     } catch (error) {
-      this.platform.log.error('Failed to get sunroof state:', error);
+      this.handleAuthFailure(error);
       return this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
     }
   }
   
   private async updateDoorAndWindowSensors(): Promise<void> {
+    if (this.globalAuthFailure) {
+      return;
+    }
+    
     try {
-      // Update all door sensors
       if (this.frontLeftDoorSensor) {
         this.frontLeftDoorSensor.updateCharacteristic(
           this.platform.Characteristic.ContactSensorState,
@@ -710,7 +705,6 @@ export class VolvoEX30Accessory {
         );
       }
       
-      // Update all window sensors
       if (this.frontLeftWindowSensor) {
         this.frontLeftWindowSensor.updateCharacteristic(
           this.platform.Characteristic.ContactSensorState,
@@ -747,12 +741,16 @@ export class VolvoEX30Accessory {
       }
       
     } catch (error) {
-      this.platform.log.error('Failed to update door and window sensors:', error);
+      this.handleAuthFailure(error);
     }
   }
   
   // Lock service methods
   private async getCurrentLockState(): Promise<CharacteristicValue> {
+    if (this.globalAuthFailure) {
+      return this.platform.Characteristic.LockCurrentState.SECURED;
+    }
+    
     try {
       const unifiedData = await this.getUnifiedVehicleData();
       const lockState = unifiedData.centralLockStatus;
@@ -765,13 +763,16 @@ export class VolvoEX30Accessory {
       
       return this.platform.Characteristic.LockCurrentState.UNKNOWN;
     } catch (error) {
-      this.platform.log.error('Failed to get current lock state:', error);
+      this.handleAuthFailure(error);
       return this.platform.Characteristic.LockCurrentState.UNKNOWN;
     }
   }
   
   private async getTargetLockState(): Promise<CharacteristicValue> {
-    // For simplicity, target state matches current state
+    if (this.globalAuthFailure) {
+      return this.platform.Characteristic.LockTargetState.SECURED;
+    }
+    
     const currentState = await this.getCurrentLockState();
     if (currentState === this.platform.Characteristic.LockCurrentState.SECURED) {
       return this.platform.Characteristic.LockTargetState.SECURED;
@@ -783,16 +784,17 @@ export class VolvoEX30Accessory {
   }
   
   private async setTargetLockState(value: CharacteristicValue): Promise<void> {
+    if (this.globalAuthFailure) {
+      throw new Error('Plugin suspended due to authentication failure');
+    }
+    
     try {
       const apiClient = this.platform.getApiClient();
       const vin = this.platform.config.vin;
       
       if (value === this.platform.Characteristic.LockTargetState.SECURED) {
-        this.platform.log.info('🔒 Locking vehicle...');
         const result = await apiClient.lockVehicle(vin);
-        this.platform.log.info(`Lock command result: ${result.invokeStatus}`);
         
-        // Update current state after successful command
         if (result.invokeStatus === 'COMPLETED' || result.invokeStatus === 'SUCCESS') {
           this.lockService?.setCharacteristic(
             this.platform.Characteristic.LockCurrentState,
@@ -801,11 +803,8 @@ export class VolvoEX30Accessory {
         }
         
       } else if (value === this.platform.Characteristic.LockTargetState.UNSECURED) {
-        this.platform.log.info('🔓 Unlocking vehicle...');
         const result = await apiClient.unlockVehicle(vin);
-        this.platform.log.info(`Unlock command result: ${result.invokeStatus}`);
         
-        // Update current state after successful command
         if (result.invokeStatus === 'COMPLETED' || result.invokeStatus === 'SUCCESS') {
           this.lockService?.setCharacteristic(
             this.platform.Characteristic.LockCurrentState,
@@ -814,20 +813,12 @@ export class VolvoEX30Accessory {
         }
       }
       
-      // Clear cache to get fresh data on next poll
       apiClient.clearCache();
       this.currentUnifiedData = null;
       
     } catch (error) {
-      // Handle rate limiting gracefully
-      if (error && typeof error === 'object' && 'status' in error && error.status === 429) {
-        this.platform.log.warn('⏰ Vehicle lock command rate limited. Please wait before trying again.');
-        this.platform.log.warn('💡 Tip: Volvo limits vehicle commands to 10 per minute for safety.');
-      } else {
-        this.platform.log.error('Failed to set lock state:', error);
-      }
+      this.handleAuthFailure(error);
       
-      // Revert target state on error (without triggering commands)
       const currentState = await this.getCurrentLockState();
       if (currentState === this.platform.Characteristic.LockCurrentState.SECURED) {
         this.lockService?.updateCharacteristic(
@@ -847,48 +838,43 @@ export class VolvoEX30Accessory {
   
   // Climate control methods
   private async getClimatizationState(): Promise<CharacteristicValue> {
-    // Climate state isn't directly available from APIs
-    // For now, we'll default to false (off)
-    // In a real implementation, this could be inferred from other data
+    if (this.globalAuthFailure) {
+      return false;
+    }
+    
     return false;
   }
   
   private async setClimatizationState(value: CharacteristicValue): Promise<void> {
+    if (this.globalAuthFailure) {
+      throw new Error('Plugin suspended due to authentication failure');
+    }
+    
     try {
       const apiClient = this.platform.getApiClient();
       const vin = this.platform.config.vin;
       
       if (value as boolean) {
-        this.platform.log.info('🌡️ Starting climatization...');
-        const result = await apiClient.startClimatization(vin);
-        this.platform.log.info(`Start climatization result: ${result.invokeStatus}`);
-        
+        await apiClient.startClimatization(vin);
       } else {
-        this.platform.log.info('❄️ Stopping climatization...');
-        const result = await apiClient.stopClimatization(vin);
-        this.platform.log.info(`Stop climatization result: ${result.invokeStatus}`);
+        await apiClient.stopClimatization(vin);
       }
       
-      // Clear cache to get fresh data
       apiClient.clearCache();
       this.currentUnifiedData = null;
       
     } catch (error) {
-      // Handle rate limiting gracefully
-      if (error && typeof error === 'object' && 'status' in error && error.status === 429) {
-        this.platform.log.warn('⏰ Climate control rate limited. Please wait before trying again.');
-        this.platform.log.warn('💡 Tip: Volvo limits vehicle commands to 10 per minute for safety.');
-      } else {
-        this.platform.log.error('Failed to set climatization state:', error);
-      }
-      
-      // Revert the switch state on error (without triggering commands)
+      this.handleAuthFailure(error);
       this.climateService?.updateCharacteristic(this.platform.Characteristic.On, !value);
       throw error;
     }
   }
   
   private async updateLockService(): Promise<void> {
+    if (this.globalAuthFailure) {
+      return;
+    }
+    
     try {
       if (this.lockService) {
         const currentState = await this.getCurrentLockState();
@@ -897,7 +883,6 @@ export class VolvoEX30Accessory {
           currentState
         );
         
-        // Update target state to match current state
         const targetState = currentState === this.platform.Characteristic.LockCurrentState.SECURED ?
           this.platform.Characteristic.LockTargetState.SECURED :
           this.platform.Characteristic.LockTargetState.UNSECURED;
@@ -908,107 +893,88 @@ export class VolvoEX30Accessory {
         );
       }
     } catch (error) {
-      this.platform.log.error('Failed to update lock service:', error);
+      this.handleAuthFailure(error);
     }
   }
   
   // Diagnostic service methods
   private async getServiceWarningState(): Promise<CharacteristicValue> {
+    if (this.globalAuthFailure) {
+      return this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
+    }
+    
     try {
       const unifiedData = await this.getUnifiedVehicleData();
       const serviceWarning = unifiedData.serviceWarning;
       
-      // If there's a warning, show as "contact not detected" (open/alert)
       if (serviceWarning === 'WARNING') {
-        this.platform.log.warn('Service warning detected!');
         return this.platform.Characteristic.ContactSensorState.CONTACT_NOT_DETECTED;
       } else if (serviceWarning === 'NO_WARNING') {
         return this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
       }
       
-      return this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED; // Default to no warning
+      return this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
     } catch (error) {
-      this.platform.log.error('Failed to get service warning state:', error);
+      this.handleAuthFailure(error);
       return this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
     }
   }
   
   private async getOdometerState(): Promise<CharacteristicValue> {
+    if (this.globalAuthFailure) {
+      return false;
+    }
+    
     try {
       const unifiedData = await this.getUnifiedVehicleData();
       
-      // Motion sensor is used to indicate if odometer data is available
-      // In practice, this will always be true if we have vehicle data
       if (unifiedData.odometer !== undefined) {
-        const odometer = unifiedData.odometer;
-        this.platform.log.debug(`Current odometer reading: ${odometer} km`);
-        return true; // Motion detected = data available
+        return true;
       }
       
       return false;
     } catch (error) {
-      this.platform.log.error('Failed to get odometer state:', error);
+      this.handleAuthFailure(error);
       return false;
     }
   }
   
   private async getTyrePressureState(): Promise<CharacteristicValue> {
+    if (this.globalAuthFailure) {
+      return this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
+    }
+    
     try {
-      // Check if we're in authentication failure state first
-      if (this.authFailureState.hasAuthFailed) {
-        const now = Date.now();
-        const timeSinceFailure = now - this.authFailureState.lastErrorTime;
-        const retryInterval = Math.min(1800000, 300000 * Math.pow(2, this.authFailureState.retryAttempts)); // Max 30 min
+      const connectedVehicleState = await this.platform.getApiClient().getConnectedVehicleState(this.platform.config.vin);
+    
+      if (connectedVehicleState.tyrePressure) {
+        const tyres = connectedVehicleState.tyrePressure;
+        const hasWarning = 
+          tyres.frontLeft?.value === 'WARNING' ||
+          tyres.frontRight?.value === 'WARNING' ||
+          tyres.rearLeft?.value === 'WARNING' ||
+          tyres.rearRight?.value === 'WARNING';
         
-        if (timeSinceFailure < retryInterval) {
-          // Still in quiet period - return default
-          return this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
-        }
-      }
-      
-      // Get detailed connected vehicle state for tyre pressure data
-      // Note: Tyre pressure info is only available via direct connected vehicle API call
-      // BUT we need to check auth failure state first to prevent OAuth spam
-      try {
-        const connectedVehicleState = await this.platform.getApiClient().getConnectedVehicleState(this.platform.config.vin);
-      
-        // Check all tyre pressures for warnings
-        if (connectedVehicleState.tyrePressure) {
-          const tyres = connectedVehicleState.tyrePressure;
-          const hasWarning = 
-            tyres.frontLeft?.value === 'WARNING' ||
-            tyres.frontRight?.value === 'WARNING' ||
-            tyres.rearLeft?.value === 'WARNING' ||
-            tyres.rearRight?.value === 'WARNING';
-          
-          if (hasWarning) {
-            this.platform.log.warn('Tyre pressure warning detected!');
-            return this.platform.Characteristic.ContactSensorState.CONTACT_NOT_DETECTED; // Warning state
-          }
-          
-          return this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED; // All OK
+        if (hasWarning) {
+          return this.platform.Characteristic.ContactSensorState.CONTACT_NOT_DETECTED;
         }
         
         return this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
-      } catch (apiError) {
-        // This is the missing piece! This method was bypassing all OAuth spam protection
-        throw apiError;
       }
+      
+      return this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
     } catch (error) {
-      // Handle authentication errors to prevent spam
-      if (this.handlePollingError(error)) {
-        // Error was handled/suppressed - return default quietly
-        return this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
-      }
-      
-      this.platform.log.error('Failed to get tyre pressure state:', error);
+      this.handleAuthFailure(error);
       return this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
     }
   }
   
   private async updateDiagnosticServices(): Promise<void> {
+    if (this.globalAuthFailure) {
+      return;
+    }
+    
     try {
-      // Update service warning sensor
       if (this.serviceWarningSensor) {
         this.serviceWarningSensor.updateCharacteristic(
           this.platform.Characteristic.ContactSensorState,
@@ -1016,7 +982,6 @@ export class VolvoEX30Accessory {
         );
       }
       
-      // Update odometer sensor
       if (this.odometerSensor) {
         this.odometerSensor.updateCharacteristic(
           this.platform.Characteristic.MotionDetected,
@@ -1024,7 +989,6 @@ export class VolvoEX30Accessory {
         );
       }
       
-      // Update tyre pressure sensor
       if (this.tyrePressureSensor) {
         this.tyrePressureSensor.updateCharacteristic(
           this.platform.Characteristic.ContactSensorState,
@@ -1033,50 +997,32 @@ export class VolvoEX30Accessory {
       }
       
     } catch (error) {
-      this.platform.log.error('Failed to update diagnostic services:', error);
+      this.handleAuthFailure(error);
     }
   }
 
   /**
-   * Check if an error is an authentication/token error and handle gracefully
+   * EMERGENCY AUTH FAILURE HANDLER - Stops ALL API activity after first auth error
    */
-  private handlePollingError(error: any): boolean {
-    const now = Date.now();
-    const isAuthError = this.isAuthenticationError(error);
-    
-    if (isAuthError) {
-      this.authFailureState.hasAuthFailed = true;
-      this.authFailureState.lastErrorTime = now;
-      this.authFailureState.retryAttempts++;
-      
-      // Only log the error once to avoid spam
-      if (!this.authFailureState.errorLogged) {
-        this.platform.log.error('🔒 Authentication failed - refresh token expired. Generate a new token:');
-        this.platform.log.error('   1. Run: node scripts/easy-oauth.js');
-        this.platform.log.error('   2. Update initialRefreshToken in config and restart Homebridge');
-        this.authFailureState.errorLogged = true;
+  private handleAuthFailure(error: any): void {
+    if (this.isAuthenticationError(error)) {
+      if (!this.globalAuthFailure) {
+        // FIRST AUTH ERROR - Log once and shut down
+        this.globalAuthFailure = true;
+        this.authFailureTime = Date.now();
+        
+        if (!this.authErrorLogged) {
+          this.platform.log.error('🔒 Authentication failed - token expired');
+          this.platform.log.error('   Generate new token: node scripts/easy-oauth.js');
+          this.platform.log.error('⛔ Plugin suspended until restart');
+          this.authErrorLogged = true;
+        }
       }
-      
-      return true; // Don't log further
     }
-    
-    // For non-auth errors, use exponential backoff
-    const timeSinceLastError = now - this.authFailureState.lastErrorTime;
-    const backoffTime = Math.min(300000, 30000 * Math.pow(2, this.authFailureState.retryAttempts)); // Max 5 min
-    
-    if (timeSinceLastError < backoffTime) {
-      return true; // Suppress logging during backoff
-    }
-    
-    // Reset retry attempts for non-auth errors after successful backoff
-    this.authFailureState.retryAttempts = 0;
-    this.authFailureState.lastErrorTime = now;
-    
-    return false; // Allow logging
   }
   
   /**
-   * Check if error indicates authentication failure
+   * Detect authentication/OAuth errors
    */
   private isAuthenticationError(error: any): boolean {
     const errorMessage = error?.message || error?.toString() || '';
@@ -1084,6 +1030,7 @@ export class VolvoEX30Accessory {
     return errorMessage.includes('refresh token has expired') ||
            errorMessage.includes('Authentication failed') ||
            errorMessage.includes('invalid_grant') ||
+           errorMessage.includes('7-day limit') ||
            errorMessage.includes('401') ||
            errorMessage.includes('403') ||
            (error?.response?.status === 401) ||
@@ -1091,47 +1038,6 @@ export class VolvoEX30Accessory {
            (error?.code === 'invalid_grant');
   }
   
-  /**
-   * Helper to safely get unified data with quiet auth failure handling
-   */
-  private async safeGetUnifiedData(): Promise<UnifiedVehicleData | null> {
-    try {
-      return await this.getUnifiedVehicleData();
-    } catch (error: any) {
-      // Auth failures are handled quietly in getUnifiedVehicleData
-      if (error.message?.includes('Authentication failed')) {
-        return null; // Return null for quiet auth failures
-      }
-      // Re-throw other errors
-      throw error;
-    }
-  }
-  
-  /**
-   * Check if polling should be skipped due to failure state
-   */
-  private shouldSkipPolling(): boolean {
-    if (!this.authFailureState.hasAuthFailed) {
-      return false;
-    }
-    
-    // Skip polling if auth failed and we haven't reached retry time
-    const now = Date.now();
-    const timeSinceFailure = now - this.authFailureState.lastErrorTime;
-    const retryInterval = Math.min(1800000, 300000 * Math.pow(2, this.authFailureState.retryAttempts)); // Max 30 min
-    
-    return timeSinceFailure < retryInterval;
-  }
-  
-  /**
-   * Reset failure state (e.g., when config is updated)
-   */
-  private resetFailureState(): void {
-    this.authFailureState.hasAuthFailed = false;
-    this.authFailureState.lastErrorTime = 0;
-    this.authFailureState.errorLogged = false;
-    this.authFailureState.retryAttempts = 0;
-  }
 
   destroy(): void {
     if (this.updateInterval) {
