@@ -1,7 +1,7 @@
 {
   "name": "homebridge-volvo-ex30",
   "displayName": "Volvo EX30",
-  "version": "2.0.5",
+  "version": "2.0.6",
   "description": "Comprehensive Homebridge plugin for Volvo EX30 with Connected Vehicle API v2 support - battery monitoring, door/window sensors, lock control, climate control, and diagnostics",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

@@ -5,6 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.6] - 2025-08-16
+
+### 🔇 OAuth Spam Prevention - Complete Authentication Failure Handling
+
+#### Fixed
+- **Service Initialization Spam**: Fixed OAuth failure spam during HomeKit service initialization
+- **Multiple Simultaneous Requests**: Prevented all service characteristics from triggering OAuth refresh simultaneously
+- **Authentication Error Cascade**: Added failure state checking to main data fetching method
+- **Quiet Mode Enforcement**: All services now respect authentication failure state and return defaults silently
+
+#### Enhanced
+- **Graceful Service Degradation**: Services return sensible defaults during authentication failures
+- **Single Point Control**: Authentication failure handled once at data layer, not per service
+- **Consistent Error Handling**: All characteristics use same quiet failure pattern
+- **Clean Startup Behavior**: Plugin no longer floods logs during initial HomeKit service registration
+
+#### Technical Details
+- **Updated**: `getUnifiedVehicleData()` to check authentication failure state before API calls
+- **Added**: `safeGetUnifiedData()` helper for quiet authentication failure handling
+- **Enhanced**: Service methods return defaults during authentication failures without logging
+- **Fixed**: Service initialization triggering multiple simultaneous OAuth refresh attempts
+
+#### Root Cause Resolution
+- **Issue**: Each HomeKit service characteristic (battery, doors, windows, locks) triggered individual OAuth refresh attempts during startup
+- **Solution**: Added authentication failure state checking at the data layer to prevent API calls when tokens are expired
+- **Result**: Single authentication error message, then complete silence until token refreshed
+
 ## [2.0.5] - 2025-08-16
 
 ### 🧹 API Simplification - Single Point of Failure

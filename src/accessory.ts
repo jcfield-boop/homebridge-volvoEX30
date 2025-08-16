@@ -263,12 +263,15 @@ export class VolvoEX30Accessory {
 
   private async getBatteryLevel(): Promise<CharacteristicValue> {
     try {
-      const unifiedData = await this.getUnifiedVehicleData();
+      const unifiedData = await this.safeGetUnifiedData();
       
-      if (unifiedData.batteryLevel !== undefined && unifiedData.batteryStatus === 'OK') {
+      if (unifiedData?.batteryLevel !== undefined && unifiedData.batteryStatus === 'OK') {
         const batteryLevel = Math.round(unifiedData.batteryLevel);
         this.platform.log.debug(`Battery level: ${batteryLevel}% (source: ${unifiedData.dataSource})`);
         return batteryLevel;
+      } else if (unifiedData === null) {
+        // Auth failure - return default quietly
+        return 0;
       } else {
         this.platform.log.warn('Battery level not available from Connected Vehicle API');
         return 0;
@@ -328,11 +331,40 @@ export class VolvoEX30Accessory {
       return this.currentUnifiedData;
     }
 
-    const apiClient = this.platform.getApiClient();
-    const unifiedData = await apiClient.getUnifiedVehicleData(this.platform.config.vin);
-    this.currentUnifiedData = unifiedData;
-    
-    return unifiedData;
+    // Check if we're in authentication failure state before attempting API calls
+    if (this.authFailureState.hasAuthFailed) {
+      const now = Date.now();
+      const timeSinceFailure = now - this.authFailureState.lastErrorTime;
+      const retryInterval = Math.min(1800000, 300000 * Math.pow(2, this.authFailureState.retryAttempts)); // Max 30 min
+      
+      if (timeSinceFailure < retryInterval) {
+        // Still in quiet period - return default/unknown values to prevent service errors
+        throw new Error('Authentication failed - device in quiet mode');
+      }
+    }
+
+    try {
+      const apiClient = this.platform.getApiClient();
+      const unifiedData = await apiClient.getUnifiedVehicleData(this.platform.config.vin);
+      this.currentUnifiedData = unifiedData;
+      
+      // If we get here, auth is working - reset failure state
+      if (this.authFailureState.hasAuthFailed) {
+        this.platform.log.info('✅ Authentication recovered - resuming normal operation');
+        this.resetFailureState();
+      }
+      
+      return unifiedData;
+    } catch (error) {
+      // Handle authentication errors to prevent spam
+      if (this.handlePollingError(error)) {
+        // Error was handled/suppressed - throw a clean error to prevent HomeKit errors
+        throw new Error('Authentication failed - device unavailable');
+      }
+      
+      // Re-throw other errors for normal handling
+      throw error;
+    }
   }
   
 
@@ -980,6 +1012,22 @@ export class VolvoEX30Accessory {
            (error?.response?.status === 401) ||
            (error?.response?.status === 403) ||
            (error?.code === 'invalid_grant');
+  }
+  
+  /**
+   * Helper to safely get unified data with quiet auth failure handling
+   */
+  private async safeGetUnifiedData(): Promise<UnifiedVehicleData | null> {
+    try {
+      return await this.getUnifiedVehicleData();
+    } catch (error: any) {
+      // Auth failures are handled quietly in getUnifiedVehicleData
+      if (error.message?.includes('Authentication failed')) {
+        return null; // Return null for quiet auth failures
+      }
+      // Re-throw other errors
+      throw error;
+    }
   }
   
   /**
