@@ -5,6 +5,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.9] - 2025-08-16
+
+### 🎯 Final OAuth Spam Fix - Duplicate OAuth Handler Elimination
+
+#### Fixed
+- **Duplicate OAuth Handlers**: Fixed critical bug where `VolvoApiClient` and `ConnectedVehicleClient` each created separate OAuth handlers
+- **Simultaneous Token Refresh**: Eliminated 14+ simultaneous OAuth refresh attempts from multiple API client instances
+- **Token Storage Priority**: Fixed token storage logic to prioritize fresh config tokens over potentially expired stored tokens
+- **Expired Token Override**: Fresh `initialRefreshToken` from config now takes priority over old stored tokens
+
+#### Root Cause Analysis - Complete
+- **Issue 1**: Two separate OAuth handlers (VolvoApiClient + ConnectedVehicleClient) both trying to refresh same expired token
+- **Issue 2**: Token storage system prioritizing old expired stored tokens over fresh config tokens
+- **Issue 3**: User's fresh token from `easy-oauth.js` was ignored in favor of expired stored token from August 15th
+
+#### Enhanced
+- **Shared OAuth Handler**: ConnectedVehicleClient now uses shared OAuth handler from VolvoApiClient
+- **Single Token Refresh**: Only one OAuth handler per plugin instance, preventing duplicate attempts
+- **Fresh Token Priority**: Config tokens override stored tokens when provided
+- **Automatic Cleanup**: Old stored tokens cleared when fresh config tokens provided
+
+#### Technical Details
+- **Modified**: `ConnectedVehicleClient` constructor to accept optional shared OAuth handler
+- **Updated**: `VolvoApiClient` to pass its OAuth handler to ConnectedVehicleClient
+- **Fixed**: Token storage `getBestRefreshToken()` to prioritize config over stored tokens
+- **Result**: Single authentication error message, then complete silence
+
+This version provides TRUE complete OAuth spam elimination by addressing the architectural cause of duplicate OAuth handlers.
+
 ## [2.0.8] - 2025-08-16
 
 ### 🚨 Critical OAuth Spam Hotfix - getTyrePressureState Method

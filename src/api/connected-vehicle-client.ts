@@ -44,6 +44,7 @@ export class ConnectedVehicleClient {
     private readonly logger: Logger,
     private readonly vin?: string,
     private readonly homebridgeStorageDir?: string,
+    sharedOAuthHandler?: OAuthHandler,
   ) {
     this.httpClient = axios.create({
       baseURL: 'https://api.volvocars.com/connected-vehicle/v2',
@@ -55,7 +56,8 @@ export class ConnectedVehicleClient {
       },
     });
 
-    this.oAuthHandler = new OAuthHandler(config, logger, vin, homebridgeStorageDir);
+    // Use shared OAuth handler if provided, otherwise create a new one
+    this.oAuthHandler = sharedOAuthHandler || new OAuthHandler(config, logger, vin, homebridgeStorageDir);
     this.cache = new NodeCache({ 
       stdTTL: 300, // 5 minutes default cache
       checkperiod: 60 // Check for expired keys every minute

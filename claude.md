@@ -235,17 +235,24 @@ node scripts/token-exchange.js [AUTHORIZATION_CODE]
 
 ### ✅ Challenge 4: OAuth Spam & Log Flooding
 **Issue**: Plugin creating 70MB log files with repeated OAuth failures during startup
-**Status**: ✅ COMPLETELY RESOLVED in v2.0.7
+**Status**: ✅ COMPLETELY RESOLVED in v2.0.8 (Critical Hotfix)
 **Root Cause**: Multiple initialization methods (service setup, polling, data fetching) triggered simultaneous OAuth refresh attempts
 **Solution**: 
 - Added authentication failure state tracking with graceful degradation
 - Routed all data access through safe methods with auth checking
-- Single authentication error log, then complete silence until resolved
-**Result**: Zero OAuth spam from any source, exactly one error message during startup
+- v2.0.7: Fixed most sources but missed `getTyrePressureState()` method
+- v2.0.8: Critical hotfix for final OAuth spam source in diagnostic services
+**Result**: True zero OAuth spam from any source, exactly one error message during startup
 
 ## Version History
 
-### v2.0.7 (Current) - Complete OAuth Spam Elimination
+### v2.0.8 (Current) - Critical OAuth Spam Hotfix
+- ✅ **CRITICAL FIX**: Fixed `getTyrePressureState()` method bypassing authentication failure checking
+- ✅ **Complete Coverage**: Final OAuth spam source eliminated (missed in v2.0.7)
+- ✅ **User-Reported Bug**: Fixed exact method identified in user stack traces
+- ✅ **True Zero Spam**: All vehicle data access now respects authentication failure state
+
+### v2.0.7 - Complete OAuth Spam Elimination (Incomplete)
 - ✅ Fixed ALL remaining OAuth spam sources identified from user stack traces
 - ✅ Complete elimination of log flooding - exactly ONE auth error, then silence
 - ✅ Enhanced all data access methods with authentication failure state checking
@@ -304,4 +311,5 @@ node scripts/token-exchange.js [AUTHORIZATION_CODE]
 ---
 
 *Last Updated: 2025-08-16*
-*Version: 2.0.7*
+*Version: 2.0.8*
+- after all updates ensure to update README.md, CHANGELOG.md and commit push, version patch/minor/major and then publish on npm

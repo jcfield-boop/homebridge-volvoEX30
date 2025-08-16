@@ -82,13 +82,14 @@ export class VolvoApiClient {
     this.oAuthHandler = new OAuthHandler(config, logger, vin, homebridgeStorageDir);
     this.cache = new NodeCache({ stdTTL: 300 });
     
-    // Initialize Connected Vehicle API client
+    // Initialize Connected Vehicle API client with shared OAuth handler
     this.connectedVehicleClient = new ConnectedVehicleClient(
       config,
       vccApiKey,
       logger,
       vin,
-      homebridgeStorageDir
+      homebridgeStorageDir,
+      this.oAuthHandler // Share the OAuth handler to prevent duplicate token refresh attempts
     );
     
     // Using Connected Vehicle API exclusively

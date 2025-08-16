@@ -151,19 +151,32 @@ export class TokenStorage {
   }
 
   /**
-   * Get the best available refresh token (stored > config fallback)
+   * Get the best available refresh token (config > stored when config provided)
    */
   async getBestRefreshToken(configToken?: string): Promise<{ token: string; source: 'stored' | 'config' } | null> {
-    // Try stored token first
+    // If config token provided, prioritize it over stored token
+    // This allows users to provide fresh tokens that override potentially expired stored ones
+    if (configToken) {
+      this.logger.debug('💾 Using fresh token from config.json (prioritized over stored)');
+      
+      // Clear any old stored token when fresh config token provided
+      try {
+        const storedToken = await this.getStoredRefreshToken();
+        if (storedToken && storedToken !== configToken) {
+          this.logger.debug('💾 Clearing old stored token - using fresh config token');
+          await this.clearStoredToken();
+        }
+      } catch (error) {
+        this.logger.debug('💾 Could not clear old stored token:', error);
+      }
+      
+      return { token: configToken, source: 'config' };
+    }
+
+    // No config token - try stored token
     const storedToken = await this.getStoredRefreshToken();
     if (storedToken) {
       return { token: storedToken, source: 'stored' };
-    }
-
-    // Fallback to config token
-    if (configToken) {
-      this.logger.debug('💾 Using fallback token from config.json');
-      return { token: configToken, source: 'config' };
     }
 
     // No token available
