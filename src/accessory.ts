@@ -389,14 +389,8 @@ export class VolvoEX30Accessory {
         // Clear cached data to force fresh fetch
         this.currentUnifiedData = null;
         
-        const unifiedData = await apiClient.getUnifiedVehicleData(this.platform.config.vin);
-        this.currentUnifiedData = unifiedData;
-        
-        // If we get here, auth is working - reset failure state
-        if (this.authFailureState.hasAuthFailed) {
-          this.platform.log.info('✅ Authentication recovered - resuming normal operation');
-          this.resetFailureState();
-        }
+        // Use the safe method that includes authentication failure checking
+        const unifiedData = await this.getUnifiedVehicleData();
         
         const batteryLevel = await this.getBatteryLevel();
 
@@ -436,9 +430,8 @@ export class VolvoEX30Accessory {
   private async updateEnergyStateImmediately(): Promise<void> {
     try {
       this.platform.log.debug('Getting initial vehicle data');
-      const apiClient = this.platform.getApiClient();
-      const unifiedData = await apiClient.getUnifiedVehicleData(this.platform.config.vin);
-      this.currentUnifiedData = unifiedData;
+      // Use the safe method that includes authentication failure checking
+      const unifiedData = await this.getUnifiedVehicleData();
       this.platform.log.debug(`Got initial vehicle data (source: ${unifiedData.dataSource})`);
     } catch (error) {
       // Use graceful error handling for initial load too
@@ -901,6 +894,20 @@ export class VolvoEX30Accessory {
   
   private async getTyrePressureState(): Promise<CharacteristicValue> {
     try {
+      // Check if we're in authentication failure state first
+      if (this.authFailureState.hasAuthFailed) {
+        const now = Date.now();
+        const timeSinceFailure = now - this.authFailureState.lastErrorTime;
+        const retryInterval = Math.min(1800000, 300000 * Math.pow(2, this.authFailureState.retryAttempts)); // Max 30 min
+        
+        if (timeSinceFailure < retryInterval) {
+          // Still in quiet period - return default
+          return this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
+        }
+      }
+      
+      // Get detailed connected vehicle state for tyre pressure data
+      // Note: Tyre pressure info is only available via direct connected vehicle API call
       const connectedVehicleState = await this.platform.getApiClient().getConnectedVehicleState(this.platform.config.vin);
       
       // Check all tyre pressures for warnings
@@ -922,6 +929,12 @@ export class VolvoEX30Accessory {
       
       return this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
     } catch (error) {
+      // Handle authentication errors to prevent spam
+      if (this.handlePollingError(error)) {
+        // Error was handled/suppressed - return default quietly
+        return this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
+      }
+      
       this.platform.log.error('Failed to get tyre pressure state:', error);
       return this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
     }

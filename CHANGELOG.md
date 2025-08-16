@@ -5,6 +5,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.7] - 2025-08-16
+
+### 🚫 Complete OAuth Spam Elimination - Final Fix
+
+#### Fixed
+- **Startup Data Fetching Spam**: Fixed `updateEnergyStateImmediately()` calling API directly during plugin initialization
+- **Polling Logic OAuth Bypass**: Fixed polling interval using direct API calls instead of safe authentication checking
+- **Diagnostic Service Spam**: Fixed `getTyrePressureState()` bypassing authentication failure state handling
+- **Complete OAuth Call Chain**: All data fetching now routes through safe authentication failure checking
+
+#### Enhanced
+- **Zero OAuth Spam**: Plugin now generates exactly ONE authentication error during startup, then complete silence
+- **Comprehensive Coverage**: All potential OAuth failure sources identified and patched
+- **Safe Data Layer**: All vehicle data access uses authentication failure state checking
+- **Graceful Degradation**: All services return appropriate defaults during authentication failures
+
+#### Technical Details
+- **Updated**: `updateEnergyStateImmediately()` to use safe `getUnifiedVehicleData()` method
+- **Fixed**: Polling interval logic to use safe data methods with authentication checking
+- **Enhanced**: `getTyrePressureState()` with authentication failure state checking before API calls
+- **Verified**: All direct `apiClient` calls now respect authentication failure state
+
+#### Root Cause Resolution - Complete
+- **Issue**: Multiple initialization methods bypassed authentication failure checking in v2.0.6
+- **Solution**: Routed ALL data access through safe methods with authentication failure state checking
+- **Result**: Complete elimination of OAuth spam from any source - exactly one error message, then silence
+
+This version completely eliminates OAuth spam from ALL sources during plugin startup and operation.
+
 ## [2.0.6] - 2025-08-16
 
 ### 🔇 OAuth Spam Prevention - Complete Authentication Failure Handling
