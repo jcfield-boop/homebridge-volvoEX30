@@ -10,6 +10,10 @@ export class OAuthHandler {
   private codeVerifier: string | null = null;
   private refreshPromise: Promise<OAuthTokens> | null = null;
   private tokenStorage: TokenStorage | null = null;
+  
+  // EMERGENCY: Global authentication failure flag - blocks ALL OAuth operations
+  private static globalAuthFailure: boolean = false;
+  private static authErrorLogged: boolean = false;
 
   constructor(
     private readonly config: VolvoApiConfig,
@@ -130,6 +134,11 @@ export class OAuthHandler {
   }
 
   private async doTokenRefresh(refreshToken: string): Promise<OAuthTokens> {
+    // EMERGENCY FAIL-FAST: Block all refresh attempts if auth failed
+    if (OAuthHandler.globalAuthFailure) {
+      throw new Error('🔒 Authentication failed - plugin suspended until restart');
+    }
+    
     try {
       this.logger.debug('🔄 Starting token refresh request...');
       
@@ -162,6 +171,9 @@ export class OAuthHandler {
       
       return tokens;
     } catch (error: any) {
+      // EMERGENCY: Handle authentication failure at the source
+      this.handleAuthFailure(error);
+      
       // Log minimal error information to avoid spam
       if (error.response) {
         this.logger.debug('OAuth refresh failed with HTTP error:', {
@@ -201,6 +213,11 @@ Generate a new token:
   }
 
   async getValidAccessToken(refreshToken?: string): Promise<string> {
+    // EMERGENCY FAIL-FAST: Block ALL OAuth operations if authentication has failed
+    if (OAuthHandler.globalAuthFailure) {
+      throw new Error('🔒 Authentication failed - plugin suspended until restart');
+    }
+    
     // Get the best available refresh token (stored > config)
     const bestToken = await this.getBestRefreshToken(refreshToken);
     
@@ -239,15 +256,7 @@ Generate a new token:
           this.tokens = await this.refreshAccessToken(tokenToUse);
           // Only log once per refresh, not per waiting request
         } catch (error) {
-          this.logger.error(`❌ Token refresh failed: ${error}`);
-          
-          // If refresh token is invalid, clear tokens to force re-auth
-          const errorMessage = error instanceof Error ? error.message : String(error);
-          if (errorMessage.includes('invalid_grant') || errorMessage.includes('invalid or expired')) {
-            this.logger.warn('🔄 Refresh token appears invalid - clearing cached tokens');
-            this.tokens = null;
-          }
-          
+          this.handleAuthFailure(error);
           throw error;
         }
       }
@@ -334,6 +343,42 @@ Generate a new token:
     return null;
   }
 
+  /**
+   * EMERGENCY AUTH FAILURE HANDLER - Sets global failure flag at OAuth level
+   */
+  private handleAuthFailure(error: any): void {
+    if (this.isAuthenticationError(error)) {
+      if (!OAuthHandler.globalAuthFailure) {
+        // FIRST AUTH ERROR - Log once and shut down ALL OAuth operations
+        OAuthHandler.globalAuthFailure = true;
+        
+        if (!OAuthHandler.authErrorLogged) {
+          this.logger.error('🔒 Authentication failed - token expired');
+          this.logger.error('   Generate new token: node scripts/easy-oauth.js');
+          this.logger.error('⛔ Plugin suspended until restart');
+          OAuthHandler.authErrorLogged = true;
+        }
+      }
+    }
+  }
+  
+  /**
+   * Detect authentication/OAuth errors
+   */
+  private isAuthenticationError(error: any): boolean {
+    const errorMessage = error?.message || error?.toString() || '';
+    
+    return errorMessage.includes('refresh token has expired') ||
+           errorMessage.includes('Authentication failed') ||
+           errorMessage.includes('invalid_grant') ||
+           errorMessage.includes('7-day limit') ||
+           errorMessage.includes('401') ||
+           errorMessage.includes('403') ||
+           (error?.response?.status === 401) ||
+           (error?.response?.status === 403) ||
+           (error?.code === 'invalid_grant');
+  }
+  
   /**
    * Get token storage info for debugging
    */
