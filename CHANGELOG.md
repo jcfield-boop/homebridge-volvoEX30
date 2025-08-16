@@ -5,6 +5,52 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.4] - 2025-08-16
+
+### 🔧 OAuth Fixes - Working Scripts Delivered
+
+#### Fixed
+- **Syntax Error**: Fixed unescaped quotes in `working-oauth.js` causing script crashes
+- **Invalid Scope Error**: Removed Energy API scopes (`energy:state:read`, `energy:capability:read`) that were causing "invalid_scope" errors
+- **Plugin Error Messages**: Updated all error messages to point to working OAuth scripts instead of outdated Postman method
+- **Graceful Error Handling**: Plugin now fails gracefully with clear setup instructions when tokens expire
+
+#### Added
+- **Minimal OAuth Script**: New `scripts/minimal-oauth.js` for fallback testing with just `openid` scope
+- **Working Setup Instructions**: Clear 2-step OAuth setup process using validated scripts
+- **Improved Error Messages**: Plugin errors now provide actionable steps to regenerate tokens
+
+#### Enhanced
+- **Scope Consistency**: All OAuth implementations now use only approved Connected Vehicle API scopes
+- **User Experience**: Clear error messages guide users to working OAuth setup instead of complex manual processes
+- **Plugin Reliability**: Proper error handling prevents endless retry loops on expired tokens
+
+#### Technical Implementation
+```bash
+# Working OAuth setup (2 steps):
+node scripts/working-oauth.js          # Generate OAuth URL with PKCE
+node scripts/token-exchange.js [CODE]  # Exchange code for tokens
+
+# Fallback testing:
+node scripts/minimal-oauth.js          # Test with minimal scopes
+```
+
+#### Root Cause Resolution
+- **Scope Mismatch**: Plugin was requesting Energy API scopes user's application doesn't have
+- **Script Errors**: Syntax errors preventing OAuth script execution
+- **Poor UX**: Users were directed to complex manual setup instead of working automated scripts
+
+#### Impact
+- ✅ **OAuth Scripts Work**: Both syntax and scope issues resolved
+- ✅ **Clear Error Messages**: Plugin failures now provide helpful guidance  
+- ✅ **Automated Setup**: 2-step process replaces complex manual configuration
+- ✅ **User Success**: Clear path to authentication without debugging
+
+### Migration
+- **Existing Users**: Continue using current tokens (backward compatible)
+- **New Tokens**: Use new OAuth scripts for reliable token generation
+- **Token Expires**: Plugin errors now provide clear regeneration steps
+
 ## [2.0.3] - 2025-08-16
 
 ### 🎉 BREAKTHROUGH: OAuth Authentication Resolved

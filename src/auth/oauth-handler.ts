@@ -64,7 +64,7 @@ export class OAuthHandler {
       response_type: 'code',
       client_id: this.config.clientId,
       redirect_uri: redirectUri,
-      scope: 'conve:fuel_status conve:climatization_start_stop conve:unlock conve:lock_status conve:lock openid energy:state:read energy:capability:read conve:battery_charge_level conve:diagnostics_engine_status conve:warnings',
+      scope: 'conve:fuel_status conve:climatization_start_stop conve:unlock conve:lock_status conve:lock openid conve:battery_charge_level conve:diagnostics_engine_status conve:warnings conve:doors_status conve:windows_status conve:commands',
       code_challenge: codeChallenge,
       code_challenge_method: 'S256',
     });
@@ -176,12 +176,20 @@ export class OAuthHandler {
         if (error.response.status === 400) {
           const errorData = error.response.data;
           if (errorData?.error === 'invalid_grant') {
-            throw new Error(`🔒 Refresh token has expired (7-day limit reached). Please generate a new initialRefreshToken using the same Postman method and update your Homebridge config. This happens when Homebridge is offline for 7+ consecutive days.`);
+            throw new Error(`🔒 Refresh token has expired (7-day limit reached). Please generate a new token:
+1. Run: node scripts/working-oauth.js
+2. Run: node scripts/token-exchange.js [AUTH_CODE]
+3. Update your Homebridge config with the new initialRefreshToken
+This happens when Homebridge is offline for 7+ consecutive days.`);
           } else if (errorData?.error === 'invalid_client') {
             throw new Error('Invalid client credentials. Check your Client ID and Client Secret in your Homebridge config.');
           }
         } else if (error.response.status === 401) {
-          throw new Error(`🔒 Authentication failed - refresh token has likely expired after 7 days of inactivity. Generate a new initialRefreshToken using the Postman method described in the README.`);
+          throw new Error(`🔒 Authentication failed - refresh token has likely expired after 7 days of inactivity. 
+Generate a new token:
+1. Run: node scripts/working-oauth.js
+2. Run: node scripts/token-exchange.js [AUTH_CODE]
+3. Update your Homebridge config with the new initialRefreshToken`);
         }
       } else if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
         throw new Error('Unable to connect to Volvo OAuth server. Check your internet connection.');
@@ -198,7 +206,10 @@ export class OAuthHandler {
     const bestToken = await this.getBestRefreshToken(refreshToken);
     
     if (!this.tokens && !bestToken) {
-      throw new Error('🔑 No initialRefreshToken found in configuration. Please add your initial refresh token to the Homebridge config using the Postman setup method described in the README.');
+      throw new Error(`🔑 No initialRefreshToken found in configuration. Please generate a token:
+1. Run: node scripts/working-oauth.js
+2. Run: node scripts/token-exchange.js [AUTH_CODE]  
+3. Add the initialRefreshToken to your Homebridge config`);
     }
 
     if (!this.tokens && bestToken) {

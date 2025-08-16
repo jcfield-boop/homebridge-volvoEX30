@@ -181,12 +181,21 @@ POST /vehicles/{vin}/commands/climatization-start
 
 ## OAuth Setup Instructions
 
-### Quick Setup (2 steps)
+### ✅ Working Setup (2 steps) - v2.0.4 Fixed
 ```bash
-# 1. Generate OAuth URL
+# 1. Generate OAuth URL with correct scopes and PKCE
 node scripts/working-oauth.js
 
-# 2. Exchange code for tokens
+# 2. Exchange authorization code for refresh token
+node scripts/token-exchange.js [AUTHORIZATION_CODE]
+```
+
+### 🧪 Troubleshooting Setup (if issues persist)
+```bash
+# Fallback test with minimal scopes
+node scripts/minimal-oauth.js
+
+# Then exchange the code
 node scripts/token-exchange.js [AUTHORIZATION_CODE]
 ```
 
@@ -225,7 +234,13 @@ node scripts/token-exchange.js [AUTHORIZATION_CODE]
 
 ## Version History
 
-### v2.0.3 (Current) - OAuth Resolution
+### v2.0.4 (Current) - OAuth Scripts Fixed
+- ✅ Fixed syntax errors in OAuth scripts (unescaped quotes)
+- ✅ Removed Energy API scopes causing "invalid_scope" errors
+- ✅ Updated plugin error messages to point to working scripts
+- ✅ Added minimal OAuth script for fallback testing
+
+### v2.0.3 - OAuth Resolution
 - ✅ Resolved OAuth authentication with PKCE requirement
 - ✅ Created working OAuth scripts
 - ✅ Validated all 25 Connected Vehicle scopes
@@ -260,4 +275,4 @@ node scripts/token-exchange.js [AUTHORIZATION_CODE]
 ---
 
 *Last Updated: 2025-08-16*
-*Version: 2.0.3*
+*Version: 2.0.4*

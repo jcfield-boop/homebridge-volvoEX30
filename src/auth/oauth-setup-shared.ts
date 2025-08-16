@@ -56,7 +56,7 @@ export class SharedOAuthHandler {
       response_type: 'code',
       client_id: this.config.clientId,
       redirect_uri: redirectUri,
-      scope: 'conve:fuel_status conve:climatization_start_stop conve:unlock conve:lock_status conve:lock openid energy:state:read energy:capability:read conve:battery_charge_level conve:diagnostics_engine_status conve:warnings',
+      scope: 'conve:fuel_status conve:climatization_start_stop conve:unlock conve:lock_status conve:lock openid conve:battery_charge_level conve:diagnostics_engine_status conve:warnings conve:doors_status conve:windows_status conve:commands',
       code_challenge: codeChallenge,
       code_challenge_method: 'S256',
       state: generatedState,

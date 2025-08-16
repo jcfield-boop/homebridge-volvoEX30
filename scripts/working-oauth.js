@@ -43,8 +43,8 @@ console.log(`   Code challenge: ${codeChallenge.substring(0, 20)}...`);
 console.log(`   State: ${state}`);
 console.log('');
 
-// All 25 approved scopes
-const allScopes = [
+// User's approved Connected Vehicle scopes (NO Energy API scopes)
+const approvedScopes = [
   'conve:fuel_status', 'conve:brake_status', 'conve:doors_status', 'conve:trip_statistics',
   'conve:environment', 'conve:odometer_status', 'conve:honk_flash', 'conve:command_accessibility',
   'conve:engine_status', 'conve:commands', 'conve:vehicle_relation', 'conve:windows_status',
@@ -54,12 +54,12 @@ const allScopes = [
   'conve:warnings'
 ].join(' ');
 
-// Working OAuth URL with all scopes
+// Working OAuth URL with approved scopes
 const params = new URLSearchParams({
   response_type: 'code',
   client_id: clientId,
   redirect_uri: redirectUri,
-  scope: allScopes,
+  scope: approvedScopes,
   code_challenge: codeChallenge,
   code_challenge_method: 'S256',
   state: state
@@ -67,7 +67,7 @@ const params = new URLSearchParams({
 
 const workingUrl = `https://volvoid.eu.volvocars.com/as/authorization.oauth2?${params.toString()}`;
 
-console.log('🔗 WORKING OAuth URL (25 scopes + PKCE):');
+console.log('🔗 WORKING OAuth URL (Connected Vehicle scopes + PKCE):');
 console.log('═'.repeat(60));
 console.log(workingUrl);
 console.log('═'.repeat(60));
@@ -77,7 +77,7 @@ console.log('📱 Instructions:');
 console.log('1. Open the URL above in your browser');
 console.log('2. Sign in with your Volvo ID');
 console.log('3. Authorize the application');
-console.log('4. You\\'ll be redirected to GitHub (shows 404 - that\\'s normal)');
+console.log('4. You\'ll be redirected to GitHub (shows 404 - that\'s normal)');
 console.log('5. Copy the "code" parameter from the address bar');
 console.log('');
 console.log('Example redirect:');
@@ -92,7 +92,7 @@ console.log('');
 
 console.log('🎯 What We Learned:');
 console.log('✅ Your Client ID and credentials are valid');
-console.log('✅ All 25 Connected Vehicle scopes are approved');
+console.log('✅ Connected Vehicle scopes match your approved scopes');
 console.log('✅ PKCE is mandatory for new applications');
 console.log('✅ STATE parameter works correctly');
 console.log('✅ volvoid.eu.volvocars.com is the correct endpoint');

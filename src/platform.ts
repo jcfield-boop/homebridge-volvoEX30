@@ -25,20 +25,16 @@ export class VolvoEX30Platform implements DynamicPlatformPlugin {
     if (!this.config.initialRefreshToken) {
       this.log.error('❌ Missing initialRefreshToken in configuration!');
       this.log.error('');
-      this.log.error('🔑 QUICK SETUP - Get your initial refresh token with Postman:');
-      this.log.error('   1. Download Postman (https://www.postman.com/downloads/)');
-      this.log.error('   2. Create new request → Authorization tab → OAuth 2.0');
-      this.log.error('   3. Configure: Grant Type "Authorization Code (With PKCE)"');
-      this.log.error('   4. Auth URL: https://volvoid.eu.volvocars.com/as/authorization.oauth2');
-      this.log.error('   5. Access Token URL: https://volvoid.eu.volvocars.com/as/token.oauth2');
-      this.log.error('   6. Client ID: dc-s68ezw2gmvo5nmrmfre3j4c28');
-      this.log.error('   7. Client Secret: AAZIK89F1JF1BKCiJ3yuaW');
-      this.log.error('   8. Callback URL: https://oauth.pstmn.io/v1/callback');
-      this.log.error('   9. Scope: openid');
-      this.log.error('  10. Click "Get New Access Token" → Login → Copy refresh_token');
+      this.log.error('🔑 QUICK SETUP - Generate your token with working OAuth scripts:');
+      this.log.error('   1. Run: node scripts/working-oauth.js');
+      this.log.error('   2. Open the generated URL in your browser');
+      this.log.error('   3. Sign in with your Volvo ID and authorize');
+      this.log.error('   4. Copy the code from the redirect URL');
+      this.log.error('   5. Run: node scripts/token-exchange.js [AUTH_CODE]');
+      this.log.error('   6. Copy the refresh token to your config initialRefreshToken');
       this.log.error('');
-      this.log.error('📖 For complete setup guide with screenshots, see:');
-      this.log.error('   https://github.com/jcfield-boop/homebridge-volvoEX30#method-3-manual-token-approach-recommended-for-personal-use');
+      this.log.error('📖 For troubleshooting, try the minimal OAuth script:');
+      this.log.error('   node scripts/minimal-oauth.js');
       return;
     }
 
