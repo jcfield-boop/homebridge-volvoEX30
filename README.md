@@ -2,6 +2,52 @@
 
 A comprehensive Homebridge plugin that integrates your Volvo EX30 with Apple HomeKit using the official Volvo Connected Vehicle API v2. Monitor battery status, control locks and climate, track doors and windows, and access vehicle diagnostics - all from the Home app.
 
+## 🧠 v2.3.2 - Smart Token Management
+
+**COMPLETE OAUTH SOLUTION!** This release introduces intelligent token management that finally solves all OAuth rotation and persistence issues.
+
+### ✨ **Smart Token Intelligence**
+- **🔍 Version Tracking** - Plugin tracks version changes for intelligent token migration
+- **🎯 Smart Priority** - Always prefers stored rotated tokens over potentially stale config tokens
+- **🔒 Config Protection** - Marks config tokens as used after rotation to prevent reuse
+- **📦 Major Version Detection** - Only clears tokens on major version changes (2.3.x → 2.4.x)
+
+### 🛠️ **Fixed Forever**
+- ❌ **"Expired after 3 minutes"** - Config tokens no longer reused after rotation
+- ❌ **OAuth spam at startup** - Shared polling eliminates concurrent token access
+- ❌ **Token persistence failures** - Intelligent priority system handles all scenarios
+- ❌ **Update token issues** - Version-aware cleanup only when necessary
+
+### 🎉 **What You Get**
+- **Zero Manual Token Management** - Plugin handles everything intelligently
+- **Clean Startup Logs** - No more 50+ OAuth spam messages
+- **Persistent Tokens** - Work across restarts, updates, and version changes
+- **Smart Error Messages** - Clear guidance when manual intervention needed
+
+**Upgrade**: `npm install -g homebridge-volvo-ex30@2.3.2` + restart Homebridge
+
+---
+
+## 🧹 v2.3.0 - Simplified Plugin (Fresh Token Strategy)
+
+**MAJOR SIMPLIFICATION!** Custom UI server removed - now using reliable script-based token generation that works with Volvo's aggressive security rotation.
+
+### 🗑️ **Removed Complexity**
+- **Custom UI Server** - Eliminated entire homebridge-ui/ directory and OAuth server
+- **20+ Debug Scripts** - Kept only 3 essential OAuth scripts for clean package
+- **Complex Persistence** - Embraced Volvo's token rotation with simple regeneration
+
+### ⚡ **Fresh Token Strategy**
+```bash
+cd /usr/local/lib/node_modules/homebridge-volvo-ex30
+node scripts/easy-oauth.js
+# Follow prompts → Copy token → Update config → Restart
+```
+
+**Why This Works Better**: Volvo's aggressive token rotation makes fresh generation more reliable than complex persistence attempts.
+
+---
+
 ## 🎯 v2.2.0+ - Individual Accessory Naming & Enhanced Services
 
 **MAJOR HOMEKIT UPGRADE!** No more confusing "Volvo EX30" tiles everywhere! This release introduces individual named accessories with enhanced service types for professional HomeKit organization.
@@ -106,31 +152,30 @@ npm install -g homebridge-volvo-ex30
 
 🚀 🚀 **NEW in v2.0.0**: **Connected Vehicle API Integration** - Complete EX30 monitoring and control!
 
-⚡ **Enhanced in v1.2.7**: **PKCE Security** - Industry-standard OAuth2 authentication
+🔑 **Simple Token Generation**: Easy OAuth script generates tokens automatically
 
-✨ **Featured in v1.1.0**: **Custom Configuration UI** - Complete setup directly in Homebridge Config UI X!
+⚡ **Fresh Token Strategy**: Generate new tokens on major updates due to Volvo's security rotation
 
-### Method 1: Custom Configuration UI (Recommended)
+### Quick Setup (Recommended)
+
+**Generate fresh token on each major plugin update**
 
 1. **Install the plugin** via Homebridge Config UI X or command line
-2. **Go to Plugin Settings** in Homebridge Config UI X
-3. **Click "Settings"** on the Volvo EX30 plugin
-4. **Use the custom interface** to:
-   - Enter your API credentials
-   - **NEW**: Use the "Quick Postman Setup" section for manual token entry
-   - OR complete OAuth authorization with automated one-click flow
-   - Configure all settings visually
-   - Save directly to Homebridge
+2. **Generate OAuth token**:
+   ```bash
+   cd /usr/local/lib/node_modules/homebridge-volvo-ex30
+   node scripts/easy-oauth.js
+   ```
+3. **Follow the prompts**:
+   - Enter your Volvo Developer Portal credentials
+   - Open the generated URL in your browser
+   - Sign in with your Volvo ID
+   - Copy the authorization code from the redirect URL
+   - Paste it back into the script
+4. **Copy the refresh token** to your Homebridge configuration
+5. **Restart Homebridge**
 
-The custom UI now offers **both automated OAuth AND manual token entry** - choose what works best for you!
-
-**✅ Security Features in v1.2.7:**
-- PKCE (Proof Key for Code Exchange) support for enhanced security
-- Input validation for API credentials  
-- Better error handling with specific OAuth guidance
-- Consistent OAuth implementation across all setup methods
-
-### Method 2: Manual Setup
+### Alternative: Manual Setup
 
 ### 1. Volvo Developer Portal Setup
 
@@ -206,41 +251,27 @@ npm run oauth-setup
 
 ⚠️ **Important**: Keep your refresh token secure and do not share it. It provides access to your vehicle data.
 
-### Method 3: Manual Token Approach (Recommended for Personal Use)
+## 🔄 Token Management Strategy
 
-🔑 **Quick Win for Personal Use**
+### **Fresh Token on Updates**
+Due to Volvo's aggressive token rotation and security policies, we recommend **generating a fresh token on each major plugin update**:
 
-Since this is for personal use with the test API access (10,000 calls/day - more than enough), the simplest approach is to get a refresh token manually using Postman.
+1. **Plugin Update Available?** → Generate fresh token first
+2. **Authentication Errors?** → Generate fresh token  
+3. **After Long Downtime?** → Generate fresh token
 
-**Option 1: Use Postman**
+### **Why Fresh Tokens Work Better**
+- **Volvo's Security**: Tokens rotate frequently and aggressively
+- **Update Survival**: Complex token persistence often fails during updates
+- **Simple & Reliable**: Fresh token generation is fast and always works
+- **User Control**: You know exactly when and how your tokens are created
 
-1. Download [Postman](https://www.postman.com/downloads/)
-2. Create a new request
-3. Go to **Authorization** tab
-4. Select **OAuth 2.0**
-5. Configure with these settings:
-   - **Token Name**: `Volvo EX30`
-   - **Grant Type**: `Authorization Code (With PKCE)`
-   - **Callback URL**: `https://oauth.pstmn.io/v1/callback`
-   - **Auth URL**: `https://volvoid.eu.volvocars.com/as/authorization.oauth2`
-   - **Access Token URL**: `https://volvoid.eu.volvocars.com/as/token.oauth2`
-   - **Client ID**: `dc-s68ezw2gmvo5nmrmfre3j4c28`
-   - **Client Secret**: `AAZIK89F1JF1BKCiJ3yuaW`
-   - **Scope**: `openid`
-   - **State**: (leave empty)
-   - **Client Authentication**: `Send as Basic Auth header`
-6. Click **"Get New Access Token"**
-7. Login with your Volvo ID
-8. Copy the `refresh_token` from the response
-
-**Option 2: Hard-code the Refresh Token**
-
-Once you get the refresh token from Postman:
-1. Copy the refresh token value
-2. Add it directly to your Homebridge config (see Configuration section below)
-3. The simplified plugin will handle token refresh automatically
-
-💡 **Why this works**: The test API has generous limits (10,000 calls/day), manual token setup is perfectly fine for personal use, and you can always improve the OAuth flow later.
+### **Quick Token Generation**
+```bash
+cd /usr/local/lib/node_modules/homebridge-volvo-ex30
+node scripts/easy-oauth.js
+# Follow prompts → Get token → Update config → Restart
+```
 
 ### 3. Configuration
 

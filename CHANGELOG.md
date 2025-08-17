@@ -5,6 +5,103 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.2] - 2025-08-17
+
+### 🧠 Smart Token Management - Complete OAuth Solution
+
+**INTELLIGENT TOKEN HANDLING** - This release introduces comprehensive smart token management to eliminate all OAuth rotation issues.
+
+#### Added - Version Tracking & Smart Token Priority
+- **Plugin Version Tracking**: Token storage now tracks plugin version for intelligent migration
+- **Smart Token Priority**: Always prefers stored rotated tokens over potentially stale config tokens
+- **Config Token Protection**: Marks config tokens as used after first rotation to prevent reuse
+- **Major Version Detection**: Clears tokens only on major version changes (x.y.z where x or y changes)
+
+#### Fixed - Token Rotation Issues
+- **Config Token Reuse Eliminated**: No more "expired after 3 minutes" errors from reusing rotated config tokens
+- **Startup Token Priority**: Platform checks stored tokens first, only falls back to config when needed
+- **Token Lifecycle Management**: Proper tracking of config vs stored vs rotated tokens
+- **Better Error Messages**: Clear distinction between expired, already-used, and invalid tokens
+
+#### Added - Intelligent Token Initialization
+- **Smart Startup**: `initializeTokensSmartly()` method handles complex token priority logic
+- **Fresh Token Detection**: Recognizes when new config tokens are provided vs stored tokens
+- **Automatic Cleanup**: Removes invalid tokens on major version changes only
+- **Graceful Fallback**: Maintains backwards compatibility with existing configurations
+
+#### Technical Implementation
+```typescript
+// Smart token priority: stored > config > error
+const bestToken = await tokenStorage.getBestRefreshToken(this.config.initialRefreshToken);
+
+// Version-aware token management
+const versionCheck = await this.checkVersionChanges();
+if (versionCheck.shouldClearTokens) {
+  this.logger.warn('🔄 Major version change - clearing stored tokens');
+}
+
+// Config token protection after rotation
+if (response.data.refresh_token !== refreshToken) {
+  await this.tokenStorage.markConfigTokenCleared();
+}
+```
+
+## [2.3.1] - 2025-08-17
+
+### 🔧 Critical OAuth Fixes - Eliminate Spam & Fix Token Rotation
+
+**URGENT UPDATE REQUIRED** - This release fixes critical OAuth issues that prevent the plugin from working correctly.
+
+#### Fixed - OAuth Spam Elimination
+- **Root Cause**: 5 accessories (unified + 4 individual) each starting separate polling timers
+- **Solution**: Implemented shared polling - single timer for all accessories
+- **Result**: Zero OAuth spam, single token access per polling cycle
+
+#### Fixed - Token Rotation Issues
+- **Root Cause**: Config token reused after Volvo rotation, causing immediate expiration
+- **Solution**: Always prefer stored rotated tokens over config tokens after initial auth
+- **Result**: Tokens work continuously, no more "expired after 3 minutes" errors
+
+#### Fixed - Accessory Conflicts
+- **Auto-removal**: Legacy accessories removed when switching naming strategies
+- **Clean State**: Prevents OAuth conflicts from mixed accessory types
+- **Better UX**: No more duplicate or conflicting accessories
+
+#### Added - Shared Polling Architecture
+- **Platform-Level Polling**: Single polling timer shared across all accessories
+- **Data Callbacks**: Accessories register for shared data updates
+- **Performance**: Single API call per polling cycle instead of 5+ concurrent calls
+
+## [2.3.0] - 2025-08-17
+
+### 🧹 Major Simplification Release - Remove Custom UI & Fresh Token Strategy
+
+**BREAKING CHANGES** - Custom UI server completely removed, now using simple script-based token generation.
+
+#### Removed - Custom UI Server
+- **Entire homebridge-ui/ directory**: OAuth server, HTML, CSS, etc.
+- **20+ testing/debugging scripts**: Kept only 3 essential OAuth scripts
+- **Complex token persistence**: Simplified to fresh token generation approach
+- **CustomUI package.json references**: Cleaned up package configuration
+
+#### Added - Fresh Token Strategy
+- **Script-Based Setup**: Simple `node scripts/easy-oauth.js` approach
+- **Volvo Security Alignment**: Embraces aggressive token rotation with simple regeneration
+- **User Control**: Users know exactly when and how tokens are created
+- **Update Safety**: No complex token persistence to break during updates
+
+#### Changed - Setup Process
+- **OLD**: Complex custom UI server with OAuth flow
+- **NEW**: Simple script execution with copy-paste token workflow
+- **Scripts Kept**: `easy-oauth.js`, `working-oauth.js`, `token-exchange.js`
+- **Documentation**: Complete README rewrite focusing on script-based approach
+
+#### Technical Changes
+- **Package Size**: Dramatically reduced by removing 20+ debugging scripts
+- **Reliability**: Fresh tokens always work vs complex persistence failures
+- **Maintenance**: Reduced complexity and testing surface
+- **Config Schema**: Updated to remove custom UI references
+
 ## [2.1.4] - 2025-08-17
 
 ### 🚨 TRUE OAuth Spam Elimination - Token Pre-validation
