@@ -5,11 +5,115 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.4] - 2025-08-17
+
+### 🚨 TRUE OAuth Spam Elimination - Token Pre-validation
+
+**CRITICAL UPDATE REQUIRED** - This release provides the TRUE solution to OAuth spam by preventing concurrent HTTP requests entirely.
+
+#### Fixed - ROOT CAUSE TIMING ISSUE
+- **Token Pre-validation**: Added validation BEFORE Promise.allSettled() to prevent 14 concurrent HTTP requests
+- **Timing Issue Resolved**: Previous versions checked global auth flags AFTER HTTP requests started - v2.1.4 validates BEFORE
+- **Architectural Fix**: Eliminates race condition by preventing concurrent requests when tokens are invalid
+- **Stack Trace Analysis**: User logs revealed errors at axios HTTP request level (line 221, 245, 268, etc.)
+- **Zero Concurrent Failures**: Invalid tokens never reach HTTP layer, preventing all OAuth spam
+
+#### Fixed - WHY v2.1.3 FAILED
+- **Global auth flag timing**: Flag only set AFTER first HTTP request fails
+- **Race condition sequence**: All 14 API methods checked flag before making HTTP requests → all saw FALSE
+- **Concurrent execution**: All 14 proceeded to `this.httpClient.get()` simultaneously
+- **Axios pipeline**: Once in axios, requests continued even after global flag became TRUE
+- **Result**: 14 concurrent failed HTTP requests generated massive OAuth spam
+
+#### Fixed - SERVICE UUID CONFLICTS
+- **UUID Conflict Resolution**: Fixed "Cannot add Service with same UUID" error in setupVolvoLocate()
+- **Service Cleanup**: Added proper service removal before recreation to prevent conflicts
+- **Cached Accessory Issues**: Resolved conflicts with cached accessory services from previous versions
+
+#### Added - TOKEN PRE-VALIDATION ARCHITECTURE
+- **Pre-flight Token Check**: Validates token before any concurrent API calls are made
+- **Early Return Pattern**: Returns empty state immediately if token invalid, preventing HTTP requests
+- **Single Validation Point**: One token check replaces 14 simultaneous failed attempts
+- **Clean Error Handling**: No concurrent request spam when tokens are invalid
+
+### Technical Implementation (v2.1.4)
+
+```typescript
+async getCompleteVehicleState(vin: string): Promise<ConnectedVehicleState> {
+  if (OAuthHandler.isGlobalAuthFailure) {
+    throw new Error('🔒 Authentication failed - plugin suspended until restart');
+  }
+  
+  // CRITICAL: Pre-validate token before 14 concurrent HTTP requests
+  // This prevents OAuth spam from simultaneous failed requests
+  try {
+    await this.oAuthHandler.getValidAccessToken(this.config.refreshToken);
+  } catch (error) {
+    // Token invalid - return empty state without concurrent HTTP requests
+    this.logger.debug('Token pre-validation failed, preventing 14 concurrent OAuth attempts');
+    return state; // Return minimal state with just timestamp
+  }
+
+  // Only proceed with Promise.allSettled if token is valid
+  const promises = [...]; // 14 concurrent API calls
+}
+```
+
+### Before vs After (v2.1.4 True Fix)
+
+**Before (v2.1.3 with expired token showing stack traces at HTTP level):**
+```
+🔒 Authentication failed - token expired
+⛔ Plugin suspended until restart
+[Massive stack traces from 14 concurrent HTTP requests:]
+at ConnectedVehicleClient.getVehicleDetails (.../connected-vehicle-client.ts:221:24)
+at ConnectedVehicleClient.getDoorsStatus (.../connected-vehicle-client.ts:245:24)
+at ConnectedVehicleClient.getWindowsStatus (.../connected-vehicle-client.ts:268:24)
+[continues for all 14 API endpoints with HTTP request failures...]
+Failed to get valid access token: Error: 🔒 Refresh token has expired... (x14)
+```
+
+**After (v2.1.4 true fix):**
+```
+🔒 Authentication failed - token expired
+   Generate new token: node scripts/easy-oauth.js
+⛔ Plugin suspended until restart
+[complete silence - no concurrent requests made]
+```
+
+### Upgrade Instructions (Critical)
+
+```bash
+# IMMEDIATE UPDATE REQUIRED for ALL previous versions
+npm install -g homebridge-volvo-ex30@2.1.4
+
+# Restart Homebridge
+sudo systemctl restart homebridge
+```
+
+### OAuth Spam Evolution (Complete Timeline)
+
+- **v2.1.0**: OAuth spam reintroduced (50+ lines)
+- **v2.1.1**: Partial fix (accessory layer fixed, API clients still had spam)  
+- **v2.1.2**: Request interceptors added (but race condition remained)
+- **v2.1.3**: Individual method checks added (but timing issue persisted - checked flags AFTER requests started)
+- **v2.1.4**: **TRUE ELIMINATION** - prevents concurrent requests entirely with pre-validation
+
+### Verification
+
+After upgrading to v2.1.4 with expired tokens, you should see exactly:
+```
+🔒 Authentication failed - token expired
+   Generate new token: node scripts/easy-oauth.js
+⛔ Plugin suspended until restart
+```
+**And then complete silence** - no OAuth spam, no stack traces, no concurrent request failures!
+
 ## [2.1.3] - 2025-08-17
 
-### 🚨 Final OAuth Spam Elimination - Race Condition Fix
+### 🚨 Final OAuth Spam Elimination - Race Condition Fix (SUPERSEDED BY v2.1.4)
 
-**CRITICAL UPDATE REQUIRED** - This release eliminates the final OAuth spam source by fixing a race condition in simultaneous API calls.
+**SUPERSEDED BY v2.1.4** - This version added individual method checks but missed the timing issue where flags were checked AFTER HTTP requests started.
 
 #### Fixed - RACE CONDITION IN SIMULTANEOUS API CALLS
 - **Race Condition Eliminated**: Fixed OAuth spam caused by 14 simultaneous API calls in `getCompleteVehicleState()`
