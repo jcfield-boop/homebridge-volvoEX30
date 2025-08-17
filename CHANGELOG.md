@@ -5,6 +5,104 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.1] - 2025-08-17
+
+### 🚨 Critical OAuth Spam Hotfix
+
+**IMMEDIATE UPDATE RECOMMENDED** - This hotfix resolves a critical OAuth spam bug that was reintroduced in v2.1.0.
+
+#### Fixed - CRITICAL OAUTH SPAM BUG
+- **Unified Authentication State**: Fixed conflicting global authentication failure flags between OAuth handler and accessory components
+- **OAuth Spam Eliminated**: Resolved 50+ repeated error messages when tokens expire
+- **Component Synchronization**: Accessory now properly uses `OAuthHandler.isGlobalAuthFailure` instead of local flag
+- **Clean Error Handling**: Restored proper 3-line error message behavior from v2.0.13
+
+#### Fixed - TECHNICAL ROOT CAUSE
+- **Conflicting Flags Issue**: Two separate `globalAuthFailure` flags were operating independently:
+  - `OAuthHandler.globalAuthFailure` (static) - correctly managed by OAuth handler ✅
+  - `this.globalAuthFailure` (instance) - separate flag in accessory causing spam ❌
+- **Synchronization Solution**: Added `OAuthHandler.isGlobalAuthFailure` public getter for unified state
+- **Code Architecture**: OAuth handler is now the single source of truth for authentication failure state
+
+#### Added - OAUTH HANDLER ENHANCEMENT
+- **Public Getter**: Added `OAuthHandler.isGlobalAuthFailure` static getter for external access
+- **Unified State Management**: All components now check the same authentication failure flag
+
+#### Changed - ACCESSORY AUTHENTICATION HANDLING
+- **Global Flag Reference**: All `this.globalAuthFailure` references changed to `OAuthHandler.isGlobalAuthFailure`
+- **Simplified Error Handling**: Removed duplicate authentication failure management from accessory
+- **Component Responsibility**: OAuth handler maintains exclusive control over authentication state
+
+#### Preserved - ALL v2.1.0 FEATURES
+- **Simplified Presentation**: 4 core tiles functionality unchanged
+- **Enhanced Locate**: honk/flash functionality preserved  
+- **Configuration Options**: All presentation mode settings maintained
+- **Backward Compatibility**: Legacy configuration support continues
+
+### Before vs After (v2.1.1 Fix)
+
+**Before (v2.1.0 with expired token):**
+```
+🔒 Authentication failed - token expired      # OAuth handler (correct)
+   Generate new token: node scripts/easy-oauth.js
+⛔ Plugin suspended until restart
+[50+ additional spam lines from accessory using separate flag]
+Failed to get valid access token: Error: 🔒 Refresh token has expired...
+Failed to get valid access token: Error: 🔒 Refresh token has expired...
+[continues for 70MB+ of logs]
+```
+
+**After (v2.1.1 hotfix):**
+```
+🔒 Authentication failed - token expired
+   Generate new token: node scripts/easy-oauth.js
+⛔ Plugin suspended until restart
+[complete silence - no spam]
+```
+
+### Technical Implementation (v2.1.1)
+
+```typescript
+// Before (v2.1.0) - Conflicting flags
+class VolvoEX30Accessory {
+  private globalAuthFailure: boolean = false;  // Separate flag
+}
+class OAuthHandler {
+  private static globalAuthFailure: boolean = false;  // Separate flag
+}
+
+// After (v2.1.1) - Unified state
+class OAuthHandler {
+  private static globalAuthFailure: boolean = false;
+  public static get isGlobalAuthFailure(): boolean {  // Public getter
+    return OAuthHandler.globalAuthFailure;
+  }
+}
+class VolvoEX30Accessory {
+  // Uses: OAuthHandler.isGlobalAuthFailure (unified state)
+}
+```
+
+### Upgrade Instructions (Critical)
+
+```bash
+# IMMEDIATE UPDATE REQUIRED for v2.1.0 users
+npm install -g homebridge-volvo-ex30@2.1.1
+
+# Restart Homebridge
+sudo systemctl restart homebridge
+```
+
+### Verification
+
+After upgrading to v2.1.1 with expired tokens, you should see exactly:
+```
+🔒 Authentication failed - token expired
+   Generate new token: node scripts/easy-oauth.js
+⛔ Plugin suspended until restart
+```
+**And then complete silence** - no OAuth spam!
+
 ## [2.1.0] - 2025-08-17
 
 ### 🎯 Simplified Presentation & Enhanced Usability

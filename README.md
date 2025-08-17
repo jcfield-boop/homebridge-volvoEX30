@@ -2,6 +2,18 @@
 
 A comprehensive Homebridge plugin that integrates your Volvo EX30 with Apple HomeKit using the official Volvo Connected Vehicle API v2. Monitor battery status, control locks and climate, track doors and windows, and access vehicle diagnostics - all from the Home app.
 
+## 🚨 v2.1.1 - Critical OAuth Spam Hotfix
+
+**IMMEDIATE UPDATE RECOMMENDED!** This hotfix resolves a critical OAuth spam bug that was reintroduced in v2.1.0.
+
+### 🐛 **Critical Bug Fixed**
+- **OAuth Spam Eliminated**: Fixed 50+ repeated error messages when tokens expire
+- **Unified Authentication State**: Synchronized global auth failure flags between components
+- **Clean Error Handling**: Now shows exactly 3 error messages, then complete silence
+- **Plugin Suspension**: Proper API activity halt after authentication failure
+
+**Upgrade immediately**: `npm install -g homebridge-volvo-ex30@2.1.1`
+
 ## 🎯 v2.1.0 - Simplified Presentation & Enhanced Usability
 
 **Clean, Simple HomeKit Experience!** This release introduces simplified presentation with exactly 4 core tiles for better user experience while maintaining full functionality for advanced users.
@@ -474,12 +486,19 @@ npm list -g --depth=0 | grep homebridge-volvo-ex30
 2. **Expired refresh token**: Run the OAuth setup again to get a new refresh token
 3. **Region mismatch**: Ensure your region setting matches your vehicle's region
 
-**OAuth Log Spam (COMPLETELY FIXED in v2.0.13)**
-- ✅ **Emergency Fix**: v2.0.13 fixes critical authentication failure detection bug from v2.0.12
+**OAuth Log Spam (COMPLETELY FIXED in v2.1.1)**
+- ✅ **v2.1.1 Hotfix**: Resolved critical OAuth spam bug that was reintroduced in v2.1.0
+- ✅ **Unified Authentication State**: Fixed conflicting global auth failure flags between components
 - ✅ **Zero Spam Guarantee**: Plugin will either work or fail with exactly 3 log lines, then complete silence
 - ✅ **Global Shutdown**: First authentication error triggers immediate plugin suspension
 - ✅ **Behavior**: Maximum 3 error lines, then zero API activity until restart
-- ✅ **Update**: Simply update to v2.0.13+ to eliminate any OAuth spam issues
+- ✅ **Critical Update**: Update to v2.1.1+ immediately to eliminate OAuth spam issues
+
+**If you're on v2.1.0 and experiencing OAuth spam:**
+```bash
+npm install -g homebridge-volvo-ex30@2.1.1
+sudo systemctl restart homebridge
+```
 
 **Error: "OAuth token refresh failed" (FIXED in v1.2.41)**
 - ✅ **Fixed in v1.2.30**: Improved token handling to use config values instead of cached tokens  
