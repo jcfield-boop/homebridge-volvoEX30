@@ -5,6 +5,53 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.4] - 2025-08-17
+
+### 🚑 Emergency OAuth Spam Elimination - Final Fix
+
+**CRITICAL FIX** - This release finally eliminates the persistent OAuth spam by fixing the core architectural issues that remained from previous versions.
+
+#### Fixed - Root Causes of OAuth Spam
+- **Individual API Calls**: Each accessory was making separate API calls despite "shared polling" implementation
+- **Startup Race Condition**: Accessories started making API calls before token initialization completed
+- **Missing Emergency Stop**: After auth failure, accessories continued making 200+ failed API calls
+- **Token Detection Issues**: Plugin couldn't properly detect and use stored rotated tokens
+
+#### Added - True Shared Data Architecture
+- **Single Data Fetch**: `fetchInitialDataOnce()` method ensures only one API call for all accessories
+- **Promise Serialization**: All accessories wait for single shared data fetch to complete
+- **Global Failure Handling**: Emergency stop system prevents continued API spam after auth failure
+- **Enhanced Token Debugging**: Detailed logging for token storage detection and file system issues
+
+#### Fixed - Startup Sequence
+- **Token-First Initialization**: Tokens are fully initialized before any accessory setup begins
+- **Clean Error Propagation**: Single clear error message instead of 200+ repeated failures
+- **Proper Sequencing**: `initializeTokensSmartly()` → `discoverDevices()` → `fetchInitialDataOnce()`
+
+#### Technical Implementation
+```typescript
+// BEFORE: 4 accessories × 14 endpoints = 56 concurrent calls
+each_accessory.updateEnergyStateImmediately() → getUnifiedVehicleData() → 14 API calls
+
+// AFTER: Single shared call for all accessories  
+platform.fetchInitialDataOnce() → single getUnifiedVehicleData() → accessories get shared data
+```
+
+#### Expected Behavior Change
+**Before v2.3.4** (Broken):
+```
+[50+ lines] 🔄 Token access already in progress, waiting for completion...
+[200+ lines] Failed to get X for Y: Config token already used and rotated...
+```
+
+**After v2.3.4** (Fixed):
+```
+📡 Fetching initial vehicle data (single call for all accessories)
+🔒 Authentication failed - generate a fresh token:
+   1. Run: node scripts/easy-oauth.js
+⛔ Plugin suspended until restart with valid token
+```
+
 ## [2.3.3] - 2025-08-17
 
 ### 📚 Documentation Updates

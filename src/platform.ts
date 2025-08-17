@@ -13,6 +13,9 @@ export class VolvoEX30Platform implements DynamicPlatformPlugin {
   private sharedPollingTimer?: NodeJS.Timeout;
   private lastVehicleData: any = null;
   private dataUpdateCallbacks: Set<() => void> = new Set();
+  private initialDataFetched = false;
+  private globalDataFailure = false;
+  private dataFetchPromise: Promise<void> | null = null;
 
   constructor(
     public readonly log: Logger,
@@ -60,12 +63,14 @@ export class VolvoEX30Platform implements DynamicPlatformPlugin {
     this.api.on('didFinishLaunching', () => {
       this.log.debug('Executed didFinishLaunching callback');
       // SMART TOKEN MANAGEMENT: Initialize tokens before discovering devices
-      this.initializeTokensSmartly().then(() => {
-        this.discoverDevices();
-      }).catch((error) => {
+      this.initializeTokensSmartly().then(async () => {
+        this.log.info('🔑 Tokens initialized successfully - starting device discovery');
+        await this.discoverDevices();
+      }).catch(async (error) => {
         this.log.error('Failed to initialize tokens:', error);
-        // Still try to discover devices with basic setup
-        this.discoverDevices();
+        this.globalDataFailure = true;
+        // Still try to discover devices with basic setup (they will show errors)
+        await this.discoverDevices();
       });
     });
   }
@@ -289,6 +294,85 @@ export class VolvoEX30Platform implements DynamicPlatformPlugin {
    */
   public getLastVehicleData(): any {
     return this.lastVehicleData;
+  }
+
+  /**
+   * SINGLE DATA FETCH: Fetch initial data once for all accessories
+   */
+  public async fetchInitialDataOnce(): Promise<void> {
+    // If already fetched or failed, return immediately
+    if (this.initialDataFetched || this.globalDataFailure) {
+      return;
+    }
+
+    // If fetch is in progress, wait for it
+    if (this.dataFetchPromise) {
+      this.log.debug('📡 Initial data fetch already in progress, waiting...');
+      return await this.dataFetchPromise;
+    }
+
+    // Start single data fetch for all accessories
+    this.dataFetchPromise = this.doFetchInitialData();
+    
+    try {
+      await this.dataFetchPromise;
+    } finally {
+      this.dataFetchPromise = null;
+    }
+  }
+
+  /**
+   * SINGLE DATA FETCH: Perform the actual data fetch
+   */
+  private async doFetchInitialData(): Promise<void> {
+    try {
+      this.log.info('📡 Fetching initial vehicle data (single call for all accessories)');
+      
+      // EMERGENCY STOP: Check if OAuth has already failed globally
+      if ((this.apiClient as any).oAuthHandler?.constructor?.isGlobalAuthFailure) {
+        throw new Error('🔒 OAuth authentication has failed globally - aborting all API operations');
+      }
+      
+      // Clear cache and fetch fresh data once
+      this.apiClient.clearCache();
+      this.lastVehicleData = await this.apiClient.getUnifiedVehicleData(this.config.vin);
+      
+      this.initialDataFetched = true;
+      this.log.info('✅ Initial vehicle data loaded successfully');
+      
+      // Notify all accessories that data is ready
+      this.dataUpdateCallbacks.forEach(callback => {
+        try {
+          callback();
+        } catch (error) {
+          this.log.error('Error in initial data callback:', error);
+        }
+      });
+      
+    } catch (error) {
+      this.globalDataFailure = true;
+      
+      // Check if this is an auth error and provide better messaging
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (errorMessage.includes('already used and rotated') || errorMessage.includes('expired') || errorMessage.includes('invalid_grant')) {
+        this.log.error('🔒 Authentication failed - generate a fresh token:');
+        this.log.error('   1. Run: node scripts/easy-oauth.js');
+        this.log.error('   2. Update config with new token');
+        this.log.error('   3. Restart Homebridge');
+        this.log.error('⛔ Plugin suspended until restart with valid token');
+      } else {
+        this.log.error('❌ Failed to fetch initial vehicle data:', error);
+      }
+      
+      throw error;
+    }
+  }
+
+  /**
+   * Check if initial data fetch failed globally
+   */
+  public isGlobalDataFailure(): boolean {
+    return this.globalDataFailure;
   }
 
   /**

@@ -750,8 +750,8 @@ export class VolvoEX30Accessory {
     // Start the shared poller (only starts once)
     this.platform.startSharedPolling();
     
-    // Do initial data load
-    this.updateEnergyStateImmediately();
+    // Do initial data load using shared fetch
+    this.loadInitialDataShared();
   }
   
   /**
@@ -825,16 +825,27 @@ export class VolvoEX30Accessory {
     }
   }
 
-  private async updateEnergyStateImmediately(): Promise<void> {
-    if (OAuthHandler.isGlobalAuthFailure) {
+  /**
+   * SHARED DATA FETCH: Load initial data using platform's shared fetch
+   */
+  private async loadInitialDataShared(): Promise<void> {
+    if (this.platform.isGlobalDataFailure()) {
+      this.platform.log.debug(`⏭️ ${this.accessory.displayName}: Skipping data load due to global failure`);
       return;
     }
     
     try {
-      const unifiedData = await this.getUnifiedVehicleData();
-      this.platform.log.debug('📊 Initial vehicle data loaded');
+      // Use shared fetch instead of individual API calls
+      await this.platform.fetchInitialDataOnce();
+      
+      // Get the shared data
+      this.currentUnifiedData = this.platform.getLastVehicleData();
+      
+      if (this.currentUnifiedData) {
+        this.platform.log.debug(`📊 ${this.accessory.displayName}: Initial data loaded from shared fetch`);
+      }
     } catch (error) {
-      this.handleAuthFailure(error);
+      this.platform.log.error(`❌ ${this.accessory.displayName}: Failed to load initial data:`, error);
     }
   }
   

@@ -253,6 +253,11 @@ export class TokenStorage {
    * Get the best available refresh token with smart config token handling
    */
   async getBestRefreshToken(configToken?: string): Promise<{ token: string; source: 'stored' | 'config' } | null> {
+    this.logger.debug(`🔍 Token storage debug - Starting getBestRefreshToken`);
+    this.logger.debug(`🔍 Token file path: ${this.tokenFilePath}`);
+    this.logger.debug(`🔍 File exists: ${require('fs').existsSync(this.tokenFilePath)}`);
+    this.logger.debug(`🔍 Config token provided: ${!!configToken} (length: ${configToken?.length || 0})`);
+    
     // Check for version changes first
     const versionCheck = await this.checkVersionChanges();
     
@@ -263,12 +268,17 @@ export class TokenStorage {
 
     // Always prefer stored (rotated) tokens over config tokens
     const storedToken = await this.getStoredRefreshTokenSilently();
+    this.logger.debug(`🔍 Stored token found: ${!!storedToken} (length: ${storedToken?.length || 0})`);
     
     if (storedToken) {
       // Check if config token was already used and cleared
       const tokens = this.readTokenFile();
       const tokenKey = this.getTokenKey();
       const tokenEntry = tokens[tokenKey];
+      
+      this.logger.debug(`🔍 Token entry exists: ${!!tokenEntry}`);
+      this.logger.debug(`🔍 Config token cleared flag: ${tokenEntry?.configTokenCleared}`);
+      this.logger.debug(`🔍 Tokens match: ${configToken === storedToken}`);
       
       if (configToken && !tokenEntry?.configTokenCleared && configToken !== storedToken) {
         // Fresh config token provided and not yet used - clear stored token to use fresh one
@@ -278,6 +288,7 @@ export class TokenStorage {
       }
       
       // Use stored rotated token (most current)
+      this.logger.info('💾 Using stored rotated token (most current)');
       return { token: storedToken, source: 'stored' };
     }
     
