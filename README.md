@@ -2,7 +2,32 @@
 
 A comprehensive Homebridge plugin that integrates your Volvo EX30 with Apple HomeKit using the official Volvo Connected Vehicle API v2. Monitor battery status, control locks and climate, track doors and windows, and access vehicle diagnostics - all from the Home app.
 
-## 🚨 v2.1.4 - TRUE OAuth Spam Elimination
+## 🎯 v2.2.0+ - Individual Accessory Naming & Enhanced Services
+
+**MAJOR HOMEKIT UPGRADE!** No more confusing "Volvo EX30" tiles everywhere! This release introduces individual named accessories with enhanced service types for professional HomeKit organization.
+
+### 🏠 **Individual Named Accessories (NEW)**
+- **"EX30 Battery"** - WindowCovering service (battery % as blind position) 🔋
+- **"EX30 Lock"** - LockManagement service (proper security system) 🔒  
+- **"EX30 Climate"** - Thermostat service (full temperature control) 🌡️
+- **"EX30 Locate"** - Switch service (momentary honk & flash) 📍
+
+### ✨ **Enhanced Service Types**
+- **Battery**: WindowCovering (73% battery = 73% blind closed - much more visual!)
+- **Climate**: Full Thermostat with temperature setting (15-25°C) + on/off control
+- **Lock**: Proper LockManagement with SECURITY_SYSTEM category
+- **Locate**: Momentary switch with auto-reset after activation
+
+### ⚙️ **Configuration Control**
+```json
+{
+  "accessoryNaming": "individual"  // "individual" (default) or "unified" (legacy)
+}
+```
+
+**Upgrade**: `npm install -g homebridge-volvo-ex30@2.2.1` + restart Homebridge
+
+## 🚨 v2.1.6 - TRUE OAuth Spam Elimination
 
 **CRITICAL UPDATE REQUIRED!** This release provides the TRUE solution to OAuth spam by preventing concurrent HTTP requests entirely.
 
@@ -235,6 +260,7 @@ Add the plugin to your Homebridge `config.json`:
       "region": "eu",
       "pollingInterval": 5,
       "presentationMode": "simple",
+      "accessoryNaming": "individual",
       "enableHonkFlash": true,
       "enableAdvancedSensors": false
     }
@@ -255,6 +281,7 @@ Add the plugin to your Homebridge `config.json`:
 | `region` | No | `eu` | Your vehicle's region (`eu` or `na`) |
 | `pollingInterval` | No | `5` | Update interval in minutes (1-60) |
 | `presentationMode` | No | `simple` | Presentation mode: `simple` (4 core tiles) or `advanced` (all sensors) |
+| `accessoryNaming` | No | `individual` | **NEW in v2.2.0+**: Accessory naming strategy: `individual` (separate named accessories) or `unified` (single accessory) |
 | `enableHonkFlash` | No | `true` | Show locate (honk & flash) switch for finding your vehicle |
 | `enableAdvancedSensors` | No | `false` | Show individual door/window sensors and diagnostics (Advanced mode only) |
 
@@ -268,8 +295,35 @@ For backward compatibility, the following options are still supported but deprec
 
 ## HomeKit Services
 
-### 🎯 **Simple Presentation Mode (Default)**
-The plugin defaults to **Simple Mode** with exactly 4 clean, essential tiles:
+### 🎯 **Individual Accessories (v2.2.0+ Default)**
+The plugin now creates **individual named accessories** for better organization:
+
+#### **EX30 Battery** 🔋 (WindowCovering Service)
+- **Current Position**: Battery level (0-100% as blind position)
+- **Target Position**: Read-only (automatically matches current level)  
+- **Position State**: Stopped (battery doesn't "move")
+- **Visual Representation**: 73% battery = 73% blind closed
+
+#### **EX30 Lock** 🔒 (LockManagement Service)
+- **Current Lock State**: Real-time lock status (Secured/Unsecured)
+- **Target Lock State**: Remote lock/unlock control
+- **Lock Control**: Tap to lock/unlock vehicle from Home app
+- **Category**: Security System with proper lock icon
+
+#### **EX30 Climate** 🌡️ (Thermostat Service)
+- **Current Temperature**: Vehicle interior temperature (when available)
+- **Target Temperature**: Temperature setting (15-25°C range)
+- **Heating/Cooling State**: Current climate system status (OFF/HEAT)
+- **Target Heating/Cooling**: Climate control (OFF/AUTO)
+- **Full Control**: Complete thermostat functionality
+
+#### **EX30 Locate** 📍 (Switch Service - Momentary)
+- **Vehicle Locate**: Honk horn and flash lights to find your vehicle
+- **Auto-Reset**: Automatically turns off after activation (1 second)
+- **One-Touch**: Simple tap to trigger location assistance
+
+### 🔄 **Legacy: Simple Presentation Mode**
+Available with `"accessoryNaming": "unified"` - creates single "Volvo EX30" accessory with 4 services:
 
 #### **Volvo Battery** 🔋
 - **Battery Level**: Current state of charge (0-100%)
