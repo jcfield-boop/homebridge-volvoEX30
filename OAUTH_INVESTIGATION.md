@@ -1,12 +1,13 @@
-# OAuth Investigation Report: v2.0.12
+# OAuth Investigation Report: v2.0.13
 
 ## Issue Summary
 User reported that fresh tokens (generated 15 minutes prior) are immediately rejected with "7-day limit reached" error, causing massive OAuth spam (70MB+ log files).
 
-## Emergency Fix Implemented (v2.0.12)
+## Emergency Fix Implemented (v2.0.13)
 - **Global Authentication Failure Flag**: Blocks ALL API activity after first auth error
 - **Maximum 3 Log Lines**: Complete elimination of OAuth spam
 - **Immediate Plugin Suspension**: Zero retries, no backoff, clean failure
+- **CRITICAL BUG FIX**: Moved failure detection to OAuth handler layer where errors occur
 
 ## Root Cause Investigation Findings
 
@@ -63,13 +64,14 @@ node scripts/test-fresh-token-immediate.js
 ```
 Generates fresh token and immediately tests refresh to reproduce the issue.
 
-## Current Status: v2.0.12 Emergency Solution
+## Current Status: v2.0.13 Emergency Solution
 
-### What v2.0.12 Solves ✅
+### What v2.0.13 Solves ✅
 - **Complete OAuth Spam Elimination**: No more 70MB+ log files
 - **Clean Failure Mode**: Exactly 3 log lines, then silence
 - **Plugin Protection**: No retries, no exponential backoff
 - **Clear User Guidance**: Direct instructions for token regeneration
+- **CRITICAL FIX**: Global auth failure flag now works at OAuth handler level
 
 ### What Still Needs Investigation 🔍
 - **Root Cause**: Why fresh tokens are rejected immediately
@@ -79,7 +81,7 @@ Generates fresh token and immediately tests refresh to reproduce the issue.
 ## Recommendations
 
 ### For Users (Immediate)
-1. **Update to v2.0.12**: `npm install -g homebridge-volvo-ex30@2.0.12`
+1. **Update to v2.0.13**: `npm install -g homebridge-volvo-ex30@2.0.13`
 2. **Generate Fresh Token**: `node scripts/easy-oauth.js`
 3. **Use Immediately**: Update config and restart within 5 minutes
 4. **Monitor Logs**: Should see 3 lines or complete silence
@@ -90,34 +92,36 @@ Generates fresh token and immediately tests refresh to reproduce the issue.
 3. **Test Token Rotation**: Verify if refresh tokens are single-use
 4. **Contact Volvo**: If pattern persists, escalate to developer support
 
-## Technical Implementation: v2.0.12
+## Technical Implementation: v2.0.13
 
-### Global Auth Failure Flag
+### Global Auth Failure Flag (OAuth Handler Level)
 ```typescript
-private globalAuthFailure: boolean = false;
-private authFailureTime: number = 0;
-private authErrorLogged: boolean = false;
+// EMERGENCY: Global authentication failure flag - blocks ALL OAuth operations
+private static globalAuthFailure: boolean = false;
+private static authErrorLogged: boolean = false;
 ```
 
 ### Fail-Fast Behavior
 ```typescript
-if (this.globalAuthFailure) {
-  return; // Block ALL API activity
+// EMERGENCY FAIL-FAST: Block ALL OAuth operations if authentication has failed
+if (OAuthHandler.globalAuthFailure) {
+  throw new Error('🔒 Authentication failed - plugin suspended until restart');
 }
 ```
 
 ### Minimal Error Logging
 ```typescript
-this.platform.log.error('🔒 Authentication failed - token expired');
-this.platform.log.error('   Generate new token: node scripts/easy-oauth.js');
-this.platform.log.error('⛔ Plugin suspended until restart');
+this.logger.error('🔒 Authentication failed - token expired');
+this.logger.error('   Generate new token: node scripts/easy-oauth.js');
+this.logger.error('⛔ Plugin suspended until restart');
 ```
 
 ## Conclusion
 
-**v2.0.12 Emergency Release Status**: ✅ **SUCCESSFUL**
-- OAuth spam completely eliminated
-- Clean failure mode implemented
+**v2.0.13 Emergency Release Status**: ✅ **SUCCESSFUL**
+- OAuth spam completely eliminated (fixed critical v2.0.12 bug)
+- Global auth failure flag now works at OAuth handler level
+- Clean failure mode implemented with proper error detection
 - User experience significantly improved
 
 **Root Cause Investigation Status**: 🔄 **IN PROGRESS**
@@ -125,4 +129,4 @@ this.platform.log.error('⛔ Plugin suspended until restart');
 - Fresh token rejection pattern identified
 - Further testing required with real user scenarios
 
-The emergency v2.0.12 release prioritizes **log cleanliness over functionality** - better a silent failure than 70MB of spam. The plugin will now fail gracefully and provide clear guidance for resolution.
+The emergency v2.0.13 release prioritizes **log cleanliness over functionality** - better a silent failure than 70MB of spam. The plugin will now fail gracefully and provide clear guidance for resolution.

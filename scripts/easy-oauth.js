@@ -227,7 +227,7 @@ async function easyOAuth() {
     console.log('```');
     console.log('');
     console.log('🎉 SUCCESS! Your Volvo EX30 plugin should now work perfectly.');
-    console.log('   With v2.0.12, ALL API activity stops after first auth error - zero spam.');
+    console.log('   With v2.0.13, authentication failures trigger complete plugin shutdown - zero spam.');
     
   } catch (error) {
     console.error('❌ Token exchange failed:');

@@ -437,11 +437,12 @@ npm list -g --depth=0 | grep homebridge-volvo-ex30
 2. **Expired refresh token**: Run the OAuth setup again to get a new refresh token
 3. **Region mismatch**: Ensure your region setting matches your vehicle's region
 
-**OAuth Log Spam (COMPLETELY FIXED in v2.0.8)**
-- ✅ **Fixed**: Plugin no longer floods logs with OAuth errors during startup
-- ✅ **Critical Hotfix**: v2.0.8 fixes final OAuth spam source missed in v2.0.7
-- ✅ **Behavior**: Single authentication error message, then complete silence until resolved
-- ✅ **Update**: Simply update to v2.0.8+ to eliminate any OAuth spam issues
+**OAuth Log Spam (COMPLETELY FIXED in v2.0.13)**
+- ✅ **Emergency Fix**: v2.0.13 fixes critical authentication failure detection bug from v2.0.12
+- ✅ **Zero Spam Guarantee**: Plugin will either work or fail with exactly 3 log lines, then complete silence
+- ✅ **Global Shutdown**: First authentication error triggers immediate plugin suspension
+- ✅ **Behavior**: Maximum 3 error lines, then zero API activity until restart
+- ✅ **Update**: Simply update to v2.0.13+ to eliminate any OAuth spam issues
 
 **Error: "OAuth token refresh failed" (FIXED in v1.2.41)**
 - ✅ **Fixed in v1.2.30**: Improved token handling to use config values instead of cached tokens  
