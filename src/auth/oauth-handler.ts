@@ -14,6 +14,11 @@ export class OAuthHandler {
   // EMERGENCY: Global authentication failure flag - blocks ALL OAuth operations
   private static globalAuthFailure: boolean = false;
   private static authErrorLogged: boolean = false;
+  
+  // Public getter for global auth failure state
+  public static get isGlobalAuthFailure(): boolean {
+    return OAuthHandler.globalAuthFailure;
+  }
 
   constructor(
     private readonly config: VolvoApiConfig,

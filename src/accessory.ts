@@ -1,6 +1,7 @@
 import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
 import { VolvoEX30Platform } from './platform';
 import { UnifiedVehicleData } from './api/volvo-api-client';
+import { OAuthHandler } from './auth/oauth-handler';
 
 export class VolvoEX30Accessory {
   private batteryService?: Service;
@@ -32,8 +33,7 @@ export class VolvoEX30Accessory {
   private currentUnifiedData: UnifiedVehicleData | null = null;
   private updateInterval?: NodeJS.Timeout;
   
-  // Global authentication failure flag - blocks ALL API activity after first auth error
-  private globalAuthFailure: boolean = false;
+  // Global authentication failure tracking (uses OAuthHandler.globalAuthFailure)
   private authFailureTime: number = 0;
   private authErrorLogged: boolean = false;
 
@@ -71,7 +71,7 @@ export class VolvoEX30Accessory {
    * Perform initial data fetch with fail-fast error handling
    */
   private async performInitialDataFetch(): Promise<void> {
-    if (this.globalAuthFailure) {
+    if (OAuthHandler.isGlobalAuthFailure) {
       return;
     }
     
@@ -437,7 +437,7 @@ export class VolvoEX30Accessory {
   }
 
   private async getBatteryLevel(): Promise<CharacteristicValue> {
-    if (this.globalAuthFailure) {
+    if (OAuthHandler.isGlobalAuthFailure) {
       return 50; // Safe default
     }
     
@@ -455,7 +455,7 @@ export class VolvoEX30Accessory {
   }
 
   private async getStatusLowBattery(): Promise<CharacteristicValue> {
-    if (this.globalAuthFailure) {
+    if (OAuthHandler.isGlobalAuthFailure) {
       return this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
     }
     
@@ -476,7 +476,7 @@ export class VolvoEX30Accessory {
   }
 
   private async getChargingState(): Promise<CharacteristicValue> {
-    if (this.globalAuthFailure) {
+    if (OAuthHandler.isGlobalAuthFailure) {
       return this.platform.Characteristic.ChargingState.NOT_CHARGING;
     }
     
@@ -499,7 +499,7 @@ export class VolvoEX30Accessory {
 
   private async getUnifiedVehicleData(): Promise<UnifiedVehicleData> {
     // EMERGENCY FAIL-FAST: Block ALL API calls if authentication has failed
-    if (this.globalAuthFailure) {
+    if (OAuthHandler.isGlobalAuthFailure) {
       return this.getDefaultVehicleData();
     }
     
@@ -557,7 +557,7 @@ export class VolvoEX30Accessory {
     
     this.updateInterval = setInterval(async () => {
       // EMERGENCY FAIL-FAST: Skip all polling if authentication has failed
-      if (this.globalAuthFailure) {
+      if (OAuthHandler.isGlobalAuthFailure) {
         return;
       }
       
@@ -595,7 +595,7 @@ export class VolvoEX30Accessory {
   }
 
   private async updateEnergyStateImmediately(): Promise<void> {
-    if (this.globalAuthFailure) {
+    if (OAuthHandler.isGlobalAuthFailure) {
       return;
     }
     
@@ -609,7 +609,7 @@ export class VolvoEX30Accessory {
   
   // Door sensor getters
   private async getFrontLeftDoorState(): Promise<CharacteristicValue> {
-    if (this.globalAuthFailure) {
+    if (OAuthHandler.isGlobalAuthFailure) {
       return this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
     }
     
@@ -631,7 +631,7 @@ export class VolvoEX30Accessory {
   }
   
   private async getFrontRightDoorState(): Promise<CharacteristicValue> {
-    if (this.globalAuthFailure) {
+    if (OAuthHandler.isGlobalAuthFailure) {
       return this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
     }
     
@@ -649,7 +649,7 @@ export class VolvoEX30Accessory {
   }
   
   private async getRearLeftDoorState(): Promise<CharacteristicValue> {
-    if (this.globalAuthFailure) {
+    if (OAuthHandler.isGlobalAuthFailure) {
       return this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
     }
     
@@ -667,7 +667,7 @@ export class VolvoEX30Accessory {
   }
   
   private async getRearRightDoorState(): Promise<CharacteristicValue> {
-    if (this.globalAuthFailure) {
+    if (OAuthHandler.isGlobalAuthFailure) {
       return this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
     }
     
@@ -685,7 +685,7 @@ export class VolvoEX30Accessory {
   }
   
   private async getHoodState(): Promise<CharacteristicValue> {
-    if (this.globalAuthFailure) {
+    if (OAuthHandler.isGlobalAuthFailure) {
       return this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
     }
     
@@ -703,7 +703,7 @@ export class VolvoEX30Accessory {
   }
   
   private async getTailgateState(): Promise<CharacteristicValue> {
-    if (this.globalAuthFailure) {
+    if (OAuthHandler.isGlobalAuthFailure) {
       return this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
     }
     
@@ -722,7 +722,7 @@ export class VolvoEX30Accessory {
   
   // Window sensor getters
   private async getFrontLeftWindowState(): Promise<CharacteristicValue> {
-    if (this.globalAuthFailure) {
+    if (OAuthHandler.isGlobalAuthFailure) {
       return this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
     }
     
@@ -740,7 +740,7 @@ export class VolvoEX30Accessory {
   }
   
   private async getFrontRightWindowState(): Promise<CharacteristicValue> {
-    if (this.globalAuthFailure) {
+    if (OAuthHandler.isGlobalAuthFailure) {
       return this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
     }
     
@@ -758,7 +758,7 @@ export class VolvoEX30Accessory {
   }
   
   private async getRearLeftWindowState(): Promise<CharacteristicValue> {
-    if (this.globalAuthFailure) {
+    if (OAuthHandler.isGlobalAuthFailure) {
       return this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
     }
     
@@ -776,7 +776,7 @@ export class VolvoEX30Accessory {
   }
   
   private async getRearRightWindowState(): Promise<CharacteristicValue> {
-    if (this.globalAuthFailure) {
+    if (OAuthHandler.isGlobalAuthFailure) {
       return this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
     }
     
@@ -794,7 +794,7 @@ export class VolvoEX30Accessory {
   }
   
   private async getSunroofState(): Promise<CharacteristicValue> {
-    if (this.globalAuthFailure) {
+    if (OAuthHandler.isGlobalAuthFailure) {
       return this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
     }
     
@@ -812,7 +812,7 @@ export class VolvoEX30Accessory {
   }
   
   private async updateDoorAndWindowSensors(): Promise<void> {
-    if (this.globalAuthFailure) {
+    if (OAuthHandler.isGlobalAuthFailure) {
       return;
     }
     
@@ -901,7 +901,7 @@ export class VolvoEX30Accessory {
   
   // Lock service methods
   private async getCurrentLockState(): Promise<CharacteristicValue> {
-    if (this.globalAuthFailure) {
+    if (OAuthHandler.isGlobalAuthFailure) {
       return this.platform.Characteristic.LockCurrentState.SECURED;
     }
     
@@ -923,7 +923,7 @@ export class VolvoEX30Accessory {
   }
   
   private async getTargetLockState(): Promise<CharacteristicValue> {
-    if (this.globalAuthFailure) {
+    if (OAuthHandler.isGlobalAuthFailure) {
       return this.platform.Characteristic.LockTargetState.SECURED;
     }
     
@@ -938,7 +938,7 @@ export class VolvoEX30Accessory {
   }
   
   private async setTargetLockState(value: CharacteristicValue): Promise<void> {
-    if (this.globalAuthFailure) {
+    if (OAuthHandler.isGlobalAuthFailure) {
       throw new Error('Plugin suspended due to authentication failure');
     }
     
@@ -992,7 +992,7 @@ export class VolvoEX30Accessory {
   
   // Climate control methods
   private async getClimatizationState(): Promise<CharacteristicValue> {
-    if (this.globalAuthFailure) {
+    if (OAuthHandler.isGlobalAuthFailure) {
       return false;
     }
     
@@ -1000,7 +1000,7 @@ export class VolvoEX30Accessory {
   }
   
   private async setClimatizationState(value: CharacteristicValue): Promise<void> {
-    if (this.globalAuthFailure) {
+    if (OAuthHandler.isGlobalAuthFailure) {
       throw new Error('Plugin suspended due to authentication failure');
     }
     
@@ -1031,7 +1031,7 @@ export class VolvoEX30Accessory {
   }
   
   private async setLocateState(value: CharacteristicValue): Promise<void> {
-    if (this.globalAuthFailure) {
+    if (OAuthHandler.isGlobalAuthFailure) {
       throw new Error('Plugin suspended due to authentication failure');
     }
     
@@ -1058,7 +1058,7 @@ export class VolvoEX30Accessory {
   }
   
   private async updateLockService(): Promise<void> {
-    if (this.globalAuthFailure) {
+    if (OAuthHandler.isGlobalAuthFailure) {
       return;
     }
     
@@ -1086,7 +1086,7 @@ export class VolvoEX30Accessory {
   
   // Diagnostic service methods
   private async getServiceWarningState(): Promise<CharacteristicValue> {
-    if (this.globalAuthFailure) {
+    if (OAuthHandler.isGlobalAuthFailure) {
       return this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
     }
     
@@ -1108,7 +1108,7 @@ export class VolvoEX30Accessory {
   }
   
   private async getOdometerState(): Promise<CharacteristicValue> {
-    if (this.globalAuthFailure) {
+    if (OAuthHandler.isGlobalAuthFailure) {
       return false;
     }
     
@@ -1127,7 +1127,7 @@ export class VolvoEX30Accessory {
   }
   
   private async getTyrePressureState(): Promise<CharacteristicValue> {
-    if (this.globalAuthFailure) {
+    if (OAuthHandler.isGlobalAuthFailure) {
       return this.platform.Characteristic.ContactSensorState.CONTACT_DETECTED;
     }
     
@@ -1157,7 +1157,7 @@ export class VolvoEX30Accessory {
   }
   
   private async updateDiagnosticServices(): Promise<void> {
-    if (this.globalAuthFailure) {
+    if (OAuthHandler.isGlobalAuthFailure) {
       return;
     }
     
@@ -1189,22 +1189,13 @@ export class VolvoEX30Accessory {
   }
 
   /**
-   * EMERGENCY AUTH FAILURE HANDLER - Stops ALL API activity after first auth error
+   * Handle authentication failures - OAuth handler manages the global failure state
    */
   private handleAuthFailure(error: any): void {
+    // OAuth handler already manages global authentication failure state
+    // Just record the time for local tracking
     if (this.isAuthenticationError(error)) {
-      if (!this.globalAuthFailure) {
-        // FIRST AUTH ERROR - Log once and shut down
-        this.globalAuthFailure = true;
-        this.authFailureTime = Date.now();
-        
-        if (!this.authErrorLogged) {
-          this.platform.log.error('🔒 Authentication failed - token expired');
-          this.platform.log.error('   Generate new token: node scripts/easy-oauth.js');
-          this.platform.log.error('⛔ Plugin suspended until restart');
-          this.authErrorLogged = true;
-        }
-      }
+      this.authFailureTime = Date.now();
     }
   }
   
