@@ -8,6 +8,11 @@ export class VolvoEX30Platform implements DynamicPlatformPlugin {
   public readonly Characteristic: typeof Characteristic = this.api.hap.Characteristic;
   public readonly accessories: PlatformAccessory[] = [];
   private apiClient!: VolvoApiClient;
+  
+  // SHARED POLLING: Single poller for all accessories to prevent OAuth spam
+  private sharedPollingTimer?: NodeJS.Timeout;
+  private lastVehicleData: any = null;
+  private dataUpdateCallbacks: Set<() => void> = new Set();
 
   constructor(
     public readonly log: Logger,
@@ -52,31 +57,16 @@ export class VolvoEX30Platform implements DynamicPlatformPlugin {
       this.api.user.storagePath(), // Pass Homebridge storage directory
     );
 
-    // Set the initial refresh token if provided
-    if (this.config.initialRefreshToken) {
-      this.log.info(`🔑 Setting initial refresh token: ${this.config.initialRefreshToken.substring(0, 12)}... (length: ${this.config.initialRefreshToken.length})`);
-      
-      // Clear any existing tokens first
-      this.apiClient.clearCache();
-      
-      // Set the fresh token from config
-      this.apiClient.setTokens({
-        accessToken: '', // Will be refreshed automatically
-        refreshToken: this.config.initialRefreshToken,
-        expiresAt: Date.now(), // Force immediate refresh
-      });
-      
-      this.log.info('✅ Fresh tokens set from config');
-      
-      // Log token storage info for debugging
-      this.logTokenStorageInfo();
-    } else {
-      this.log.error('❌ No initial refresh token found in config!');
-    }
-
     this.api.on('didFinishLaunching', () => {
       this.log.debug('Executed didFinishLaunching callback');
-      this.discoverDevices();
+      // SMART TOKEN MANAGEMENT: Initialize tokens before discovering devices
+      this.initializeTokensSmartly().then(() => {
+        this.discoverDevices();
+      }).catch((error) => {
+        this.log.error('Failed to initialize tokens:', error);
+        // Still try to discover devices with basic setup
+        this.discoverDevices();
+      });
     });
   }
 
@@ -96,9 +86,13 @@ export class VolvoEX30Platform implements DynamicPlatformPlugin {
 
       if (useIndividualAccessories) {
         this.log.info('🎯 Using Individual Accessory Naming Strategy');
+        // CRITICAL: Remove legacy unified accessory to prevent OAuth spam
+        this.removeLegacyUnifiedAccessory();
         this.createIndividualAccessories();
       } else {
         this.log.info('🎯 Using Unified Accessory Naming Strategy (Legacy Mode)');
+        // CRITICAL: Remove individual accessories to prevent OAuth spam
+        this.removeIndividualAccessories();
         this.createUnifiedAccessory();
       }
     } catch (error) {
@@ -197,6 +191,175 @@ export class VolvoEX30Platform implements DynamicPlatformPlugin {
 
   getApiClient(): VolvoApiClient {
     return this.apiClient;
+  }
+
+  /**
+   * Remove legacy unified accessory when switching to individual mode
+   */
+  private removeLegacyUnifiedAccessory() {
+    const unifiedUuid = this.api.hap.uuid.generate(this.config.vin);
+    const unifiedAccessory = this.accessories.find(accessory => accessory.UUID === unifiedUuid);
+    
+    if (unifiedAccessory) {
+      this.log.info('🧹 Removing legacy unified accessory to prevent OAuth conflicts');
+      this.api.unregisterPlatformAccessories('homebridge-volvo-ex30', 'VolvoEX30', [unifiedAccessory]);
+      const index = this.accessories.indexOf(unifiedAccessory);
+      if (index > -1) {
+        this.accessories.splice(index, 1);
+      }
+    }
+  }
+
+  /**
+   * Remove individual accessories when switching to unified mode
+   */
+  private removeIndividualAccessories() {
+    const individualTypes = ['battery', 'lock', 'climate', 'locate'];
+    const accessoriesToRemove: PlatformAccessory[] = [];
+    
+    individualTypes.forEach(type => {
+      const uuid = this.api.hap.uuid.generate(`${this.config.vin}-${type}`);
+      const accessory = this.accessories.find(acc => acc.UUID === uuid);
+      if (accessory) {
+        accessoriesToRemove.push(accessory);
+      }
+    });
+    
+    if (accessoriesToRemove.length > 0) {
+      this.log.info(`🧹 Removing ${accessoriesToRemove.length} individual accessories to prevent OAuth conflicts`);
+      this.api.unregisterPlatformAccessories('homebridge-volvo-ex30', 'VolvoEX30', accessoriesToRemove);
+      accessoriesToRemove.forEach(accessory => {
+        const index = this.accessories.indexOf(accessory);
+        if (index > -1) {
+          this.accessories.splice(index, 1);
+        }
+      });
+    }
+  }
+
+  /**
+   * SHARED POLLING: Start single polling timer for all accessories
+   */
+  public startSharedPolling(): void {
+    if (this.sharedPollingTimer) {
+      return; // Already started
+    }
+    
+    const pollingInterval = (this.config.pollingInterval || 5) * 60 * 1000;
+    this.log.info(`📡 Starting shared polling (${this.config.pollingInterval || 5} min interval)`);
+    
+    this.sharedPollingTimer = setInterval(async () => {
+      try {
+        // Clear cache and fetch fresh data once for all accessories
+        this.apiClient.clearCache();
+        this.lastVehicleData = await this.apiClient.getUnifiedVehicleData(this.config.vin);
+        
+        // Notify all accessories of the data update
+        this.dataUpdateCallbacks.forEach(callback => {
+          try {
+            callback();
+          } catch (error) {
+            this.log.error('Error in data update callback:', error);
+          }
+        });
+        
+        this.log.debug('📊 Shared vehicle data updated for all accessories');
+      } catch (error) {
+        this.log.error('Failed to update shared vehicle data:', error);
+      }
+    }, pollingInterval);
+  }
+  
+  /**
+   * SHARED POLLING: Register callback for data updates
+   */
+  public registerDataUpdateCallback(callback: () => void): void {
+    this.dataUpdateCallbacks.add(callback);
+  }
+  
+  /**
+   * SHARED POLLING: Unregister callback for data updates
+   */
+  public unregisterDataUpdateCallback(callback: () => void): void {
+    this.dataUpdateCallbacks.delete(callback);
+  }
+  
+  /**
+   * SHARED POLLING: Get last fetched vehicle data
+   */
+  public getLastVehicleData(): any {
+    return this.lastVehicleData;
+  }
+
+  /**
+   * SMART TOKEN MANAGEMENT: Initialize tokens with proper priority
+   */
+  private async initializeTokensSmartly(): Promise<void> {
+    try {
+      // Get OAuth handler from API client for token operations  
+      const oAuthHandler = (this.apiClient as any).oAuthHandler;
+      if (!oAuthHandler) {
+        this.log.error('❌ OAuth handler not available');
+        return;
+      }
+
+      // Check stored tokens first via token storage
+      const tokenStorage = (oAuthHandler as any).tokenStorage;
+      if (tokenStorage) {
+        const bestToken = await tokenStorage.getBestRefreshToken(this.config.initialRefreshToken);
+        
+        if (bestToken) {
+          this.log.info(`🔑 Using ${bestToken.source} token: ${bestToken.token.substring(0, 12)}... (length: ${bestToken.token.length})`);
+          
+          // Clear any existing tokens first
+          this.apiClient.clearCache();
+          
+          // Set the best available token
+          this.apiClient.setTokens({
+            accessToken: '', // Will be refreshed automatically
+            refreshToken: bestToken.token,
+            expiresAt: Date.now(), // Force immediate refresh to validate token
+          });
+          
+          // If using config token, mark it for clearing after first rotation
+          if (bestToken.source === 'config') {
+            this.log.info('✅ Config token set - will be marked as used after first successful rotation');
+          } else {
+            this.log.info('✅ Stored rotated token set - ready for use');
+          }
+          
+          return;
+        }
+      }
+
+      // No tokens available at all
+      if (!this.config.initialRefreshToken) {
+        this.log.error('❌ No tokens available (neither stored nor config)!');
+        this.log.error('');
+        this.log.error('🔑 QUICK SETUP - Generate your token with working OAuth scripts:');
+        this.log.error('   1. Run: node scripts/working-oauth.js');
+        this.log.error('   2. Open the generated URL in your browser');
+        this.log.error('   3. Sign in with your Volvo ID and authorize');
+        this.log.error('   4. Copy the code from the redirect URL');
+        this.log.error('   5. Run: node scripts/token-exchange.js [AUTH_CODE]');
+        this.log.error('   6. Copy the refresh token to your config initialRefreshToken');
+        this.log.error('');
+      } else {
+        this.log.error('❌ Token initialization failed despite config token being available');
+      }
+      
+    } catch (error) {
+      this.log.error('❌ Failed to initialize tokens smartly:', error);
+      // Fallback to basic config token setup
+      if (this.config.initialRefreshToken) {
+        this.log.warn('🔄 Falling back to basic config token setup');
+        this.apiClient.setTokens({
+          accessToken: '',
+          refreshToken: this.config.initialRefreshToken,
+          expiresAt: Date.now(),
+        });
+      }
+    }
   }
 
   /**

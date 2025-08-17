@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.3] - 2025-08-17
+
+### 📚 Documentation Updates
+
+#### Added
+- **Complete CHANGELOG.md**: Added comprehensive entries for v2.3.0, v2.3.1, and v2.3.2
+- **Updated README.md**: Added v2.3.2 smart token management features and benefits
+- **Version History**: Documented complete evolution from v2.3.0 simplification through v2.3.2 intelligence
+
+#### Documentation Highlights
+- **Smart Token Management**: Detailed explanation of version tracking and intelligent token priority
+- **OAuth Solution**: Complete documentation of how token rotation issues were solved
+- **Upgrade Instructions**: Clear upgrade paths and expected behavior for each version
+
 ## [2.3.2] - 2025-08-17
 
 ### 🧠 Smart Token Management - Complete OAuth Solution

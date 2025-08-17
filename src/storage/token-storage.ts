@@ -4,15 +4,32 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 
+// Import package.json to get current version
+const packageJson = require('../../package.json');
+
+/**
+ * Token storage entry with version tracking
+ */
+interface TokenEntry {
+  vin: string;
+  refreshToken: string;
+  updatedAt: string;
+  source: 'stored' | 'config';
+  pluginVersion: string;
+  configTokenCleared?: boolean; // Track if config token was cleared after rotation
+}
+
 /**
  * Persistent token storage for Volvo refresh tokens
  * Uses simple JSON file to avoid node-persist conflicts with other plugins
  * Stores tokens in ~/.homebridge/volvo-ex30-tokens.json
  * Survives plugin updates and Homebridge restarts
+ * Includes version tracking for smart token management
  */
 export class TokenStorage {
   private readonly tokenFilePath: string;
   private initialized = false;
+  private readonly currentVersion: string;
 
   constructor(
     private readonly logger: Logger,
@@ -22,8 +39,10 @@ export class TokenStorage {
     // Use simple JSON file in homebridge directory to avoid persist conflicts
     const homebridgeDir = homebridgeStorageDir || path.join(os.homedir(), '.homebridge');
     this.tokenFilePath = path.join(homebridgeDir, 'volvo-ex30-tokens.json');
+    this.currentVersion = packageJson.version;
     
     this.logger.debug(`💾 Token storage file: ${this.tokenFilePath}`);
+    this.logger.debug(`📦 Plugin version: ${this.currentVersion}`);
   }
 
   /**
@@ -64,11 +83,16 @@ export class TokenStorage {
       const tokens = this.readTokenFile();
       const tokenKey = this.getTokenKey();
       
+      // Get existing entry to preserve configTokenCleared flag
+      const existingEntry = tokens[tokenKey];
+      
       tokens[tokenKey] = {
         refreshToken,
         vin: this.vin,
         updatedAt: new Date().toISOString(),
-        source: 'volvo-oauth-rotation',
+        source: 'stored',
+        pluginVersion: this.currentVersion,
+        configTokenCleared: existingEntry?.configTokenCleared || false,
       };
 
       fs.writeFileSync(this.tokenFilePath, JSON.stringify(tokens, null, 2), 'utf8');
@@ -151,25 +175,116 @@ export class TokenStorage {
   }
 
   /**
-   * Get the best available refresh token (config > stored when config provided)
+   * Check if plugin version has changed and handle token migration
+   */
+  async checkVersionChanges(): Promise<{ versionChanged: boolean; shouldClearTokens: boolean; previousVersion?: string }> {
+    await this.ensureInitialized();
+
+    try {
+      const tokens = this.readTokenFile();
+      const tokenKey = this.getTokenKey();
+      const tokenEntry = tokens[tokenKey];
+
+      if (!tokenEntry || !tokenEntry.pluginVersion) {
+        return { versionChanged: true, shouldClearTokens: false }; // First time with version tracking
+      }
+
+      const previousVersion = tokenEntry.pluginVersion;
+      const versionChanged = previousVersion !== this.currentVersion;
+
+      if (versionChanged) {
+        this.logger.info(`📦 Plugin version changed: ${previousVersion} → ${this.currentVersion}`);
+        
+        // Check if it's a major version change (x.y.z where x or y changes)
+        const shouldClearTokens = this.isMajorVersionChange(previousVersion, this.currentVersion);
+        
+        if (shouldClearTokens) {
+          this.logger.warn(`🔄 Major version change detected - tokens may need regeneration`);
+        }
+
+        return { versionChanged, shouldClearTokens, previousVersion };
+      }
+
+      return { versionChanged: false, shouldClearTokens: false };
+    } catch (error) {
+      this.logger.error('❌ Failed to check version changes:', error);
+      return { versionChanged: false, shouldClearTokens: false };
+    }
+  }
+
+  /**
+   * Check if version change is major (x.y.z where x or y changes)
+   */
+  private isMajorVersionChange(oldVersion: string, newVersion: string): boolean {
+    try {
+      const oldParts = oldVersion.split('.').map(x => parseInt(x));
+      const newParts = newVersion.split('.').map(x => parseInt(x));
+      
+      // Major version change: x.y.z where x or y changes
+      return oldParts[0] !== newParts[0] || oldParts[1] !== newParts[1];
+    } catch (error) {
+      // If we can't parse versions, assume it's major
+      return true;
+    }
+  }
+
+  /**
+   * Mark config token as cleared to avoid reuse
+   */
+  async markConfigTokenCleared(): Promise<void> {
+    await this.ensureInitialized();
+
+    try {
+      const tokens = this.readTokenFile();
+      const tokenKey = this.getTokenKey();
+      const tokenEntry = tokens[tokenKey];
+
+      if (tokenEntry) {
+        tokenEntry.configTokenCleared = true;
+        fs.writeFileSync(this.tokenFilePath, JSON.stringify(tokens, null, 2), 'utf8');
+        this.logger.debug('✅ Marked config token as cleared to prevent reuse');
+      }
+    } catch (error) {
+      this.logger.error('❌ Failed to mark config token as cleared:', error);
+    }
+  }
+
+  /**
+   * Get the best available refresh token with smart config token handling
    */
   async getBestRefreshToken(configToken?: string): Promise<{ token: string; source: 'stored' | 'config' } | null> {
-    // If config token provided, prioritize it over stored token
-    // This allows users to provide fresh tokens that override potentially expired stored ones
-    if (configToken) {
-      // Only clear stored token if it's different - avoid repetitive logging
-      const storedToken = await this.getStoredRefreshTokenSilently();
-      if (storedToken && storedToken !== configToken) {
-        await this.clearStoredTokenSilently();
-      }
-      
-      return { token: configToken, source: 'config' };
+    // Check for version changes first
+    const versionCheck = await this.checkVersionChanges();
+    
+    if (versionCheck.shouldClearTokens) {
+      this.logger.warn('🔄 Major version change - clearing stored tokens to force fresh authentication');
+      await this.clearStoredToken();
     }
 
-    // No config token - try stored token
-    const storedToken = await this.getStoredRefreshToken();
+    // Always prefer stored (rotated) tokens over config tokens
+    const storedToken = await this.getStoredRefreshTokenSilently();
+    
     if (storedToken) {
+      // Check if config token was already used and cleared
+      const tokens = this.readTokenFile();
+      const tokenKey = this.getTokenKey();
+      const tokenEntry = tokens[tokenKey];
+      
+      if (configToken && !tokenEntry?.configTokenCleared && configToken !== storedToken) {
+        // Fresh config token provided and not yet used - clear stored token to use fresh one
+        this.logger.info('💾 Fresh config token provided - will use instead of stored token');
+        await this.clearStoredToken();
+        return { token: configToken, source: 'config' };
+      }
+      
+      // Use stored rotated token (most current)
       return { token: storedToken, source: 'stored' };
+    }
+    
+    // No stored token - use config token for initial authentication only
+    if (configToken) {
+      this.logger.info('💾 No stored token found - will use config token for initial authentication');
+      return { token: configToken, source: 'config' };
     }
 
     // No token available

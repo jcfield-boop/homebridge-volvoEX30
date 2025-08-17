@@ -72,7 +72,8 @@ export class VolvoEX30Accessory {
       }
     }
     
-    this.startPolling();
+    // SHARED POLLING: Use platform-level shared poller instead of individual timers
+    this.useSharedPolling();
   }
 
   /**
@@ -733,48 +734,95 @@ export class VolvoEX30Accessory {
     };
   }
 
-  private startPolling(): void {
-    const pollingInterval = (this.platform.config.pollingInterval || 5) * 60 * 1000;
+  /**
+   * SHARED POLLING: Use platform-level shared poller to prevent OAuth spam
+   */
+  private useSharedPolling(): void {
+    this.platform.log.debug(`📡 Registering ${this.accessory.displayName} for shared polling`);
     
-    this.platform.log.debug('📡 Starting periodic polling');
+    // Register callback for shared data updates
+    const updateCallback = () => {
+      this.onSharedDataUpdate();
+    };
     
-    this.updateInterval = setInterval(async () => {
-      // EMERGENCY FAIL-FAST: Skip all polling if authentication has failed
-      if (OAuthHandler.isGlobalAuthFailure) {
+    this.platform.registerDataUpdateCallback(updateCallback);
+    
+    // Start the shared poller (only starts once)
+    this.platform.startSharedPolling();
+    
+    // Do initial data load
+    this.updateEnergyStateImmediately();
+  }
+  
+  /**
+   * SHARED POLLING: Handle shared data updates
+   */
+  private onSharedDataUpdate(): void {
+    try {
+      // Use shared data from platform instead of making individual API calls
+      this.currentUnifiedData = this.platform.getLastVehicleData();
+      
+      if (!this.currentUnifiedData) {
         return;
       }
       
-      try {
-        const apiClient = this.platform.getApiClient();
-        apiClient.clearCache();
-        this.currentUnifiedData = null;
-        
-        const unifiedData = await this.getUnifiedVehicleData();
-        const batteryLevel = await this.getBatteryLevel();
-
-        if (this.batteryService) {
-          this.batteryService.updateCharacteristic(this.platform.Characteristic.BatteryLevel, batteryLevel);
-          this.batteryService.updateCharacteristic(this.platform.Characteristic.StatusLowBattery, await this.getStatusLowBattery());
-          this.batteryService.updateCharacteristic(this.platform.Characteristic.ChargingState, await this.getChargingState());
-        }
-
-        if (this.platform.config.enableDoors) {
-          await this.updateDoorAndWindowSensors();
-        }
-        
-        if (this.platform.config.enableLocks) {
-          await this.updateLockService();
-        }
-        
-        await this.updateDiagnosticServices();
-
-        this.platform.log.debug('📊 Vehicle data updated');
-      } catch (error) {
-        this.handleAuthFailure(error);
+      // Update characteristics based on accessory type
+      const accessoryType = this.accessory.context.device?.type;
+      
+      if (accessoryType === 'battery' || !accessoryType) {
+        this.updateBatteryCharacteristics();
       }
-    }, pollingInterval);
-    
-    this.updateEnergyStateImmediately();
+      
+      if (accessoryType === 'lock' || !accessoryType) {
+        this.updateLockCharacteristics();
+      }
+      
+      if (accessoryType === 'climate' || !accessoryType) {
+        this.updateClimateCharacteristics();
+      }
+      
+      // For unified accessory, update all services
+      if (!accessoryType || accessoryType === 'unified') {
+        if (this.platform.config.enableDoors) {
+          this.updateDoorAndWindowSensors();
+        }
+        
+        this.updateDiagnosticServices();
+      }
+      
+    } catch (error) {
+      this.platform.log.error(`Error updating ${this.accessory.displayName}:`, error);
+    }
+  }
+  
+  /**
+   * SHARED POLLING: Update battery service characteristics
+   */
+  private async updateBatteryCharacteristics(): Promise<void> {
+    if (this.batteryService) {
+      const batteryLevel = await this.getBatteryLevel();
+      this.batteryService.updateCharacteristic(this.platform.Characteristic.BatteryLevel, batteryLevel);
+      this.batteryService.updateCharacteristic(this.platform.Characteristic.StatusLowBattery, await this.getStatusLowBattery());
+      this.batteryService.updateCharacteristic(this.platform.Characteristic.ChargingState, await this.getChargingState());
+    }
+  }
+  
+  /**
+   * SHARED POLLING: Update lock service characteristics  
+   */
+  private async updateLockCharacteristics(): Promise<void> {
+    if (this.lockService) {
+      this.lockService.updateCharacteristic(this.platform.Characteristic.LockCurrentState, await this.getCurrentLockState());
+    }
+  }
+  
+  /**
+   * SHARED POLLING: Update climate service characteristics
+   */
+  private async updateClimateCharacteristics(): Promise<void> {
+    if (this.climateService) {
+      // Update climate characteristics here when implemented
+    }
   }
 
   private async updateEnergyStateImmediately(): Promise<void> {

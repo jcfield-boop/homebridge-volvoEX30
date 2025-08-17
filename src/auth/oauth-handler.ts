@@ -173,6 +173,15 @@ export class OAuthHandler {
       if (response.data.refresh_token && response.data.refresh_token !== refreshToken) {
         this.logger.debug('🔄 Token rotated by Volvo - storing new refresh token');
         await this.storeRefreshToken(response.data.refresh_token);
+        
+        // Mark config token as used if this was a config token refresh
+        if (this.tokenStorage) {
+          try {
+            await this.tokenStorage.markConfigTokenCleared();
+          } catch (error) {
+            this.logger.debug('❌ Failed to mark config token as cleared:', error);
+          }
+        }
       }
       
       this.logger.debug('✅ Successfully refreshed OAuth tokens');
@@ -196,17 +205,24 @@ export class OAuthHandler {
         if (error.response.status === 400) {
           const errorData = error.response.data;
           if (errorData?.error === 'invalid_grant') {
-            throw new Error(`🔒 Refresh token has expired (7-day limit reached). Please generate a new token:
+            // Check if this was a config token that failed
+            const tokenAge = this.getTokenAge(refreshToken);
+            if (tokenAge && tokenAge < 60) { // Less than 1 minute old
+              throw new Error(`🔒 Config token was already used and rotated. Using stored rotated token instead.
+This is normal when restarting shortly after token generation.`);
+            } else {
+              throw new Error(`🔒 Refresh token has expired (7-day limit or already used). Please generate a new token:
 1. Run: node scripts/easy-oauth.js
 2. Update your Homebridge config with the new initialRefreshToken
-This happens when Homebridge is offline for 7+ consecutive days.`);
+This happens when Homebridge is offline for 7+ consecutive days or when old tokens are reused.`);
+            }
           } else if (errorData?.error === 'invalid_client') {
-            throw new Error('Invalid client credentials. Check your Client ID and Client Secret in your Homebridge config.');
+            throw new Error('🔒 Invalid client credentials. Check your Client ID and Client Secret in your Homebridge config.');
           }
         } else if (error.response.status === 401) {
-          throw new Error(`🔒 Authentication failed - refresh token has likely expired after 7 days of inactivity. 
+          throw new Error(`🔒 Authentication failed - refresh token has expired or is invalid.
 Generate a new token:
-1. Run: node scripts/working-oauth.js
+1. Run: node scripts/working-oauth.js  
 2. Run: node scripts/token-exchange.js [AUTH_CODE]
 3. Update your Homebridge config with the new initialRefreshToken`);
         }
@@ -275,10 +291,12 @@ Generate a new token:
         }
         
         try {
-          // CRITICAL FIX: Always prefer fresh config token over potentially expired stored token
+          // Use the best available token (stored rotated token preferred over config)
           const tokenToUse = bestToken?.token || this.tokens.refreshToken;
           if (bestToken?.source === 'config') {
-            this.logger.info('🔄 Using fresh config token for refresh (prioritized over stored token)');
+            this.logger.debug('🔄 Using config token for refresh (no stored token available)');
+          } else if (bestToken?.source === 'stored') {
+            this.logger.debug('🔄 Using stored rotated token for refresh');
           }
           this.tokens = await this.refreshAccessToken(tokenToUse);
           // Only log once per refresh, not per waiting request
@@ -333,6 +351,21 @@ Generate a new token:
   private generateCodeChallenge(codeVerifier: string): string {
     const hash = crypto.createHash('sha256').update(codeVerifier).digest();
     return hash.toString('base64url');
+  }
+
+  /**
+   * Get approximate age of a token in seconds (for error analysis)
+   */
+  private getTokenAge(token: string): number | null {
+    try {
+      // Estimate based on current tokens if available
+      if (this.tokens && this.tokens.refreshToken === token) {
+        return (Date.now() - this.tokens.expiresAt) / 1000;
+      }
+      return null;
+    } catch {
+      return null;
+    }
   }
 
   /**

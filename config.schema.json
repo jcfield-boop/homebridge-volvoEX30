@@ -2,9 +2,8 @@
   "pluginAlias": "VolvoEX30",
   "pluginType": "platform",
   "singular": false,
-  "customUi": true,
-  "headerDisplay": "🚗 **Volvo EX30 Plugin** - Connect your EX30 to HomeKit with comprehensive vehicle monitoring including battery, doors, windows, locks, climate control, and diagnostics. [Custom Configuration UI Available]",
-  "footerDisplay": "💡 **Tip**: Use the custom configuration interface above for easy OAuth setup, or configure manually using the form below. The Connected Vehicle API provides much richer data than the Energy API.",
+  "headerDisplay": "🚗 **Volvo EX30 Plugin** - Connect your EX30 to HomeKit with individual named accessories for better organization. Features battery (as blind), lock management, thermostat climate control, and locate switch.",
+  "footerDisplay": "🔑 **Token Setup**: Generate tokens using included scripts: `cd node_modules/homebridge-volvo-ex30 && node scripts/easy-oauth.js` then copy the refresh token to the configuration below.",
   "schema": {
     "type": "object",
     "properties": {
