@@ -2,6 +2,33 @@
 
 A comprehensive Homebridge plugin that integrates your Volvo EX30 with Apple HomeKit using the official Volvo Connected Vehicle API v2. Monitor battery status, control locks and climate, track doors and windows, and access vehicle diagnostics - all from the Home app.
 
+## 🎯 v2.3.5 - Complete OAuth Spam & Climate Control Fix
+
+**FINAL SOLUTION!** This release completely eliminates OAuth spam and fixes climate control command failures.
+
+### ✅ **OAuth Spam Completely Eliminated**
+- **🔇 Zero OAuth Spam** - Eliminated ALL individual API calls during accessory setup
+- **📡 Single Data Fetch** - Platform makes exactly ONE API call during startup
+- **🏎️ True Shared Architecture** - All accessories read from shared cache, never make API calls
+- **🚀 Clean Startup** - No more repetitive log messages or token access conflicts
+
+### 🌡️ **Climate Control Commands Fixed**
+- **🔧 Proper UUID Format** - Fixed API operation IDs to use RFC 4122 UUIDs
+- **✅ No More 422 Errors** - Resolved "Invalid UUID" errors from Volvo API
+- **🎛️ All Commands Work** - Lock/unlock, climate control, and honk/flash fully functional
+
+### 🛠️ **Technical Improvements**
+- **Accessory Setup** - Removed individual `performInitialDataFetch()` calls
+- **Data Access** - Modified `getUnifiedVehicleData()` to use shared data only
+- **UUID Generation** - Replaced custom IDs with `crypto.randomUUID()`
+- **Architecture** - True shared polling with zero concurrent API requests
+
+**Upgrade**: `npm install -g homebridge-volvo-ex30@2.3.5` + restart Homebridge
+
+**Result**: Perfect startup experience + fully working climate control! 🚗💨
+
+---
+
 ## 🧠 v2.3.2 - Smart Token Management
 
 **COMPLETE OAUTH SOLUTION!** This release introduces intelligent token management that finally solves all OAuth rotation and persistence issues.
@@ -23,8 +50,6 @@ A comprehensive Homebridge plugin that integrates your Volvo EX30 with Apple Hom
 - **Clean Startup Logs** - No more 50+ OAuth spam messages
 - **Persistent Tokens** - Work across restarts, updates, and version changes
 - **Smart Error Messages** - Clear guidance when manual intervention needed
-
-**Upgrade**: `npm install -g homebridge-volvo-ex30@2.3.2` + restart Homebridge
 
 ---
 
