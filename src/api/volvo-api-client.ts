@@ -103,6 +103,11 @@ export class VolvoApiClient {
   private setupRequestInterceptors(): void {
     this.httpClient.interceptors.request.use(
       async (config) => {
+        // CRITICAL: Check global auth failure BEFORE making any requests
+        if (OAuthHandler.isGlobalAuthFailure) {
+          throw new Error('🔒 Authentication failed - plugin suspended until restart');
+        }
+        
         if (!this.checkRateLimit()) {
           throw new Error('Rate limit exceeded. Please wait before making more requests.');
         }
@@ -221,6 +226,11 @@ export class VolvoApiClient {
   
   // Unified data retrieval method
   async getUnifiedVehicleData(vin: string): Promise<UnifiedVehicleData> {
+    // CRITICAL: Early return if authentication has failed globally
+    if (OAuthHandler.isGlobalAuthFailure) {
+      throw new Error('🔒 Authentication failed - plugin suspended until restart');
+    }
+    
     const cacheKey = `unified_data_${vin}`;
     const cached = this.cache.get<UnifiedVehicleData>(cacheKey);
     

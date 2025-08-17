@@ -70,6 +70,11 @@ export class ConnectedVehicleClient {
   private setupRequestInterceptors(): void {
     this.httpClient.interceptors.request.use(
       async (config) => {
+        // CRITICAL: Check global auth failure BEFORE making any requests
+        if (OAuthHandler.isGlobalAuthFailure) {
+          throw new Error('🔒 Authentication failed - plugin suspended until restart');
+        }
+        
         if (!this.checkRateLimit()) {
           throw new Error('Rate limit exceeded. Please wait before making more requests.');
         }
@@ -564,6 +569,11 @@ export class ConnectedVehicleClient {
 
   // Comprehensive state retrieval
   async getCompleteVehicleState(vin: string): Promise<ConnectedVehicleState> {
+    // CRITICAL: Early return if authentication has failed globally
+    if (OAuthHandler.isGlobalAuthFailure) {
+      throw new Error('🔒 Authentication failed - plugin suspended until restart');
+    }
+    
     this.logger.debug(`Fetching complete vehicle state for ${vin}`);
     
     const state: ConnectedVehicleState = {
