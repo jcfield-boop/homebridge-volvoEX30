@@ -2,6 +2,17 @@
 
 A comprehensive Homebridge plugin that integrates your Volvo EX30 with Apple HomeKit using the official Volvo Connected Vehicle API v2. Monitor battery status, control locks and climate, track doors and windows, and access vehicle diagnostics - all from the Home app.
 
+## 🎯 v2.1.0 - Simplified Presentation & Enhanced Usability
+
+**Clean, Simple HomeKit Experience!** This release introduces simplified presentation with exactly 4 core tiles for better user experience while maintaining full functionality for advanced users.
+
+### ✨ **New in v2.1.0**
+- **🎯 Simplified Presentation**: Default to 4 essential tiles - "Volvo Lock", "Volvo Climate", "Volvo Battery", "Volvo Locate"
+- **📱 Clean Interface**: Plain naming convention for better HomeKit app experience
+- **⚙️ Presentation Modes**: Choose between Simple (4 tiles) or Advanced (all sensors) via config
+- **📍 Enhanced Locate**: Fixed honk/flash functionality for vehicle location
+- **🔧 Improved Config**: Streamlined configuration options with backward compatibility
+
 ## 🚀 v2.0.0 - Major Connected Vehicle API Update
 
 **Now with full Connected Vehicle API v2 support!** This major release transforms the plugin from basic battery monitoring into a comprehensive vehicle integration platform.
@@ -210,12 +221,9 @@ Add the plugin to your Homebridge `config.json`:
       "initialRefreshToken": "your-initial-refresh-token",
       "region": "eu",
       "pollingInterval": 5,
-      "apiPreference": "connected-first",
-      "enableBattery": true,
-      "enableClimate": true,
-      "enableLocks": true,
-      "enableDoors": true,
-      "enableDiagnostics": true
+      "presentationMode": "simple",
+      "enableHonkFlash": true,
+      "enableAdvancedSensors": false
     }
   ]
 }
@@ -233,14 +241,43 @@ Add the plugin to your Homebridge `config.json`:
 | `initialRefreshToken` | No | - | Initial OAuth refresh token for first-time setup |
 | `region` | No | `eu` | Your vehicle's region (`eu` or `na`) |
 | `pollingInterval` | No | `5` | Update interval in minutes (1-60) |
-| `apiPreference` | No | `connected-first` | API preference: `connected-first`, `energy-first`, `connected-only`, `energy-only` |
-| `enableBattery` | No | `true` | Show native battery service |
-| `enableClimate` | No | `true` | Show climate control service (Connected Vehicle API) |
-| `enableLocks` | No | `true` | Show lock management service (Connected Vehicle API) |
-| `enableDoors` | No | `true` | Show door/window contact sensors (Connected Vehicle API) |
-| `enableDiagnostics` | No | `true` | Show diagnostic sensors (service warnings, odometer, tyre pressure) |
+| `presentationMode` | No | `simple` | Presentation mode: `simple` (4 core tiles) or `advanced` (all sensors) |
+| `enableHonkFlash` | No | `true` | Show locate (honk & flash) switch for finding your vehicle |
+| `enableAdvancedSensors` | No | `false` | Show individual door/window sensors and diagnostics (Advanced mode only) |
+
+### **Legacy Configuration (v2.0.x and earlier)**
+For backward compatibility, the following options are still supported but deprecated:
+| `enableBattery` | No | `true` | Show native battery service (deprecated - use presentationMode) |
+| `enableClimate` | No | `true` | Show climate control service (deprecated - use presentationMode) |
+| `enableLocks` | No | `true` | Show lock management service (deprecated - use presentationMode) |
+| `enableDoors` | No | `true` | Show door/window contact sensors (deprecated - use presentationMode) |
+| `enableDiagnostics` | No | `true` | Show diagnostic sensors (deprecated - use presentationMode) |
 
 ## HomeKit Services
+
+### 🎯 **Simple Presentation Mode (Default)**
+The plugin defaults to **Simple Mode** with exactly 4 clean, essential tiles:
+
+#### **Volvo Battery** 🔋
+- **Battery Level**: Current state of charge (0-100%)
+- **Charging State**: Whether the vehicle is currently charging  
+- **Low Battery**: Alert when battery level is ≤20%
+
+#### **Volvo Lock** 🔒
+- **Current Lock State**: Real-time lock status (Secured/Unsecured)
+- **Target Lock State**: Remote lock/unlock control
+- **Lock Control**: Tap to lock/unlock vehicle from Home app
+
+#### **Volvo Climate** 🌡️
+- **Climate Switch**: Start/stop vehicle climatization
+- **Remote Control**: Pre-condition vehicle before driving
+
+#### **Volvo Locate** 📍
+- **Locate Switch**: Honk horn and flash lights to find your vehicle
+- **One-Touch Activation**: Automatically turns off after triggering
+
+### ⚙️ **Advanced Presentation Mode (Optional)**
+Enable `"presentationMode": "advanced"` for comprehensive monitoring:
 
 ### 🔋 Battery Service
 - **Battery Level**: Current state of charge (0-100%)

@@ -60,35 +60,36 @@
         "maximum": 60,
         "description": "How often to check vehicle status (respects API rate limits)"
       },
-      "enableBattery": {
-        "title": "Enable Battery Service",
-        "type": "boolean",
-        "default": true,
-        "description": "Show battery level and charging status"
+      "presentationMode": {
+        "title": "Presentation Mode",
+        "type": "string",
+        "default": "simple",
+        "oneOf": [
+          {
+            "title": "Simple (4 Core Tiles)",
+            "const": "simple"
+          },
+          {
+            "title": "Advanced (All Sensors)",
+            "const": "advanced"
+          }
+        ],
+        "description": "Simple mode shows 4 essential tiles: Volvo Lock, Volvo Climate, Volvo Battery, Volvo Locate. Advanced mode shows all available sensors."
       },
-      "enableClimate": {
-        "title": "Enable Climate Service",
+      "enableHonkFlash": {
+        "title": "Enable Locate (Honk & Flash)",
         "type": "boolean",
         "default": true,
-        "description": "Show climate control (requires Connected Vehicle API)"
+        "description": "Show honk and flash switch for locating your vehicle"
       },
-      "enableLocks": {
-        "title": "Enable Lock Service",
+      "enableAdvancedSensors": {
+        "title": "Enable Advanced Sensors",
         "type": "boolean",
-        "default": true,
-        "description": "Show door lock status and control (requires Connected Vehicle API)"
-      },
-      "enableDoors": {
-        "title": "Enable Door & Window Sensors",
-        "type": "boolean",
-        "default": true,
-        "description": "Show individual door and window status sensors (requires Connected Vehicle API)"
-      },
-      "enableDiagnostics": {
-        "title": "Enable Diagnostic Sensors",
-        "type": "boolean",
-        "default": true,
-        "description": "Show service warnings, odometer, and tyre pressure sensors"
+        "default": false,
+        "description": "Show individual door/window sensors and diagnostics (only shown in Advanced mode)",
+        "condition": {
+          "functionBody": "return model.presentationMode === 'advanced';"
+        }
       }
     }
   },
@@ -114,14 +115,12 @@
     },
     {
       "type": "fieldset",
-      "title": "Feature Settings",
+      "title": "Presentation Settings",
       "items": [
         "pollingInterval",
-        "enableBattery",
-        "enableClimate",
-        "enableLocks",
-        "enableDoors",
-        "enableDiagnostics"
+        "presentationMode",
+        "enableHonkFlash",
+        "enableAdvancedSensors"
       ]
     }
   ]

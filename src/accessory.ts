@@ -22,6 +22,7 @@ export class VolvoEX30Accessory {
   // Vehicle control services
   private lockService?: Service;
   private climateService?: Service;
+  private locateService?: Service; // Honk & Flash service
   
   // Diagnostic and maintenance services
   private serviceWarningSensor?: Service;
@@ -54,10 +55,15 @@ export class VolvoEX30Accessory {
     // Attempt initial data fetch - this will set auth failure state if needed
     await this.performInitialDataFetch();
     
-    this.setupBatteryService();
-    this.setupDoorAndWindowSensors();
-    this.setupVehicleControlServices();
-    this.setupDiagnosticServices();
+    // Setup services based on presentation mode
+    const presentationMode = this.platform.config.presentationMode || 'simple';
+    
+    if (presentationMode === 'simple') {
+      this.setupSimplePresentationServices();
+    } else {
+      this.setupAdvancedPresentationServices();
+    }
+    
     this.startPolling();
   }
 
@@ -281,6 +287,154 @@ export class VolvoEX30Accessory {
     this.platform.log.debug('🔍 Diagnostic and maintenance services configured');
   }
 
+  /**
+   * Setup simple presentation with 4 core tiles
+   */
+  private setupSimplePresentationServices(): void {
+    this.platform.log.info('🎯 Setting up Simple Presentation Mode - 4 Core Tiles');
+    
+    // 1. Volvo Battery (always enabled)
+    this.setupVolvoBattery();
+    
+    // 2. Volvo Lock (always enabled)
+    this.setupVolvoLock();
+    
+    // 3. Volvo Climate (always enabled)
+    this.setupVolvoClimate();
+    
+    // 4. Volvo Locate (Honk & Flash) - conditionally enabled
+    if (this.platform.config.enableHonkFlash !== false) {
+      this.setupVolvoLocate();
+    }
+    
+    this.platform.log.info('✅ Simple presentation configured - 4 core tiles');
+  }
+
+  /**
+   * Setup advanced presentation with all sensors
+   */
+  private setupAdvancedPresentationServices(): void {
+    this.platform.log.info('🔧 Setting up Advanced Presentation Mode - All Sensors');
+    
+    // Core services (always enabled in advanced mode)
+    this.setupVolvoBattery();
+    this.setupVolvoLock();
+    this.setupVolvoClimate();
+    
+    if (this.platform.config.enableHonkFlash !== false) {
+      this.setupVolvoLocate();
+    }
+    
+    // Advanced sensors (conditionally enabled)
+    if (this.platform.config.enableAdvancedSensors !== false) {
+      this.setupDoorAndWindowSensors();
+      this.setupDiagnosticServices();
+    }
+    
+    this.platform.log.info('✅ Advanced presentation configured - all sensors');
+  }
+
+  /**
+   * Setup Volvo Battery with plain naming
+   */
+  private setupVolvoBattery(): void {
+    this.batteryService = this.accessory.getService(this.platform.Service.Battery) ||
+      this.accessory.addService(this.platform.Service.Battery, 'Volvo Battery', 'volvo-battery');
+
+    this.batteryService.setCharacteristic(this.platform.Characteristic.Name, 'Volvo Battery');
+    this.batteryService.setCharacteristic(this.platform.Characteristic.ConfiguredName, 'Volvo Battery');
+
+    this.batteryService.getCharacteristic(this.platform.Characteristic.BatteryLevel)
+      .onGet(this.getBatteryLevel.bind(this))
+      .setProps({
+        minValue: 0,
+        maxValue: 100,
+        minStep: 1,
+      });
+
+    this.batteryService.getCharacteristic(this.platform.Characteristic.StatusLowBattery)
+      .onGet(this.getStatusLowBattery.bind(this));
+
+    this.batteryService.getCharacteristic(this.platform.Characteristic.ChargingState)
+      .onGet(this.getChargingState.bind(this));
+
+    this.batteryService.setPrimaryService(true);
+    
+    // Set initial values
+    this.batteryService.updateCharacteristic(this.platform.Characteristic.BatteryLevel, 50);
+    this.batteryService.updateCharacteristic(this.platform.Characteristic.StatusLowBattery, 
+      this.platform.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL);
+    this.batteryService.updateCharacteristic(this.platform.Characteristic.ChargingState, 
+      this.platform.Characteristic.ChargingState.NOT_CHARGING);
+    
+    this.platform.log.debug('🔋 Volvo Battery service configured');
+  }
+
+  /**
+   * Setup Volvo Lock with plain naming
+   */
+  private setupVolvoLock(): void {
+    this.lockService = this.accessory.getService('Vehicle Lock') ||
+      this.accessory.addService(this.platform.Service.LockManagement, 'Volvo Lock', 'volvo-lock');
+    
+    this.lockService.setCharacteristic(this.platform.Characteristic.Name, 'Volvo Lock');
+    this.lockService.setCharacteristic(this.platform.Characteristic.ConfiguredName, 'Volvo Lock');
+    
+    this.lockService.getCharacteristic(this.platform.Characteristic.LockCurrentState)
+      .onGet(this.getCurrentLockState.bind(this));
+    
+    this.lockService.getCharacteristic(this.platform.Characteristic.LockTargetState)
+      .onGet(this.getTargetLockState.bind(this))
+      .onSet(this.setTargetLockState.bind(this));
+    
+    // Set initial lock state
+    this.lockService.updateCharacteristic(this.platform.Characteristic.LockCurrentState, 
+      this.platform.Characteristic.LockCurrentState.SECURED);
+    this.lockService.updateCharacteristic(this.platform.Characteristic.LockTargetState,
+      this.platform.Characteristic.LockTargetState.SECURED);
+      
+    this.platform.log.debug('🔒 Volvo Lock service configured');
+  }
+
+  /**
+   * Setup Volvo Climate with plain naming
+   */
+  private setupVolvoClimate(): void {
+    this.climateService = this.accessory.getService('Climate Control') ||
+      this.accessory.addService(this.platform.Service.Switch, 'Volvo Climate', 'volvo-climate');
+    
+    this.climateService.setCharacteristic(this.platform.Characteristic.Name, 'Volvo Climate');
+    this.climateService.setCharacteristic(this.platform.Characteristic.ConfiguredName, 'Volvo Climate');
+    
+    this.climateService.getCharacteristic(this.platform.Characteristic.On)
+      .onGet(this.getClimatizationState.bind(this))
+      .onSet(this.setClimatizationState.bind(this));
+    
+    // Set initial climate state
+    this.climateService.updateCharacteristic(this.platform.Characteristic.On, false);
+    
+    this.platform.log.debug('🌡️ Volvo Climate service configured');
+  }
+
+  /**
+   * Setup Volvo Locate (Honk & Flash) with plain naming
+   */
+  private setupVolvoLocate(): void {
+    this.locateService = this.accessory.getService('Locate Vehicle') ||
+      this.accessory.addService(this.platform.Service.Switch, 'Volvo Locate', 'volvo-locate');
+    
+    this.locateService.setCharacteristic(this.platform.Characteristic.Name, 'Volvo Locate');
+    this.locateService.setCharacteristic(this.platform.Characteristic.ConfiguredName, 'Volvo Locate');
+    
+    this.locateService.getCharacteristic(this.platform.Characteristic.On)
+      .onGet(this.getLocateState.bind(this))
+      .onSet(this.setLocateState.bind(this));
+    
+    // Set initial locate state (always off)
+    this.locateService.updateCharacteristic(this.platform.Characteristic.On, false);
+    
+    this.platform.log.debug('📍 Volvo Locate service configured');
+  }
 
   private async getBatteryLevel(): Promise<CharacteristicValue> {
     if (this.globalAuthFailure) {
@@ -867,6 +1021,39 @@ export class VolvoEX30Accessory {
       this.handleAuthFailure(error);
       this.climateService?.updateCharacteristic(this.platform.Characteristic.On, !value);
       throw error;
+    }
+  }
+
+  // Locate service methods (Honk & Flash)
+  private async getLocateState(): Promise<CharacteristicValue> {
+    // Locate switch is always off (momentary action)
+    return false;
+  }
+  
+  private async setLocateState(value: CharacteristicValue): Promise<void> {
+    if (this.globalAuthFailure) {
+      throw new Error('Plugin suspended due to authentication failure');
+    }
+    
+    if (value as boolean) {
+      try {
+        const apiClient = this.platform.getApiClient();
+        const vin = this.platform.config.vin;
+        
+        this.platform.log.info('📍 Locating vehicle - honk and flash...');
+        const result = await apiClient.honkFlash(vin);
+        this.platform.log.info(`Locate command result: ${result.invokeStatus}`);
+        
+        // Always turn the switch back off after triggering
+        setTimeout(() => {
+          this.locateService?.updateCharacteristic(this.platform.Characteristic.On, false);
+        }, 1000);
+        
+      } catch (error) {
+        this.handleAuthFailure(error);
+        this.locateService?.updateCharacteristic(this.platform.Characteristic.On, false);
+        throw error;
+      }
     }
   }
   

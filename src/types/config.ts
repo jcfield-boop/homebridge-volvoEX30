@@ -7,6 +7,10 @@ export interface VolvoEX30Config {
   initialRefreshToken?: string;
   region?: 'eu' | 'na';
   pollingInterval?: number;
+  presentationMode?: 'simple' | 'advanced';
+  enableHonkFlash?: boolean;
+  enableAdvancedSensors?: boolean;
+  // Legacy flags for backward compatibility
   enableBattery?: boolean;
   enableClimate?: boolean;
   enableLocks?: boolean;

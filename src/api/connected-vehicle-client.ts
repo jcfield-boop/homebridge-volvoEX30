@@ -543,6 +543,25 @@ export class ConnectedVehicleClient {
     }
   }
 
+  async honkFlash(vin: string): Promise<CommandInvokeResponse> {
+    if (!this.checkCommandRateLimit()) {
+      throw new Error('Command rate limit exceeded. Please wait before sending more commands.');
+    }
+
+    try {
+      const response = await this.httpClient.post<CommandInvokeResponse>(
+        `/vehicles/${vin}/commands/honk-flash`, 
+        {} as HonkFlashRequest
+      );
+      this.updateCommandRateLimit();
+      this.logger.info(`Honk and flash command sent for vehicle ${vin}. Status: ${response.data.invokeStatus}`);
+      return response.data;
+    } catch (error) {
+      this.logger.error(`Failed to honk and flash vehicle ${vin}:`, error);
+      throw error;
+    }
+  }
+
   // Comprehensive state retrieval
   async getCompleteVehicleState(vin: string): Promise<ConnectedVehicleState> {
     this.logger.debug(`Fetching complete vehicle state for ${vin}`);

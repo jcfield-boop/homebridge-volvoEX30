@@ -341,6 +341,10 @@ export class VolvoApiClient {
     return this.connectedVehicleClient.stopClimatization(vin);
   }
   
+  async honkFlash(vin: string) {
+    return this.connectedVehicleClient.honkFlash(vin);
+  }
+  
   async getConnectedVehicleState(vin: string): Promise<ConnectedVehicleState> {
     return this.connectedVehicleClient.getCompleteVehicleState(vin);
   }
