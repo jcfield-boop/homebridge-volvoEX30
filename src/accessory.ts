@@ -55,13 +55,21 @@ export class VolvoEX30Accessory {
     // Attempt initial data fetch - this will set auth failure state if needed
     await this.performInitialDataFetch();
     
-    // Setup services based on presentation mode
-    const presentationMode = this.platform.config.presentationMode || 'simple';
+    // Check if this is an individual accessory or unified accessory
+    const accessoryType = this.accessory.context.device?.type;
     
-    if (presentationMode === 'simple') {
-      this.setupSimplePresentationServices();
+    if (accessoryType && accessoryType !== 'unified') {
+      // Individual accessory mode - setup only the specific service for this accessory
+      this.setupIndividualAccessoryService(accessoryType);
     } else {
-      this.setupAdvancedPresentationServices();
+      // Unified accessory mode - setup services based on presentation mode
+      const presentationMode = this.platform.config.presentationMode || 'simple';
+      
+      if (presentationMode === 'simple') {
+        this.setupSimplePresentationServices();
+      } else {
+        this.setupAdvancedPresentationServices();
+      }
     }
     
     this.startPolling();
@@ -82,6 +90,31 @@ export class VolvoEX30Accessory {
       this.platform.log.debug('✅ Initial vehicle data loaded');
     } catch (error) {
       this.handleAuthFailure(error);
+    }
+  }
+
+  /**
+   * Setup service for individual accessory type
+   */
+  private setupIndividualAccessoryService(accessoryType: string): void {
+    this.platform.log.debug(`🎯 Setting up individual ${accessoryType} accessory`);
+    
+    switch (accessoryType) {
+      case 'battery':
+        this.setupIndividualBatteryService();
+        break;
+      case 'lock':
+        this.setupIndividualLockService();
+        break;
+      case 'climate':
+        this.setupIndividualClimateService();
+        break;
+      case 'locate':
+        this.setupIndividualLocateService();
+        break;
+      default:
+        this.platform.log.warn(`Unknown accessory type: ${accessoryType}`);
+        break;
     }
   }
 
@@ -439,6 +472,151 @@ export class VolvoEX30Accessory {
     this.locateService.updateCharacteristic(this.platform.Characteristic.On, false);
     
     this.platform.log.debug('📍 Volvo Locate service configured');
+  }
+
+  // ================== Individual Accessory Service Setup Methods ==================
+
+  /**
+   * Setup Battery service for individual EX30 Battery accessory
+   */
+  private setupIndividualBatteryService(): void {
+    // Use WindowCovering service for better visual representation
+    this.batteryService = this.accessory.getService(this.platform.Service.WindowCovering) ||
+      this.accessory.addService(this.platform.Service.WindowCovering, 'Battery Level', 'battery-level');
+
+    this.batteryService.setCharacteristic(this.platform.Characteristic.Name, 'Battery Level');
+    
+    // Current position = battery level (0-100%)
+    this.batteryService.getCharacteristic(this.platform.Characteristic.CurrentPosition)
+      .onGet(this.getBatteryLevel.bind(this))
+      .setProps({
+        minValue: 0,
+        maxValue: 100,
+        minStep: 1,
+      });
+
+    // Target position = current position (read-only)
+    this.batteryService.getCharacteristic(this.platform.Characteristic.TargetPosition)
+      .onGet(this.getBatteryLevel.bind(this))
+      .onSet(async (value) => {
+        // Read-only - immediately set back to current battery level
+        const currentLevel = await this.getBatteryLevel();
+        this.batteryService?.updateCharacteristic(this.platform.Characteristic.TargetPosition, currentLevel);
+      });
+
+    // Position state = stopped (battery doesn't "move")
+    this.batteryService.getCharacteristic(this.platform.Characteristic.PositionState)
+      .onGet(() => this.platform.Characteristic.PositionState.STOPPED);
+
+    // Set primary service and initial values
+    this.batteryService.setPrimaryService(true);
+    this.batteryService.updateCharacteristic(this.platform.Characteristic.CurrentPosition, 50);
+    this.batteryService.updateCharacteristic(this.platform.Characteristic.TargetPosition, 50);
+    this.batteryService.updateCharacteristic(this.platform.Characteristic.PositionState, 
+      this.platform.Characteristic.PositionState.STOPPED);
+    
+    this.platform.log.debug('🔋 Individual Battery accessory configured (WindowCovering)');
+  }
+
+  /**
+   * Setup Lock service for individual EX30 Lock accessory
+   */
+  private setupIndividualLockService(): void {
+    this.lockService = this.accessory.getService(this.platform.Service.LockManagement) ||
+      this.accessory.addService(this.platform.Service.LockManagement, 'Door Locks', 'door-locks');
+    
+    this.lockService.setCharacteristic(this.platform.Characteristic.Name, 'Door Locks');
+    
+    this.lockService.getCharacteristic(this.platform.Characteristic.LockCurrentState)
+      .onGet(this.getCurrentLockState.bind(this));
+    
+    this.lockService.getCharacteristic(this.platform.Characteristic.LockTargetState)
+      .onGet(this.getTargetLockState.bind(this))
+      .onSet(this.setTargetLockState.bind(this));
+    
+    // Set primary service and initial values
+    this.lockService.setPrimaryService(true);
+    this.lockService.updateCharacteristic(this.platform.Characteristic.LockCurrentState, 
+      this.platform.Characteristic.LockCurrentState.SECURED);
+    this.lockService.updateCharacteristic(this.platform.Characteristic.LockTargetState,
+      this.platform.Characteristic.LockTargetState.SECURED);
+      
+    this.platform.log.debug('🔒 Individual Lock accessory configured');
+  }
+
+  /**
+   * Setup Thermostat service for individual EX30 Climate accessory
+   */
+  private setupIndividualClimateService(): void {
+    this.climateService = this.accessory.getService(this.platform.Service.Thermostat) ||
+      this.accessory.addService(this.platform.Service.Thermostat, 'Climate Control', 'climate-control');
+    
+    this.climateService.setCharacteristic(this.platform.Characteristic.Name, 'Climate Control');
+    
+    // Current temperature (from vehicle data or reasonable default)
+    this.climateService.getCharacteristic(this.platform.Characteristic.CurrentTemperature)
+      .onGet(this.getCurrentTemperature.bind(this))
+      .setProps({
+        minValue: -40,
+        maxValue: 50,
+        minStep: 0.1,
+      });
+
+    // Target temperature control
+    this.climateService.getCharacteristic(this.platform.Characteristic.TargetTemperature)
+      .onGet(this.getTargetTemperature.bind(this))
+      .onSet(this.setTargetTemperature.bind(this))
+      .setProps({
+        minValue: 15,
+        maxValue: 25,
+        minStep: 0.5,
+      });
+
+    // Heating/cooling state
+    this.climateService.getCharacteristic(this.platform.Characteristic.CurrentHeatingCoolingState)
+      .onGet(this.getCurrentHeatingCoolingState.bind(this));
+
+    // Target heating/cooling state control
+    this.climateService.getCharacteristic(this.platform.Characteristic.TargetHeatingCoolingState)
+      .onGet(this.getTargetHeatingCoolingState.bind(this))
+      .onSet(this.setTargetHeatingCoolingState.bind(this))
+      .setProps({
+        validValues: [
+          this.platform.Characteristic.TargetHeatingCoolingState.OFF,
+          this.platform.Characteristic.TargetHeatingCoolingState.AUTO,
+        ],
+      });
+
+    // Set primary service and initial values
+    this.climateService.setPrimaryService(true);
+    this.climateService.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, 20);
+    this.climateService.updateCharacteristic(this.platform.Characteristic.TargetTemperature, 20);
+    this.climateService.updateCharacteristic(this.platform.Characteristic.CurrentHeatingCoolingState, 
+      this.platform.Characteristic.CurrentHeatingCoolingState.OFF);
+    this.climateService.updateCharacteristic(this.platform.Characteristic.TargetHeatingCoolingState,
+      this.platform.Characteristic.TargetHeatingCoolingState.OFF);
+    
+    this.platform.log.debug('🌡️ Individual Climate accessory configured (Thermostat)');
+  }
+
+  /**
+   * Setup Switch service for individual EX30 Locate accessory (momentary)
+   */
+  private setupIndividualLocateService(): void {
+    this.locateService = this.accessory.getService(this.platform.Service.Switch) ||
+      this.accessory.addService(this.platform.Service.Switch, 'Vehicle Locate', 'vehicle-locate');
+    
+    this.locateService.setCharacteristic(this.platform.Characteristic.Name, 'Vehicle Locate');
+    
+    this.locateService.getCharacteristic(this.platform.Characteristic.On)
+      .onGet(this.getLocateState.bind(this))
+      .onSet(this.setLocateState.bind(this));
+    
+    // Set primary service and initial values
+    this.locateService.setPrimaryService(true);
+    this.locateService.updateCharacteristic(this.platform.Characteristic.On, false);
+    
+    this.platform.log.debug('📍 Individual Locate accessory configured (Momentary Switch)');
   }
 
   private async getBatteryLevel(): Promise<CharacteristicValue> {
@@ -1059,6 +1237,113 @@ export class VolvoEX30Accessory {
         this.locateService?.updateCharacteristic(this.platform.Characteristic.On, false);
         throw error;
       }
+    }
+  }
+
+  // ================== Thermostat Service Handler Methods ==================
+
+  private async getCurrentTemperature(): Promise<CharacteristicValue> {
+    if (OAuthHandler.isGlobalAuthFailure) {
+      return 20; // Safe default
+    }
+    
+    try {
+      // TODO: Get actual temperature from vehicle data when available
+      // For now, return a reasonable default
+      return 20;
+    } catch (error) {
+      this.handleAuthFailure(error);
+      return 20;
+    }
+  }
+
+  private async getTargetTemperature(): Promise<CharacteristicValue> {
+    if (OAuthHandler.isGlobalAuthFailure) {
+      return 20; // Safe default
+    }
+    
+    try {
+      // TODO: Get target temperature from vehicle data when available
+      // For now, return a reasonable default
+      return 20;
+    } catch (error) {
+      this.handleAuthFailure(error);
+      return 20;
+    }
+  }
+
+  private async setTargetTemperature(value: CharacteristicValue): Promise<void> {
+    if (OAuthHandler.isGlobalAuthFailure) {
+      throw new Error('Plugin suspended due to authentication failure');
+    }
+    
+    try {
+      this.platform.log.info(`🌡️ Setting target temperature to ${value}°C`);
+      // TODO: Implement actual temperature setting when Volvo API supports it
+      // For now, just acknowledge the setting
+      this.climateService?.updateCharacteristic(this.platform.Characteristic.TargetTemperature, value);
+    } catch (error) {
+      this.handleAuthFailure(error);
+      throw error;
+    }
+  }
+
+  private async getCurrentHeatingCoolingState(): Promise<CharacteristicValue> {
+    if (OAuthHandler.isGlobalAuthFailure) {
+      return this.platform.Characteristic.CurrentHeatingCoolingState.OFF;
+    }
+    
+    try {
+      // Check if climatization is currently active
+      const isActive = await this.getClimatizationState();
+      return (isActive as boolean) ? 
+        this.platform.Characteristic.CurrentHeatingCoolingState.HEAT :
+        this.platform.Characteristic.CurrentHeatingCoolingState.OFF;
+    } catch (error) {
+      this.handleAuthFailure(error);
+      return this.platform.Characteristic.CurrentHeatingCoolingState.OFF;
+    }
+  }
+
+  private async getTargetHeatingCoolingState(): Promise<CharacteristicValue> {
+    if (OAuthHandler.isGlobalAuthFailure) {
+      return this.platform.Characteristic.TargetHeatingCoolingState.OFF;
+    }
+    
+    try {
+      // Check if climatization is currently active
+      const isActive = await this.getClimatizationState();
+      return (isActive as boolean) ? 
+        this.platform.Characteristic.TargetHeatingCoolingState.AUTO :
+        this.platform.Characteristic.TargetHeatingCoolingState.OFF;
+    } catch (error) {
+      this.handleAuthFailure(error);
+      return this.platform.Characteristic.TargetHeatingCoolingState.OFF;
+    }
+  }
+
+  private async setTargetHeatingCoolingState(value: CharacteristicValue): Promise<void> {
+    if (OAuthHandler.isGlobalAuthFailure) {
+      throw new Error('Plugin suspended due to authentication failure');
+    }
+    
+    try {
+      const targetState = value as number;
+      const shouldStart = targetState !== this.platform.Characteristic.TargetHeatingCoolingState.OFF;
+      
+      this.platform.log.info(`🌡️ ${shouldStart ? 'Starting' : 'Stopping'} climate control`);
+      
+      // Use existing climatization logic
+      await this.setClimatizationState(shouldStart);
+      
+      // Update current state to match target
+      this.climateService?.updateCharacteristic(this.platform.Characteristic.CurrentHeatingCoolingState, 
+        shouldStart ? this.platform.Characteristic.CurrentHeatingCoolingState.HEAT :
+                     this.platform.Characteristic.CurrentHeatingCoolingState.OFF);
+      
+    } catch (error) {
+      this.handleAuthFailure(error);
+      throw error;
     }
   }
   

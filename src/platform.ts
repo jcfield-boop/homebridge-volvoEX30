@@ -90,31 +90,101 @@ export class VolvoEX30Platform implements DynamicPlatformPlugin {
       // Connected Vehicle API provides comprehensive vehicle data - no capability check needed
       this.log.debug('🔍 Discovering EX30 device using Connected Vehicle API...');
 
-      const uuid = this.api.hap.uuid.generate(this.config.vin);
+      // Check if we should use individual accessories or unified approach
+      const useIndividualAccessories = this.config.accessoryNaming === 'individual' || 
+                                       this.config.accessoryNaming === undefined; // Default to individual
+
+      if (useIndividualAccessories) {
+        this.log.info('🎯 Using Individual Accessory Naming Strategy');
+        this.createIndividualAccessories();
+      } else {
+        this.log.info('🎯 Using Unified Accessory Naming Strategy (Legacy Mode)');
+        this.createUnifiedAccessory();
+      }
+    } catch (error) {
+      this.log.error('Failed to discover devices:', error);
+    }
+  }
+
+  private createUnifiedAccessory() {
+    const uuid = this.api.hap.uuid.generate(this.config.vin);
+    const existingAccessory = this.accessories.find(accessory => accessory.UUID === uuid);
+
+    if (existingAccessory) {
+      this.log.info('Restoring existing unified accessory from cache:', existingAccessory.displayName);
+      
+      // Set as SENSOR category with humidity sensor as primary display
+      existingAccessory.category = this.api.hap.Categories.SENSOR;
+      this.log.debug('📊 Set accessory category to SENSOR for humidity sensor display');
+      
+      new VolvoEX30Accessory(this, existingAccessory);
+    } else {
+      this.log.info('Adding new unified accessory:', this.config.name);
+      const accessory = new this.api.platformAccessory(this.config.name, uuid, this.api.hap.Categories.SENSOR);
+      
+      // Set proper accessory context
+      accessory.context.device = {
+        vin: this.config.vin,
+        name: this.config.name,
+        type: 'unified',
+      };
+
+      // Set default room to Garage for new accessories
+      try {
+        accessory.context.defaultRoom = 'Garage';
+        this.log.debug('✅ Set default room to Garage for new accessory');
+      } catch (error) {
+        this.log.debug('Note: Could not set default room (this is normal)');
+      }
+      
+      new VolvoEX30Accessory(this, accessory);
+      this.api.registerPlatformAccessories('homebridge-volvo-ex30', 'VolvoEX30', [accessory]);
+    }
+  }
+
+  private createIndividualAccessories() {
+    const accessories = [
+      { name: 'EX30 Battery', type: 'battery', category: this.api.hap.Categories.SENSOR },
+      { name: 'EX30 Lock', type: 'lock', category: this.api.hap.Categories.SECURITY_SYSTEM },
+      { name: 'EX30 Climate', type: 'climate', category: this.api.hap.Categories.THERMOSTAT },
+    ];
+
+    // Add locate accessory if enabled
+    if (this.config.enableHonkFlash !== false) {
+      accessories.push({ name: 'EX30 Locate', type: 'locate', category: this.api.hap.Categories.SWITCH });
+    }
+
+    accessories.forEach(accessoryConfig => {
+      const uuid = this.api.hap.uuid.generate(`${this.config.vin}-${accessoryConfig.type}`);
       const existingAccessory = this.accessories.find(accessory => accessory.UUID === uuid);
 
       if (existingAccessory) {
         this.log.info('Restoring existing accessory from cache:', existingAccessory.displayName);
+        existingAccessory.category = accessoryConfig.category;
         
-        // Set as SENSOR category with humidity sensor as primary display
-        existingAccessory.category = this.api.hap.Categories.SENSOR;
-        this.log.debug('📊 Set accessory category to SENSOR for humidity sensor display');
+        // Update context with type for proper service setup
+        existingAccessory.context.device = {
+          vin: this.config.vin,
+          name: accessoryConfig.name,
+          type: accessoryConfig.type,
+        };
         
         new VolvoEX30Accessory(this, existingAccessory);
       } else {
-        this.log.info('Adding new accessory:', this.config.name);
-        const accessory = new this.api.platformAccessory(this.config.name, uuid, this.api.hap.Categories.SENSOR);
+        this.log.info('Adding new individual accessory:', accessoryConfig.name);
+        const accessory = new this.api.platformAccessory(accessoryConfig.name, uuid, accessoryConfig.category);
         
         // Set proper accessory context
         accessory.context.device = {
           vin: this.config.vin,
-          name: this.config.name,
+          name: accessoryConfig.name,
+          type: accessoryConfig.type,
         };
 
         // Set default room to Garage for new accessories
         try {
           accessory.context.defaultRoom = 'Garage';
-          this.log.debug('✅ Set default room to Garage for new accessory');
+          this.log.debug(`✅ Set default room to Garage for ${accessoryConfig.name}`);
         } catch (error) {
           this.log.debug('Note: Could not set default room (this is normal)');
         }
@@ -122,9 +192,7 @@ export class VolvoEX30Platform implements DynamicPlatformPlugin {
         new VolvoEX30Accessory(this, accessory);
         this.api.registerPlatformAccessories('homebridge-volvo-ex30', 'VolvoEX30', [accessory]);
       }
-    } catch (error) {
-      this.log.error('Failed to discover devices:', error);
-    }
+    });
   }
 
   getApiClient(): VolvoApiClient {

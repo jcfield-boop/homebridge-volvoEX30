@@ -8,6 +8,7 @@ export interface VolvoEX30Config {
   region?: 'eu' | 'na';
   pollingInterval?: number;
   presentationMode?: 'simple' | 'advanced';
+  accessoryNaming?: 'unified' | 'individual';
   enableHonkFlash?: boolean;
   enableAdvancedSensors?: boolean;
   // Legacy flags for backward compatibility

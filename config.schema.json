@@ -76,6 +76,22 @@
         ],
         "description": "Simple mode shows 4 essential tiles: Volvo Lock, Volvo Climate, Volvo Battery, Volvo Locate. Advanced mode shows all available sensors."
       },
+      "accessoryNaming": {
+        "title": "Accessory Naming Strategy",
+        "type": "string",
+        "default": "individual",
+        "oneOf": [
+          {
+            "title": "Individual Accessories (EX30 Battery, EX30 Lock, etc.)",
+            "const": "individual"
+          },
+          {
+            "title": "Unified Accessory (All services under one tile)",
+            "const": "unified"
+          }
+        ],
+        "description": "Individual creates separate named accessories for each function (recommended). Unified puts all services under single accessory (legacy mode)."
+      },
       "enableHonkFlash": {
         "title": "Enable Locate (Honk & Flash)",
         "type": "boolean",
@@ -119,6 +135,7 @@
       "items": [
         "pollingInterval",
         "presentationMode",
+        "accessoryNaming",
         "enableHonkFlash",
         "enableAdvancedSensors"
       ]
