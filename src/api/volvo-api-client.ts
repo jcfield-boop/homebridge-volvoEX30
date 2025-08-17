@@ -187,7 +187,8 @@ export class VolvoApiClient {
   }
 
   private generateOperationId(): string {
-    return `homebridge-volvo-ex30-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    // Generate proper RFC 4122 UUID for Volvo API compatibility
+    return require('crypto').randomUUID();
   }
 
   private handleApiError(error: AxiosError): void {

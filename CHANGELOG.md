@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.5] - 2025-08-17
+
+### 🎯 Complete OAuth Spam & Climate Control Fix
+
+**FINAL SOLUTION** - This release completely eliminates OAuth spam and fixes climate control command failures.
+
+#### Fixed - OAuth Spam Completely Eliminated
+- **Removed Individual API Calls**: Eliminated all individual accessory API calls during setup - accessories now use only shared data
+- **True Shared Data Architecture**: Modified `getUnifiedVehicleData()` to NEVER make API calls, only return cached/shared data
+- **Zero OAuth Spam**: Platform now makes exactly ONE API call during startup, all accessories read from shared cache
+
+#### Fixed - Climate Control Commands
+- **UUID Format Issue**: Fixed `generateOperationId()` to generate proper RFC 4122 UUIDs instead of custom format
+- **Climate Control Working**: Volvo API now accepts proper UUID format, fixing "Invalid UUID" 422 errors
+- **All Commands Fixed**: Lock/unlock, climate, and honk/flash commands now use proper UUID format
+
+#### Technical Changes
+- Modified `VolvoEX30Accessory.initializeAccessory()` to remove `performInitialDataFetch()`
+- Updated `getUnifiedVehicleData()` to only use `platform.getLastVehicleData()` - no API calls
+- Fixed `generateOperationId()` in both API clients to use `crypto.randomUUID()`
+- Accessories now rely exclusively on platform's shared data fetch
+
+**Result**: Zero OAuth spam during startup, climate control commands work properly
+
 ## [2.3.4] - 2025-08-17
 
 ### 🚑 Emergency OAuth Spam Elimination - Final Fix

@@ -1,5 +1,4 @@
 import { Logger } from 'homebridge';
-import { OAuthTokens } from '../types/config';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
@@ -199,7 +198,7 @@ export class TokenStorage {
         const shouldClearTokens = this.isMajorVersionChange(previousVersion, this.currentVersion);
         
         if (shouldClearTokens) {
-          this.logger.warn(`🔄 Major version change detected - tokens may need regeneration`);
+          this.logger.warn('🔄 Major version change detected - tokens may need regeneration');
         }
 
         return { versionChanged, shouldClearTokens, previousVersion };
@@ -253,7 +252,7 @@ export class TokenStorage {
    * Get the best available refresh token with smart config token handling
    */
   async getBestRefreshToken(configToken?: string): Promise<{ token: string; source: 'stored' | 'config' } | null> {
-    this.logger.debug(`🔍 Token storage debug - Starting getBestRefreshToken`);
+    this.logger.debug('🔍 Token storage debug - Starting getBestRefreshToken');
     this.logger.debug(`🔍 Token file path: ${this.tokenFilePath}`);
     this.logger.debug(`🔍 File exists: ${require('fs').existsSync(this.tokenFilePath)}`);
     this.logger.debug(`🔍 Config token provided: ${!!configToken} (length: ${configToken?.length || 0})`);

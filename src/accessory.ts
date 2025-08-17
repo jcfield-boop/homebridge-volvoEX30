@@ -47,13 +47,13 @@ export class VolvoEX30Accessory {
   }
 
   /**
-   * Initialize accessory with proper startup sequence
+   * Initialize accessory with proper startup sequence - NO INDIVIDUAL API CALLS
    */
   private async initializeAccessory(): Promise<void> {
     this.setupInformationService();
     
-    // Attempt initial data fetch - this will set auth failure state if needed
-    await this.performInitialDataFetch();
+    // NO INDIVIDUAL API CALLS - accessories only use shared data from platform
+    // The platform will handle the single shared fetch in doFetchInitialData()
     
     // Check if this is an individual accessory or unified accessory
     const accessoryType = this.accessory.context.device?.type;
@@ -76,23 +76,6 @@ export class VolvoEX30Accessory {
     this.useSharedPolling();
   }
 
-  /**
-   * Perform initial data fetch with fail-fast error handling
-   */
-  private async performInitialDataFetch(): Promise<void> {
-    if (OAuthHandler.isGlobalAuthFailure) {
-      return;
-    }
-    
-    try {
-      const apiClient = this.platform.getApiClient();
-      const unifiedData = await apiClient.getUnifiedVehicleData(this.platform.config.vin);
-      this.currentUnifiedData = unifiedData;
-      this.platform.log.debug('✅ Initial vehicle data loaded');
-    } catch (error) {
-      this.handleAuthFailure(error);
-    }
-  }
 
   /**
    * Setup service for individual accessory type
@@ -682,24 +665,25 @@ export class VolvoEX30Accessory {
 
 
   private async getUnifiedVehicleData(): Promise<UnifiedVehicleData> {
-    // EMERGENCY FAIL-FAST: Block ALL API calls if authentication has failed
+    // SHARED DATA ONLY: Never make individual API calls - use shared data from platform
     if (OAuthHandler.isGlobalAuthFailure) {
       return this.getDefaultVehicleData();
     }
     
+    // Use cached data first
     if (this.currentUnifiedData) {
       return this.currentUnifiedData;
     }
 
-    try {
-      const apiClient = this.platform.getApiClient();
-      const unifiedData = await apiClient.getUnifiedVehicleData(this.platform.config.vin);
-      this.currentUnifiedData = unifiedData;
-      return unifiedData;
-    } catch (error) {
-      this.handleAuthFailure(error);
-      return this.getDefaultVehicleData();
+    // Get shared data from platform (never make individual API calls)
+    const sharedData = this.platform.getLastVehicleData();
+    if (sharedData) {
+      this.currentUnifiedData = sharedData;
+      return sharedData;
     }
+
+    // Fallback to default data if no shared data available yet
+    return this.getDefaultVehicleData();
   }
 
   /**
