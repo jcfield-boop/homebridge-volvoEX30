@@ -77,7 +77,7 @@ export class SharedOAuthHandler {
   async exchangeCodeForTokens(
     code: string,
     redirectUri: string,
-    codeVerifier?: string
+    codeVerifier?: string,
   ): Promise<OAuthTokens> {
     const verifier = codeVerifier || this.codeVerifier;
     

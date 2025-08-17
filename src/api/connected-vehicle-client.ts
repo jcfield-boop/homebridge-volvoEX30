@@ -27,7 +27,7 @@ import {
   EngineStartRequest,
   ClimatizationRequest,
   LockUnlockRequest,
-  HonkFlashRequest
+  HonkFlashRequest,
 } from '../types/connected-vehicle-api';
 
 export class ConnectedVehicleClient {
@@ -60,7 +60,7 @@ export class ConnectedVehicleClient {
     this.oAuthHandler = sharedOAuthHandler || new OAuthHandler(config, logger, vin, homebridgeStorageDir);
     this.cache = new NodeCache({ 
       stdTTL: 300, // 5 minutes default cache
-      checkperiod: 60 // Check for expired keys every minute
+      checkperiod: 60, // Check for expired keys every minute
     });
 
     this.setupRequestInterceptors();
@@ -550,7 +550,7 @@ export class ConnectedVehicleClient {
     try {
       const response = await this.httpClient.post<CommandInvokeResponse>(
         `/vehicles/${vin}/commands/lock`, 
-        {} as LockUnlockRequest
+        {} as LockUnlockRequest,
       );
       this.updateCommandRateLimit();
       this.logger.info(`Lock command sent for vehicle ${vin}. Status: ${response.data.invokeStatus}`);
@@ -569,7 +569,7 @@ export class ConnectedVehicleClient {
     try {
       const response = await this.httpClient.post<UnlockCommandResponse>(
         `/vehicles/${vin}/commands/unlock`, 
-        {} as LockUnlockRequest
+        {} as LockUnlockRequest,
       );
       this.updateCommandRateLimit();
       this.logger.info(`Unlock command sent for vehicle ${vin}. Status: ${response.data.invokeStatus}`);
@@ -588,7 +588,7 @@ export class ConnectedVehicleClient {
     try {
       const response = await this.httpClient.post<CommandInvokeResponse>(
         `/vehicles/${vin}/commands/climatization-start`, 
-        {} as ClimatizationRequest
+        {} as ClimatizationRequest,
       );
       this.updateCommandRateLimit();
       this.logger.info(`Climatization start command sent for vehicle ${vin}. Status: ${response.data.invokeStatus}`);
@@ -607,7 +607,7 @@ export class ConnectedVehicleClient {
     try {
       const response = await this.httpClient.post<CommandInvokeResponse>(
         `/vehicles/${vin}/commands/climatization-stop`, 
-        {} as ClimatizationRequest
+        {} as ClimatizationRequest,
       );
       this.updateCommandRateLimit();
       this.logger.info(`Climatization stop command sent for vehicle ${vin}. Status: ${response.data.invokeStatus}`);
@@ -626,7 +626,7 @@ export class ConnectedVehicleClient {
     try {
       const response = await this.httpClient.post<CommandInvokeResponse>(
         `/vehicles/${vin}/commands/honk-flash`, 
-        {} as HonkFlashRequest
+        {} as HonkFlashRequest,
       );
       this.updateCommandRateLimit();
       this.logger.info(`Honk and flash command sent for vehicle ${vin}. Status: ${response.data.invokeStatus}`);
@@ -647,20 +647,10 @@ export class ConnectedVehicleClient {
     this.logger.debug(`Fetching complete vehicle state for ${vin}`);
     
     const state: ConnectedVehicleState = {
-      lastUpdated: new Date().toISOString()
+      lastUpdated: new Date().toISOString(),
     };
 
-    // CRITICAL: Pre-validate token before 14 concurrent HTTP requests
-    // This prevents OAuth spam from simultaneous failed requests
-    try {
-      await this.oAuthHandler.getValidAccessToken(this.config.refreshToken);
-    } catch (error) {
-      // Token invalid - return empty state without concurrent HTTP requests
-      this.logger.debug('Token pre-validation failed, preventing 14 concurrent OAuth attempts');
-      return state; // Return minimal state with just timestamp
-    }
-
-    // Only proceed with concurrent requests if token is valid
+    // TRUE SERIALIZATION: All token access now queued via getValidAccessToken
     // Fetch all data in parallel for better performance
     const promises = [
       this.getVehicleDetails(vin).then(data => state.vehicleDetails = data.data).catch(err => this.logger.debug('Vehicle details failed:', err.message)),
@@ -676,7 +666,7 @@ export class ConnectedVehicleClient {
       this.getFuelStatus(vin).then(data => state.fuel = data.data).catch(err => this.logger.debug('Fuel status failed:', err.message)),
       this.getBrakeStatus(vin).then(data => state.brakeStatus = data.data).catch(err => this.logger.debug('Brake status failed:', err.message)),
       this.getCommandAccessibility(vin).then(data => state.commandAccessibility = data.data).catch(err => this.logger.debug('Command accessibility failed:', err.message)),
-      this.getAvailableCommands(vin).then(data => state.availableCommands = data.data).catch(err => this.logger.debug('Available commands failed:', err.message))
+      this.getAvailableCommands(vin).then(data => state.availableCommands = data.data).catch(err => this.logger.debug('Available commands failed:', err.message)),
     ];
 
     await Promise.allSettled(promises);

@@ -551,7 +551,7 @@ export class VolvoEX30Accessory {
       canStartClimatization: false,
       canStopClimatization: false,
       lastUpdated: new Date().toISOString(),
-      dataSource: 'connected-vehicle-api'
+      dataSource: 'connected-vehicle-api',
     };
   }
 
@@ -825,77 +825,77 @@ export class VolvoEX30Accessory {
       if (this.frontLeftDoorSensor) {
         this.frontLeftDoorSensor.updateCharacteristic(
           this.platform.Characteristic.ContactSensorState,
-          await this.getFrontLeftDoorState()
+          await this.getFrontLeftDoorState(),
         );
       }
       
       if (this.frontRightDoorSensor) {
         this.frontRightDoorSensor.updateCharacteristic(
           this.platform.Characteristic.ContactSensorState,
-          await this.getFrontRightDoorState()
+          await this.getFrontRightDoorState(),
         );
       }
       
       if (this.rearLeftDoorSensor) {
         this.rearLeftDoorSensor.updateCharacteristic(
           this.platform.Characteristic.ContactSensorState,
-          await this.getRearLeftDoorState()
+          await this.getRearLeftDoorState(),
         );
       }
       
       if (this.rearRightDoorSensor) {
         this.rearRightDoorSensor.updateCharacteristic(
           this.platform.Characteristic.ContactSensorState,
-          await this.getRearRightDoorState()
+          await this.getRearRightDoorState(),
         );
       }
       
       if (this.hoodSensor) {
         this.hoodSensor.updateCharacteristic(
           this.platform.Characteristic.ContactSensorState,
-          await this.getHoodState()
+          await this.getHoodState(),
         );
       }
       
       if (this.tailgateSensor) {
         this.tailgateSensor.updateCharacteristic(
           this.platform.Characteristic.ContactSensorState,
-          await this.getTailgateState()
+          await this.getTailgateState(),
         );
       }
       
       if (this.frontLeftWindowSensor) {
         this.frontLeftWindowSensor.updateCharacteristic(
           this.platform.Characteristic.ContactSensorState,
-          await this.getFrontLeftWindowState()
+          await this.getFrontLeftWindowState(),
         );
       }
       
       if (this.frontRightWindowSensor) {
         this.frontRightWindowSensor.updateCharacteristic(
           this.platform.Characteristic.ContactSensorState,
-          await this.getFrontRightWindowState()
+          await this.getFrontRightWindowState(),
         );
       }
       
       if (this.rearLeftWindowSensor) {
         this.rearLeftWindowSensor.updateCharacteristic(
           this.platform.Characteristic.ContactSensorState,
-          await this.getRearLeftWindowState()
+          await this.getRearLeftWindowState(),
         );
       }
       
       if (this.rearRightWindowSensor) {
         this.rearRightWindowSensor.updateCharacteristic(
           this.platform.Characteristic.ContactSensorState,
-          await this.getRearRightWindowState()
+          await this.getRearRightWindowState(),
         );
       }
       
       if (this.sunroofSensor) {
         this.sunroofSensor.updateCharacteristic(
           this.platform.Characteristic.ContactSensorState,
-          await this.getSunroofState()
+          await this.getSunroofState(),
         );
       }
       
@@ -957,7 +957,7 @@ export class VolvoEX30Accessory {
         if (result.invokeStatus === 'COMPLETED' || result.invokeStatus === 'SUCCESS') {
           this.lockService?.setCharacteristic(
             this.platform.Characteristic.LockCurrentState,
-            this.platform.Characteristic.LockCurrentState.SECURED
+            this.platform.Characteristic.LockCurrentState.SECURED,
           );
         }
         
@@ -967,7 +967,7 @@ export class VolvoEX30Accessory {
         if (result.invokeStatus === 'COMPLETED' || result.invokeStatus === 'SUCCESS') {
           this.lockService?.setCharacteristic(
             this.platform.Characteristic.LockCurrentState,
-            this.platform.Characteristic.LockCurrentState.UNSECURED
+            this.platform.Characteristic.LockCurrentState.UNSECURED,
           );
         }
       }
@@ -982,12 +982,12 @@ export class VolvoEX30Accessory {
       if (currentState === this.platform.Characteristic.LockCurrentState.SECURED) {
         this.lockService?.updateCharacteristic(
           this.platform.Characteristic.LockTargetState,
-          this.platform.Characteristic.LockTargetState.SECURED
+          this.platform.Characteristic.LockTargetState.SECURED,
         );
       } else {
         this.lockService?.updateCharacteristic(
           this.platform.Characteristic.LockTargetState,
-          this.platform.Characteristic.LockTargetState.UNSECURED
+          this.platform.Characteristic.LockTargetState.UNSECURED,
         );
       }
       
@@ -1072,7 +1072,7 @@ export class VolvoEX30Accessory {
         const currentState = await this.getCurrentLockState();
         this.lockService.updateCharacteristic(
           this.platform.Characteristic.LockCurrentState,
-          currentState
+          currentState,
         );
         
         const targetState = currentState === this.platform.Characteristic.LockCurrentState.SECURED ?
@@ -1081,7 +1081,7 @@ export class VolvoEX30Accessory {
         
         this.lockService.updateCharacteristic(
           this.platform.Characteristic.LockTargetState,
-          targetState
+          targetState,
         );
       }
     } catch (error) {
@@ -1170,21 +1170,21 @@ export class VolvoEX30Accessory {
       if (this.serviceWarningSensor) {
         this.serviceWarningSensor.updateCharacteristic(
           this.platform.Characteristic.ContactSensorState,
-          await this.getServiceWarningState()
+          await this.getServiceWarningState(),
         );
       }
       
       if (this.odometerSensor) {
         this.odometerSensor.updateCharacteristic(
           this.platform.Characteristic.MotionDetected,
-          await this.getOdometerState()
+          await this.getOdometerState(),
         );
       }
       
       if (this.tyrePressureSensor) {
         this.tyrePressureSensor.updateCharacteristic(
           this.platform.Characteristic.ContactSensorState,
-          await this.getTyrePressureState()
+          await this.getTyrePressureState(),
         );
       }
       

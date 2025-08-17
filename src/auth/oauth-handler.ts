@@ -11,6 +11,9 @@ export class OAuthHandler {
   private refreshPromise: Promise<OAuthTokens> | null = null;
   private tokenStorage: TokenStorage | null = null;
   
+  // TRUE SERIALIZATION: Queue all token access to prevent Volvo's token rotation conflicts
+  private tokenAccessQueue: Promise<string> | null = null;
+  
   // EMERGENCY: Global authentication failure flag - blocks ALL OAuth operations
   private static globalAuthFailure: boolean = false;
   private static authErrorLogged: boolean = false;
@@ -186,7 +189,7 @@ export class OAuthHandler {
           statusText: error.response.statusText,
           data: error.response.data,
           refreshTokenLength: refreshToken?.length || 0,
-          refreshTokenPrefix: refreshToken?.substring(0, 8) + '...'
+          refreshTokenPrefix: refreshToken?.substring(0, 8) + '...',
         });
 
         // Handle specific OAuth error cases
@@ -218,6 +221,25 @@ Generate a new token:
   }
 
   async getValidAccessToken(refreshToken?: string): Promise<string> {
+    // TRUE SERIALIZATION: Queue ALL token access to prevent concurrent conflicts
+    if (this.tokenAccessQueue) {
+      this.logger.debug('🔄 Token access already in progress, waiting for completion...');
+      return await this.tokenAccessQueue;
+    }
+
+    // Create token access promise to serialize ALL concurrent requests
+    this.tokenAccessQueue = this.doGetValidAccessToken(refreshToken);
+    
+    try {
+      const result = await this.tokenAccessQueue;
+      return result;
+    } finally {
+      // Clear the queue when done (success or failure)
+      this.tokenAccessQueue = null;
+    }
+  }
+
+  private async doGetValidAccessToken(refreshToken?: string): Promise<string> {
     // EMERGENCY FAIL-FAST: Block ALL OAuth operations if authentication has failed
     if (OAuthHandler.globalAuthFailure) {
       throw new Error('🔒 Authentication failed - plugin suspended until restart');
@@ -256,7 +278,7 @@ Generate a new token:
           // CRITICAL FIX: Always prefer fresh config token over potentially expired stored token
           const tokenToUse = bestToken?.token || this.tokens.refreshToken;
           if (bestToken?.source === 'config') {
-            this.logger.info(`🔄 Using fresh config token for refresh (prioritized over stored token)`);
+            this.logger.info('🔄 Using fresh config token for refresh (prioritized over stored token)');
           }
           this.tokens = await this.refreshAccessToken(tokenToUse);
           // Only log once per refresh, not per waiting request
@@ -287,7 +309,7 @@ Generate a new token:
     
     // Only log if token actually expired to reduce verbose output
     if (isExpired) {
-      this.logger.debug(`🔍 Token expired - will refresh`);
+      this.logger.debug('🔍 Token expired - will refresh');
     }
     
     return isExpired;

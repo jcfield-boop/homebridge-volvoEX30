@@ -89,7 +89,7 @@ export class VolvoApiClient {
       logger,
       vin,
       homebridgeStorageDir,
-      this.oAuthHandler // Share the OAuth handler to prevent duplicate token refresh attempts
+      this.oAuthHandler, // Share the OAuth handler to prevent duplicate token refresh attempts
     );
     
     // Using Connected Vehicle API exclusively
@@ -257,7 +257,7 @@ export class VolvoApiClient {
   
   private mapConnectedVehicleData(cvData: ConnectedVehicleState): UnifiedVehicleData {
     const data: UnifiedVehicleData = {
-      lastUpdated: cvData.lastUpdated
+      lastUpdated: cvData.lastUpdated,
     };
     
     // Battery information from fuel endpoint
