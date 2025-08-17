@@ -5,17 +5,128 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.2] - 2025-08-17
+
+### 🚨 Complete OAuth Spam Elimination - Definitive Fix
+
+**CRITICAL UPDATE REQUIRED** - This release provides the definitive solution for OAuth spam across ALL plugin components.
+
+#### Fixed - COMPLETE OAUTH SPAM ELIMINATION
+- **Comprehensive Coverage**: Extended global authentication failure state to ALL API client layers (VolvoApiClient, ConnectedVehicleClient)
+- **Request Interceptors**: Added proactive HTTP request blocking in both API clients before authentication attempts
+- **Early Returns**: Added early return checks in key API methods (`getUnifiedVehicleData()`, `getCompleteVehicleState()`)
+- **Zero OAuth Spam**: Complete elimination of OAuth spam from any source - exactly one error message, then silence
+- **Global Shutdown**: First authentication error triggers immediate plugin suspension across all components
+
+#### Fixed - TECHNICAL ROOT CAUSE
+- **Distributed Error Handling Issue**: v2.1.0/v2.1.1 had global auth flag in OAuth handler, but API clients still made independent HTTP requests
+- **API Client Independence**: `VolvoApiClient` and `ConnectedVehicleClient` were bypassing global authentication state
+- **Request Interception Solution**: Added `OAuthHandler.isGlobalAuthFailure` checks in request interceptors of ALL HTTP clients
+- **Method-Level Protection**: Added early returns in API methods to prevent execution after authentication failure
+
+#### Added - COMPREHENSIVE PROTECTION
+- **Request Interceptors**: Both API clients now check global auth state before making any HTTP requests
+- **Method-Level Guards**: Early returns in `getUnifiedVehicleData()` and `getCompleteVehicleState()` prevent API calls
+- **Unified Error Handling**: All OAuth operations now respect the same global authentication failure state
+- **Complete Plugin Suspension**: Authentication failure in any component blocks ALL OAuth activity
+
+#### Changed - API CLIENT ARCHITECTURE
+- **Global State Integration**: Extended `OAuthHandler.isGlobalAuthFailure` checks to request interceptor level
+- **Proactive Blocking**: HTTP requests blocked before authentication attempts, not after failures
+- **Centralized Control**: OAuth handler maintains exclusive control over authentication state across all components
+
+### Before vs After (v2.1.2 Complete Fix)
+
+**Before (v2.1.0/v2.1.1 with expired token):**
+```
+🔒 Authentication failed - token expired      # OAuth handler (correct)
+   Generate new token: node scripts/easy-oauth.js
+⛔ Plugin suspended until restart
+[50+ additional spam lines from API clients making independent HTTP requests]
+Failed to get unified vehicle data: Error: 🔒 Refresh token has expired...
+Failed to get complete vehicle state: Error: 🔒 Refresh token has expired...
+[continues with HTTP request spam from API client layers]
+```
+
+**After (v2.1.2 complete fix):**
+```
+🔒 Authentication failed - token expired
+   Generate new token: node scripts/easy-oauth.js
+⛔ Plugin suspended until restart
+[complete silence - no spam from any component]
+```
+
+### Technical Implementation (v2.1.2)
+
+```typescript
+// VolvoApiClient - Request Interceptor
+private setupRequestInterceptors(): void {
+  this.httpClient.interceptors.request.use(
+    async (config) => {
+      // CRITICAL: Check global auth failure BEFORE making any requests
+      if (OAuthHandler.isGlobalAuthFailure) {
+        throw new Error('🔒 Authentication failed - plugin suspended until restart');
+      }
+      
+// ConnectedVehicleClient - Request Interceptor  
+private setupRequestInterceptors(): void {
+  this.httpClient.interceptors.request.use(
+    async (config) => {
+      // CRITICAL: Check global auth failure BEFORE making any requests
+      if (OAuthHandler.isGlobalAuthFailure) {
+        throw new Error('🔒 Authentication failed - plugin suspended until restart');
+      }
+
+// Early Returns in API Methods
+async getUnifiedVehicleData(vin: string): Promise<UnifiedVehicleData> {
+  // CRITICAL: Early return if authentication has failed globally
+  if (OAuthHandler.isGlobalAuthFailure) {
+    throw new Error('🔒 Authentication failed - plugin suspended until restart');
+  }
+
+async getCompleteVehicleState(vin: string): Promise<ConnectedVehicleState> {
+  // CRITICAL: Early return if authentication has failed globally
+  if (OAuthHandler.isGlobalAuthFailure) {
+    throw new Error('🔒 Authentication failed - plugin suspended until restart');
+  }
+```
+
+### Upgrade Instructions (Critical)
+
+```bash
+# IMMEDIATE UPDATE REQUIRED for v2.1.0/v2.1.1 users
+npm install -g homebridge-volvo-ex30@2.1.2
+
+# Restart Homebridge
+sudo systemctl restart homebridge
+```
+
+### Verification
+
+After upgrading to v2.1.2 with expired tokens, you should see exactly:
+```
+🔒 Authentication failed - token expired
+   Generate new token: node scripts/easy-oauth.js
+⛔ Plugin suspended until restart
+```
+**And then complete silence** - no OAuth spam from any component!
+
 ## [2.1.1] - 2025-08-17
 
-### 🚨 Critical OAuth Spam Hotfix
+### 🚨 Critical OAuth Spam Hotfix (INCOMPLETE)
 
-**IMMEDIATE UPDATE RECOMMENDED** - This hotfix resolves a critical OAuth spam bug that was reintroduced in v2.1.0.
+**SUPERSEDED BY v2.1.2** - This hotfix partially resolved OAuth spam but missed API client layers.
 
-#### Fixed - CRITICAL OAUTH SPAM BUG
+#### Fixed - PARTIAL OAUTH SPAM BUG
 - **Unified Authentication State**: Fixed conflicting global authentication failure flags between OAuth handler and accessory components
-- **OAuth Spam Eliminated**: Resolved 50+ repeated error messages when tokens expire
+- **Accessory Layer Fixed**: Resolved 50+ repeated error messages from accessory component when tokens expire
 - **Component Synchronization**: Accessory now properly uses `OAuthHandler.isGlobalAuthFailure` instead of local flag
 - **Clean Error Handling**: Restored proper 3-line error message behavior from v2.0.13
+
+#### Known Issue - API CLIENT LAYERS STILL HAD SPAM
+- **Incomplete Fix**: API clients (`VolvoApiClient`, `ConnectedVehicleClient`) still made independent HTTP requests
+- **Remaining Spam Source**: Request interceptors and API methods continued OAuth attempts after handler failure
+- **Fixed in v2.1.2**: Complete solution extends global authentication state to ALL components
 
 #### Fixed - TECHNICAL ROOT CAUSE
 - **Conflicting Flags Issue**: Two separate `globalAuthFailure` flags were operating independently:

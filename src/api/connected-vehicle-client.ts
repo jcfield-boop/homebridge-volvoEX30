@@ -205,6 +205,11 @@ export class ConnectedVehicleClient {
   }
 
   async getVehicleDetails(vin: string): Promise<VehicleDetails> {
+    // CRITICAL: Check global auth failure BEFORE any processing
+    if (OAuthHandler.isGlobalAuthFailure) {
+      throw new Error('🔒 Authentication failed - plugin suspended until restart');
+    }
+    
     const cacheKey = this.getCacheKey('details', vin);
     const cached = this.cache.get<VehicleDetails>(cacheKey);
     
@@ -224,6 +229,11 @@ export class ConnectedVehicleClient {
 
   // Status Methods
   async getDoorsStatus(vin: string): Promise<DoorsResponse> {
+    // CRITICAL: Check global auth failure BEFORE any processing
+    if (OAuthHandler.isGlobalAuthFailure) {
+      throw new Error('🔒 Authentication failed - plugin suspended until restart');
+    }
+    
     const cacheKey = this.getCacheKey('doors', vin);
     const cached = this.cache.get<DoorsResponse>(cacheKey);
     
@@ -242,6 +252,11 @@ export class ConnectedVehicleClient {
   }
 
   async getWindowsStatus(vin: string): Promise<WindowsResponse> {
+    // CRITICAL: Check global auth failure BEFORE any processing
+    if (OAuthHandler.isGlobalAuthFailure) {
+      throw new Error('🔒 Authentication failed - plugin suspended until restart');
+    }
+    
     const cacheKey = this.getCacheKey('windows', vin);
     const cached = this.cache.get<WindowsResponse>(cacheKey);
     
@@ -260,6 +275,11 @@ export class ConnectedVehicleClient {
   }
 
   async getOdometer(vin: string): Promise<OdometerResponse> {
+    // CRITICAL: Check global auth failure BEFORE any processing
+    if (OAuthHandler.isGlobalAuthFailure) {
+      throw new Error('🔒 Authentication failed - plugin suspended until restart');
+    }
+    
     const cacheKey = this.getCacheKey('odometer', vin);
     const cached = this.cache.get<OdometerResponse>(cacheKey);
     
@@ -278,6 +298,11 @@ export class ConnectedVehicleClient {
   }
 
   async getDiagnostics(vin: string): Promise<DiagnosticsResponse> {
+    // CRITICAL: Check global auth failure BEFORE any processing
+    if (OAuthHandler.isGlobalAuthFailure) {
+      throw new Error('🔒 Authentication failed - plugin suspended until restart');
+    }
+    
     const cacheKey = this.getCacheKey('diagnostics', vin);
     const cached = this.cache.get<DiagnosticsResponse>(cacheKey);
     
@@ -296,6 +321,11 @@ export class ConnectedVehicleClient {
   }
 
   async getStatistics(vin: string): Promise<StatisticsResponse> {
+    // CRITICAL: Check global auth failure BEFORE any processing
+    if (OAuthHandler.isGlobalAuthFailure) {
+      throw new Error('🔒 Authentication failed - plugin suspended until restart');
+    }
+    
     const cacheKey = this.getCacheKey('statistics', vin);
     const cached = this.cache.get<StatisticsResponse>(cacheKey);
     
@@ -314,6 +344,11 @@ export class ConnectedVehicleClient {
   }
 
   async getTyrePressure(vin: string): Promise<TyrePressureResponse> {
+    // CRITICAL: Check global auth failure BEFORE any processing
+    if (OAuthHandler.isGlobalAuthFailure) {
+      throw new Error('🔒 Authentication failed - plugin suspended until restart');
+    }
+    
     const cacheKey = this.getCacheKey('tyres', vin);
     const cached = this.cache.get<TyrePressureResponse>(cacheKey);
     
@@ -332,6 +367,11 @@ export class ConnectedVehicleClient {
   }
 
   async getWarnings(vin: string): Promise<WarningsResponse> {
+    // CRITICAL: Check global auth failure BEFORE any processing
+    if (OAuthHandler.isGlobalAuthFailure) {
+      throw new Error('🔒 Authentication failed - plugin suspended until restart');
+    }
+    
     const cacheKey = this.getCacheKey('warnings', vin);
     const cached = this.cache.get<WarningsResponse>(cacheKey);
     
@@ -350,6 +390,11 @@ export class ConnectedVehicleClient {
   }
 
   async getEngineStatus(vin: string): Promise<EngineStatusResponse> {
+    // CRITICAL: Check global auth failure BEFORE any processing
+    if (OAuthHandler.isGlobalAuthFailure) {
+      throw new Error('🔒 Authentication failed - plugin suspended until restart');
+    }
+    
     const cacheKey = this.getCacheKey('engine_status', vin);
     const cached = this.cache.get<EngineStatusResponse>(cacheKey);
     
@@ -368,6 +413,11 @@ export class ConnectedVehicleClient {
   }
 
   async getEngineDiagnostics(vin: string): Promise<EngineDiagnosticsResponse> {
+    // CRITICAL: Check global auth failure BEFORE any processing
+    if (OAuthHandler.isGlobalAuthFailure) {
+      throw new Error('🔒 Authentication failed - plugin suspended until restart');
+    }
+    
     const cacheKey = this.getCacheKey('engine_diagnostics', vin);
     const cached = this.cache.get<EngineDiagnosticsResponse>(cacheKey);
     
@@ -386,6 +436,11 @@ export class ConnectedVehicleClient {
   }
 
   async getFuelStatus(vin: string): Promise<FuelResponse> {
+    // CRITICAL: Check global auth failure BEFORE any processing
+    if (OAuthHandler.isGlobalAuthFailure) {
+      throw new Error('🔒 Authentication failed - plugin suspended until restart');
+    }
+    
     const cacheKey = this.getCacheKey('fuel', vin);
     const cached = this.cache.get<FuelResponse>(cacheKey);
     
@@ -404,6 +459,11 @@ export class ConnectedVehicleClient {
   }
 
   async getBrakeStatus(vin: string): Promise<BrakeStatusResponse> {
+    // CRITICAL: Check global auth failure BEFORE any processing
+    if (OAuthHandler.isGlobalAuthFailure) {
+      throw new Error('🔒 Authentication failed - plugin suspended until restart');
+    }
+    
     const cacheKey = this.getCacheKey('brakes', vin);
     const cached = this.cache.get<BrakeStatusResponse>(cacheKey);
     
@@ -423,6 +483,11 @@ export class ConnectedVehicleClient {
 
   // Command Methods
   async getAvailableCommands(vin: string): Promise<CommandListResponse> {
+    // CRITICAL: Check global auth failure BEFORE any processing
+    if (OAuthHandler.isGlobalAuthFailure) {
+      throw new Error('🔒 Authentication failed - plugin suspended until restart');
+    }
+    
     const cacheKey = this.getCacheKey('commands', vin);
     const cached = this.cache.get<CommandListResponse>(cacheKey);
     
@@ -441,6 +506,11 @@ export class ConnectedVehicleClient {
   }
 
   async getCommandAccessibility(vin: string): Promise<CommandAccessibilityResponse> {
+    // CRITICAL: Check global auth failure BEFORE any processing
+    if (OAuthHandler.isGlobalAuthFailure) {
+      throw new Error('🔒 Authentication failed - plugin suspended until restart');
+    }
+    
     try {
       const response = await this.httpClient.get<CommandAccessibilityResponse>(`/vehicles/${vin}/command-accessibility`);
       return response.data;

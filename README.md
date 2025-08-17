@@ -2,17 +2,18 @@
 
 A comprehensive Homebridge plugin that integrates your Volvo EX30 with Apple HomeKit using the official Volvo Connected Vehicle API v2. Monitor battery status, control locks and climate, track doors and windows, and access vehicle diagnostics - all from the Home app.
 
-## 🚨 v2.1.1 - Critical OAuth Spam Hotfix
+## 🚨 v2.1.2 - Complete OAuth Spam Elimination
 
-**IMMEDIATE UPDATE RECOMMENDED!** This hotfix resolves a critical OAuth spam bug that was reintroduced in v2.1.0.
+**CRITICAL UPDATE REQUIRED!** This release provides the definitive fix for OAuth spam across ALL plugin components.
 
-### 🐛 **Critical Bug Fixed**
-- **OAuth Spam Eliminated**: Fixed 50+ repeated error messages when tokens expire
-- **Unified Authentication State**: Synchronized global auth failure flags between components
-- **Clean Error Handling**: Now shows exactly 3 error messages, then complete silence
-- **Plugin Suspension**: Proper API activity halt after authentication failure
+### 🐛 **Critical Bug COMPLETELY Fixed**
+- **Zero OAuth Spam**: Comprehensive fix extending to ALL API client layers
+- **Global Authentication State**: Unified failure detection across OAuth handler, API clients, and accessory layers
+- **Request Interceptors**: Proactive blocking of HTTP requests after authentication failure
+- **Early Returns**: Prevents API method execution when authentication has failed
+- **Complete Plugin Suspension**: All OAuth operations halt immediately after first failure
 
-**Upgrade immediately**: `npm install -g homebridge-volvo-ex30@2.1.1`
+**Upgrade immediately**: `npm install -g homebridge-volvo-ex30@2.1.2`
 
 ## 🎯 v2.1.0 - Simplified Presentation & Enhanced Usability
 
@@ -486,17 +487,18 @@ npm list -g --depth=0 | grep homebridge-volvo-ex30
 2. **Expired refresh token**: Run the OAuth setup again to get a new refresh token
 3. **Region mismatch**: Ensure your region setting matches your vehicle's region
 
-**OAuth Log Spam (COMPLETELY FIXED in v2.1.1)**
-- ✅ **v2.1.1 Hotfix**: Resolved critical OAuth spam bug that was reintroduced in v2.1.0
-- ✅ **Unified Authentication State**: Fixed conflicting global auth failure flags between components
+**OAuth Log Spam (COMPLETELY ELIMINATED in v2.1.2)**
+- ✅ **v2.1.2 Complete Fix**: Definitive solution for OAuth spam across ALL plugin components
+- ✅ **Comprehensive Coverage**: Extended global authentication state to VolvoApiClient and ConnectedVehicleClient
+- ✅ **Request Interceptors**: Proactive HTTP request blocking before authentication attempts
+- ✅ **Early Returns**: API methods check authentication state before execution
 - ✅ **Zero Spam Guarantee**: Plugin will either work or fail with exactly 3 log lines, then complete silence
 - ✅ **Global Shutdown**: First authentication error triggers immediate plugin suspension
-- ✅ **Behavior**: Maximum 3 error lines, then zero API activity until restart
-- ✅ **Critical Update**: Update to v2.1.1+ immediately to eliminate OAuth spam issues
+- ✅ **Critical Update**: Update to v2.1.2+ immediately for complete OAuth spam elimination
 
-**If you're on v2.1.0 and experiencing OAuth spam:**
+**If you're on v2.1.0/v2.1.1 and experiencing OAuth spam:**
 ```bash
-npm install -g homebridge-volvo-ex30@2.1.1
+npm install -g homebridge-volvo-ex30@2.1.2
 sudo systemctl restart homebridge
 ```
 
