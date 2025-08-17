@@ -420,8 +420,13 @@ export class VolvoEX30Accessory {
    * Setup Volvo Locate (Honk & Flash) with plain naming
    */
   private setupVolvoLocate(): void {
-    this.locateService = this.accessory.getService('Locate Vehicle') ||
-      this.accessory.addService(this.platform.Service.Switch, 'Volvo Locate', 'volvo-locate');
+    // Remove any existing locate service to prevent UUID conflicts
+    const existingService = this.accessory.getServiceById(this.platform.Service.Switch, 'volvo-locate');
+    if (existingService) {
+      this.accessory.removeService(existingService);
+    }
+    
+    this.locateService = this.accessory.addService(this.platform.Service.Switch, 'Volvo Locate', 'volvo-locate');
     
     this.locateService.setCharacteristic(this.platform.Characteristic.Name, 'Volvo Locate');
     this.locateService.setCharacteristic(this.platform.Characteristic.ConfiguredName, 'Volvo Locate');

@@ -650,6 +650,17 @@ export class ConnectedVehicleClient {
       lastUpdated: new Date().toISOString()
     };
 
+    // CRITICAL: Pre-validate token before 14 concurrent HTTP requests
+    // This prevents OAuth spam from simultaneous failed requests
+    try {
+      await this.oAuthHandler.getValidAccessToken(this.config.refreshToken);
+    } catch (error) {
+      // Token invalid - return empty state without concurrent HTTP requests
+      this.logger.debug('Token pre-validation failed, preventing 14 concurrent OAuth attempts');
+      return state; // Return minimal state with just timestamp
+    }
+
+    // Only proceed with concurrent requests if token is valid
     // Fetch all data in parallel for better performance
     const promises = [
       this.getVehicleDetails(vin).then(data => state.vehicleDetails = data.data).catch(err => this.logger.debug('Vehicle details failed:', err.message)),
