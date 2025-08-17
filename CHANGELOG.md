@@ -5,6 +5,94 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] - 2025-08-17
+
+### 🎯 Simplified Presentation & Enhanced Usability
+
+This release introduces simplified presentation with exactly 4 core tiles for better user experience while maintaining full functionality for advanced users.
+
+#### Added - SIMPLIFIED PRESENTATION MODE
+- **4 Essential Tiles**: Default presentation with "Volvo Lock", "Volvo Climate", "Volvo Battery", "Volvo Locate"
+- **Plain Naming Convention**: Clean, simple service names for better HomeKit app experience
+- **Presentation Mode Configuration**: Choose between "simple" (4 tiles) or "advanced" (all sensors)
+- **Enhanced Locate Functionality**: Fixed honk/flash functionality with proper API integration
+
+#### Added - NEW CONFIGURATION OPTIONS
+- **`presentationMode`**: Choose "simple" (default) or "advanced" presentation
+- **`enableHonkFlash`**: Control locate (honk & flash) functionality (default: true)
+- **`enableAdvancedSensors`**: Show detailed sensors in advanced mode (default: false)
+
+#### Added - API ENHANCEMENTS
+- **`honkFlash()` Method**: Added missing API method to Connected Vehicle client for locate functionality
+- **Service Organization**: New `setupSimplePresentationServices()` and `setupAdvancedPresentationServices()` methods
+- **Improved Error Handling**: Better locate command error handling and status feedback
+
+#### Added - BACKWARD COMPATIBILITY
+- **Legacy Configuration Support**: All v2.0.x configuration options still supported
+- **Graceful Migration**: Automatic detection and handling of legacy configurations
+- **Default Behavior**: New installations get simple mode, existing installations keep current settings
+
+#### Added - DOCUMENTATION
+- **Complete v2.1.0 Feature Documentation**: Updated README with simplified presentation features
+- **Configuration Examples**: New examples for both simple and advanced presentation modes
+- **Migration Guide**: Instructions for upgrading from v2.0.x to v2.1.0
+- **Legacy Compatibility**: Documentation for backward compatibility features
+
+#### Changed - SERVICE SETUP
+- **Modular Service Setup**: Refactored service initialization to support presentation modes
+- **Conditional Service Creation**: Services now created based on presentation mode and configuration
+- **Improved Service Naming**: Consistent plain naming across all services
+
+#### Changed - CONFIGURATION SCHEMA
+- **Updated UI Schema**: New configuration options with conditional visibility
+- **Streamlined Settings**: Simplified configuration interface with presentation mode selection
+- **Better Field Organization**: Reorganized configuration fields by functionality
+
+#### Fixed - LOCATE FUNCTIONALITY
+- **Missing API Method**: Added missing `honkFlash()` method to enable locate functionality
+- **Service Implementation**: Completed locate service implementation with proper state management
+- **Command Reliability**: Improved locate command execution and feedback
+
+### Before vs After
+
+**Before (v2.0.13 - Complex Interface):**
+```
+Multiple services: Battery, Lock Management, Climate Control, Front Left Door, Front Right Door, 
+Rear Left Door, Rear Right Door, Hood, Tailgate, Front Left Window, Front Right Window, 
+Rear Left Window, Rear Right Window, Sunroof, Service Warning, Odometer, etc.
+```
+
+**After (v2.1.0 - Simple Mode):**
+```
+4 Clean Tiles: Volvo Battery, Volvo Lock, Volvo Climate, Volvo Locate
+```
+
+**Advanced Mode (Optional):**
+```
+All previous functionality available via "presentationMode": "advanced" configuration
+```
+
+### Migration Guide
+
+**New Installations:**
+- Default to simple presentation mode with 4 essential tiles
+- Clean, intuitive HomeKit experience out of the box
+
+**Existing Installations (v2.0.x):**
+- All configurations continue to work unchanged
+- Optional migration to new presentation modes
+- Legacy configuration options remain supported
+
+**Configuration Update (Optional):**
+```json
+{
+  "platform": "VolvoEX30",
+  "presentationMode": "simple",
+  "enableHonkFlash": true,
+  "enableAdvancedSensors": false
+}
+```
+
 ## [2.0.11] - 2025-08-16
 
 ### 🔧 Critical Token Priority Fix & True Graceful Failure
