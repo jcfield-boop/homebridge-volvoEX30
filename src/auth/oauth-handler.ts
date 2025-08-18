@@ -14,6 +14,9 @@ export class OAuthHandler {
   // TRUE SERIALIZATION: Queue all token access to prevent Volvo's token rotation conflicts
   private tokenAccessQueue: Promise<string> | null = null;
   
+  // OAuth CSRF protection: Store state parameter for verification
+  private pendingState: string | null = null;
+  
   // EMERGENCY: Global authentication failure flag - blocks ALL OAuth operations
   private static globalAuthFailure: boolean = false;
   private static authErrorLogged: boolean = false;
@@ -72,6 +75,10 @@ export class OAuthHandler {
     this.codeVerifier = this.generateCodeVerifier();
     const codeChallenge = this.generateCodeChallenge(this.codeVerifier);
     
+    // Generate state parameter for CSRF protection if not provided
+    const stateParam = state || this.generateState();
+    this.pendingState = stateParam; // Store for later verification
+    
     const params = new URLSearchParams({
       response_type: 'code',
       client_id: this.config.clientId,
@@ -79,20 +86,26 @@ export class OAuthHandler {
       scope: 'conve:fuel_status conve:climatization_start_stop conve:unlock conve:lock_status conve:lock openid conve:battery_charge_level conve:diagnostics_engine_status conve:warnings conve:doors_status conve:windows_status conve:commands',
       code_challenge: codeChallenge,
       code_challenge_method: 'S256',
+      state: stateParam,
     });
-
-    if (state) {
-      params.append('state', state);
-    }
 
     return `${this.httpClient.defaults.baseURL}/as/authorization.oauth2?${params.toString()}`;
   }
 
-  async exchangeCodeForTokens(code: string, redirectUri: string): Promise<OAuthTokens> {
+  async exchangeCodeForTokens(code: string, redirectUri: string, receivedState?: string): Promise<OAuthTokens> {
     try {
       if (!this.codeVerifier) {
         throw new Error('Code verifier not found. Please generate authorization URL first.');
       }
+      
+      // Verify state parameter for CSRF protection
+      if (this.pendingState && receivedState !== this.pendingState) {
+        this.logger.error('❌ OAuth state verification failed - possible CSRF attack detected');
+        throw new Error('State parameter verification failed. Please restart the OAuth flow.');
+      }
+      
+      // Clear stored state after successful verification
+      this.pendingState = null;
       
       const params = new URLSearchParams({
         grant_type: 'authorization_code',
@@ -351,6 +364,10 @@ Generate a new token:
   private generateCodeChallenge(codeVerifier: string): string {
     const hash = crypto.createHash('sha256').update(codeVerifier).digest();
     return hash.toString('base64url');
+  }
+
+  private generateState(): string {
+    return crypto.randomBytes(16).toString('hex');
   }
 
   /**

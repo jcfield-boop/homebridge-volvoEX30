@@ -27,6 +27,7 @@ export interface AuthorizationResult {
 export class SharedOAuthHandler {
   private httpClient: AxiosInstance;
   private codeVerifier: string | null = null;
+  private pendingState: string | null = null;
 
   constructor(private config: OAuthConfig) {
     const baseURL = (config.region === 'na') 
@@ -51,6 +52,7 @@ export class SharedOAuthHandler {
     this.codeVerifier = this.generateCodeVerifier();
     const codeChallenge = this.generateCodeChallenge(this.codeVerifier);
     const generatedState = state || crypto.randomBytes(16).toString('hex');
+    this.pendingState = generatedState; // Store for later verification
     
     const params = new URLSearchParams({
       response_type: 'code',
@@ -78,12 +80,21 @@ export class SharedOAuthHandler {
     code: string,
     redirectUri: string,
     codeVerifier?: string,
+    receivedState?: string,
   ): Promise<OAuthTokens> {
     const verifier = codeVerifier || this.codeVerifier;
     
     if (!verifier) {
       throw new Error('Code verifier not found. Please generate authorization URL first.');
     }
+
+    // Verify state parameter for CSRF protection
+    if (this.pendingState && receivedState !== this.pendingState) {
+      throw new Error('State parameter verification failed. Possible CSRF attack detected. Please restart the OAuth flow.');
+    }
+    
+    // Clear stored state after successful verification
+    this.pendingState = null;
 
     if (!this.config.clientSecret) {
       throw new Error('Client secret is required for token exchange.');

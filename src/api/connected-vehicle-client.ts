@@ -584,6 +584,21 @@ export class ConnectedVehicleClient {
       throw new Error('Command rate limit exceeded. Please wait before sending more commands.');
     }
 
+    // Check vehicle accessibility before sending climatization command
+    try {
+      const accessibility = await this.getCommandAccessibility(vin);
+      const availabilityStatus = accessibility.data.availabilityStatus?.value;
+      
+      if (availabilityStatus !== 'AVAILABLE') {
+        const reason = accessibility.data.unavailableReason?.value || 'Unknown reason';
+        this.logger.warn(`Vehicle not ready for climatization commands. Status: ${availabilityStatus}, Reason: ${reason}`);
+        throw new Error(`Vehicle not accessible for commands: ${reason}. Please ensure vehicle is awake and not in sleep mode.`);
+      }
+    } catch (accessibilityError) {
+      this.logger.error('Failed to check command accessibility before climatization:', accessibilityError);
+      // Continue with command attempt - accessibility check might not be critical for all vehicles
+    }
+
     try {
       const response = await this.httpClient.post<CommandInvokeResponse>(
         `/vehicles/${vin}/commands/climatization-start`, 
@@ -601,6 +616,21 @@ export class ConnectedVehicleClient {
   async stopClimatization(vin: string): Promise<CommandInvokeResponse> {
     if (!this.checkCommandRateLimit()) {
       throw new Error('Command rate limit exceeded. Please wait before sending more commands.');
+    }
+
+    // Check vehicle accessibility before sending climatization command
+    try {
+      const accessibility = await this.getCommandAccessibility(vin);
+      const availabilityStatus = accessibility.data.availabilityStatus?.value;
+      
+      if (availabilityStatus !== 'AVAILABLE') {
+        const reason = accessibility.data.unavailableReason?.value || 'Unknown reason';
+        this.logger.warn(`Vehicle not ready for climatization commands. Status: ${availabilityStatus}, Reason: ${reason}`);
+        throw new Error(`Vehicle not accessible for commands: ${reason}. Please ensure vehicle is awake and not in sleep mode.`);
+      }
+    } catch (accessibilityError) {
+      this.logger.error('Failed to check command accessibility before climatization:', accessibilityError);
+      // Continue with command attempt - accessibility check might not be critical for all vehicles
     }
 
     try {

@@ -5,6 +5,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.7] - 2025-08-17
+
+### 🌡️ Climate Control Prerequisites & OAuth Security Fix
+
+**COMPREHENSIVE SOLUTION** - This release adds vehicle accessibility checks for climate control and improves OAuth security.
+
+#### Fixed - Climate Control "Error returned from car" 
+- **Command Accessibility Check**: Added prerequisite validation before sending climatization commands
+- **Vehicle State Verification**: Check if vehicle is awake and ready for commands using `/command-accessibility` endpoint
+- **Enhanced Error Messages**: Specific error messages for vehicle sleep mode, accessibility issues, and EV requirements
+- **Capability Verification**: Verify `canStartClimatization`/`canStopClimatization` before attempting commands
+- **User Guidance**: Clear instructions to wake vehicle using Volvo Cars app when commands fail
+
+#### Fixed - OAuth State Parameter Security
+- **CSRF Protection**: Added state parameter verification to prevent cross-site request forgery attacks
+- **State Generation**: Auto-generate cryptographically secure state parameters for OAuth flow
+- **State Verification**: Verify returned state matches original before exchanging code for tokens
+- **Security Logging**: Log potential CSRF attack attempts and require OAuth flow restart
+
+#### Technical Changes
+- Modified `startClimatization()` and `stopClimatization()` to check vehicle accessibility first
+- Enhanced `setClimatizationState()` with capability verification and better error handling
+- Added `generateState()` and state verification to both OAuth handlers
+- Updated OAuth scripts to support state parameter verification
+- Added vehicle sleep mode detection and user guidance
+
+**Result**: Climate control respects vehicle state, OAuth flow protected against CSRF attacks
+
 ## [2.3.5] - 2025-08-17
 
 ### 🎯 Complete OAuth Spam & Climate Control Fix

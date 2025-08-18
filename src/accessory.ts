@@ -1234,9 +1234,25 @@ export class VolvoEX30Accessory {
       const apiClient = this.platform.getApiClient();
       const vin = this.platform.config.vin;
       
-      if (value as boolean) {
+      // Check if vehicle supports climatization commands
+      const vehicleData = await this.getUnifiedVehicleData();
+      const isStartAction = value as boolean;
+      
+      if (isStartAction && !vehicleData.canStartClimatization) {
+        this.platform.log.warn('❌ Vehicle does not support climatization start command');
+        throw new Error('Climatization start not supported by this vehicle');
+      }
+      
+      if (!isStartAction && !vehicleData.canStopClimatization) {
+        this.platform.log.warn('❌ Vehicle does not support climatization stop command');
+        throw new Error('Climatization stop not supported by this vehicle');
+      }
+      
+      if (isStartAction) {
+        this.platform.log.info('🌡️ Starting vehicle climatization...');
         await apiClient.startClimatization(vin);
       } else {
+        this.platform.log.info('🌡️ Stopping vehicle climatization...');
         await apiClient.stopClimatization(vin);
       }
       
@@ -1246,6 +1262,18 @@ export class VolvoEX30Accessory {
     } catch (error) {
       this.handleAuthFailure(error);
       this.climateService?.updateCharacteristic(this.platform.Characteristic.On, !value);
+      
+      // Provide better error messages for common issues
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (errorMessage.includes('not accessible') || errorMessage.includes('sleep mode')) {
+        this.platform.log.error(`🚗 Climate control failed: ${errorMessage}`);
+        this.platform.log.error('💡 Try using the Volvo Cars app to wake up your vehicle first');
+      } else if (errorMessage.includes('not supported')) {
+        this.platform.log.error(`❌ ${errorMessage}`);
+      } else {
+        this.platform.log.error(`🌡️ Climate control command failed: ${errorMessage}`);
+      }
+      
       throw error;
     }
   }
