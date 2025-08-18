@@ -546,6 +546,21 @@ export class ConnectedVehicleClient {
       throw new Error('Command rate limit exceeded. Please wait before sending more commands.');
     }
 
+    // Check vehicle accessibility before sending lock command
+    try {
+      const accessibility = await this.getCommandAccessibility(vin);
+      const availabilityStatus = accessibility.data.availabilityStatus?.value;
+      
+      if (availabilityStatus !== 'AVAILABLE') {
+        const reason = accessibility.data.unavailableReason?.value || 'Unknown reason';
+        this.logger.warn(`Vehicle not ready for lock commands. Status: ${availabilityStatus}, Reason: ${reason}`);
+        throw new Error(`Vehicle not accessible for commands: ${reason}. Please ensure vehicle is awake and not in sleep mode.`);
+      }
+    } catch (accessibilityError) {
+      this.logger.error('Failed to check command accessibility before lock:', accessibilityError);
+      // Continue with command attempt - accessibility check might not be critical for all vehicles
+    }
+
     try {
       const response = await this.httpClient.post<CommandInvokeResponse>(
         `/vehicles/${vin}/commands/lock`, 
@@ -563,6 +578,21 @@ export class ConnectedVehicleClient {
   async unlockVehicle(vin: string): Promise<UnlockCommandResponse> {
     if (!this.checkCommandRateLimit()) {
       throw new Error('Command rate limit exceeded. Please wait before sending more commands.');
+    }
+
+    // Check vehicle accessibility before sending unlock command
+    try {
+      const accessibility = await this.getCommandAccessibility(vin);
+      const availabilityStatus = accessibility.data.availabilityStatus?.value;
+      
+      if (availabilityStatus !== 'AVAILABLE') {
+        const reason = accessibility.data.unavailableReason?.value || 'Unknown reason';
+        this.logger.warn(`Vehicle not ready for unlock commands. Status: ${availabilityStatus}, Reason: ${reason}`);
+        throw new Error(`Vehicle not accessible for commands: ${reason}. Please ensure vehicle is awake and not in sleep mode.`);
+      }
+    } catch (accessibilityError) {
+      this.logger.error('Failed to check command accessibility before unlock:', accessibilityError);
+      // Continue with command attempt - accessibility check might not be critical for all vehicles
     }
 
     try {
@@ -650,6 +680,21 @@ export class ConnectedVehicleClient {
   async honkFlash(vin: string): Promise<CommandInvokeResponse> {
     if (!this.checkCommandRateLimit()) {
       throw new Error('Command rate limit exceeded. Please wait before sending more commands.');
+    }
+
+    // Check vehicle accessibility before sending honk/flash command
+    try {
+      const accessibility = await this.getCommandAccessibility(vin);
+      const availabilityStatus = accessibility.data.availabilityStatus?.value;
+      
+      if (availabilityStatus !== 'AVAILABLE') {
+        const reason = accessibility.data.unavailableReason?.value || 'Unknown reason';
+        this.logger.warn(`Vehicle not ready for honk/flash commands. Status: ${availabilityStatus}, Reason: ${reason}`);
+        throw new Error(`Vehicle not accessible for commands: ${reason}. Please ensure vehicle is awake and not in sleep mode.`);
+      }
+    } catch (accessibilityError) {
+      this.logger.error('Failed to check command accessibility before honk/flash:', accessibilityError);
+      // Continue with command attempt - accessibility check might not be critical for all vehicles
     }
 
     try {

@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.8] - 2025-08-17
+
+### 🚗 Complete Vehicle Command Prerequisites Fix
+
+**COMPREHENSIVE COMMAND VALIDATION** - This release extends vehicle accessibility checks to ALL command APIs for consistent behavior.
+
+#### Fixed - All Vehicle Commands Now Respect Vehicle State
+- **Lock Commands**: Added accessibility check to `lockVehicle()` - prevents "Error returned from car" when vehicle asleep
+- **Unlock Commands**: Added accessibility check to `unlockVehicle()` - respects vehicle sleep mode
+- **Locate Commands**: Added accessibility check to `honkFlash()` - validates vehicle readiness before honk/flash
+- **Consistent Behavior**: All commands (climate, lock, unlock, locate) now have identical prerequisite validation
+
+#### Enhanced - Improved Error Messages for All Commands  
+- **Lock Control**: Enhanced `setTargetLockState()` with specific sleep mode detection and user guidance
+- **Locate Control**: Enhanced `setLocateState()` with vehicle accessibility error messages
+- **User Guidance**: Consistent messaging across all commands to wake vehicle using Volvo Cars app
+- **Command Logging**: Added informative logging for all command attempts
+
+#### Technical Changes
+- Extended `/command-accessibility` validation to `lockVehicle()`, `unlockVehicle()`, and `honkFlash()`
+- Unified error handling pattern across all vehicle command methods
+- Enhanced accessory error messages with vehicle state awareness
+- Consistent sleep mode detection and recovery guidance
+
+**Result**: All vehicle commands respect vehicle state with unified error handling and user guidance
+
 ## [2.3.7] - 2025-08-17
 
 ### 🌡️ Climate Control Prerequisites & OAuth Security Fix

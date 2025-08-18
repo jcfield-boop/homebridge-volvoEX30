@@ -1173,6 +1173,7 @@ export class VolvoEX30Accessory {
       const vin = this.platform.config.vin;
       
       if (value === this.platform.Characteristic.LockTargetState.SECURED) {
+        this.platform.log.info('🔒 Locking vehicle...');
         const result = await apiClient.lockVehicle(vin);
         
         if (result.invokeStatus === 'COMPLETED' || result.invokeStatus === 'SUCCESS') {
@@ -1183,6 +1184,7 @@ export class VolvoEX30Accessory {
         }
         
       } else if (value === this.platform.Characteristic.LockTargetState.UNSECURED) {
+        this.platform.log.info('🔓 Unlocking vehicle...');
         const result = await apiClient.unlockVehicle(vin);
         
         if (result.invokeStatus === 'COMPLETED' || result.invokeStatus === 'SUCCESS') {
@@ -1198,6 +1200,15 @@ export class VolvoEX30Accessory {
       
     } catch (error) {
       this.handleAuthFailure(error);
+      
+      // Provide better error messages for common issues
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (errorMessage.includes('not accessible') || errorMessage.includes('sleep mode')) {
+        this.platform.log.error(`🚗 Lock control failed: ${errorMessage}`);
+        this.platform.log.error('💡 Try using the Volvo Cars app to wake up your vehicle first');
+      } else {
+        this.platform.log.error(`🔒 Lock command failed: ${errorMessage}`);
+      }
       
       const currentState = await this.getCurrentLockState();
       if (currentState === this.platform.Characteristic.LockCurrentState.SECURED) {
@@ -1305,6 +1316,16 @@ export class VolvoEX30Accessory {
         
       } catch (error) {
         this.handleAuthFailure(error);
+        
+        // Provide better error messages for common issues
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        if (errorMessage.includes('not accessible') || errorMessage.includes('sleep mode')) {
+          this.platform.log.error(`🚗 Locate vehicle failed: ${errorMessage}`);
+          this.platform.log.error('💡 Try using the Volvo Cars app to wake up your vehicle first');
+        } else {
+          this.platform.log.error(`📍 Honk/flash command failed: ${errorMessage}`);
+        }
+        
         this.locateService?.updateCharacteristic(this.platform.Characteristic.On, false);
         throw error;
       }
