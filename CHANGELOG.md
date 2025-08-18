@@ -5,6 +5,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.13] - 2025-08-18
+
+### 🔧 Complete OAuth Spam Fix - True Shared Polling
+
+**CRITICAL FIX** - This release completely eliminates OAuth spam by implementing true shared polling. The previous v2.3.12 improved token caching but still had multiple accessories triggering concurrent token requests during startup.
+
+#### Fixed - True Shared Data Fetching
+- **Eliminated All OAuth Spam**: Completely removed multiple "Token access already in progress" messages during startup
+- **Single Data Fetch**: Platform now fetches data once for all accessories instead of per-accessory fetching
+- **True Shared Polling**: Accessories no longer make individual API calls during setup
+- **Proper Callback System**: Fixed duplicate callback registration that caused concurrent requests
+- **Centralized Initial Fetch**: Moved initial data fetch to platform level after device discovery
+
+#### Technical Architecture Improvements
+- **Fixed loadInitialDataShared()**: Removed individual `fetchInitialDataOnce()` calls from each accessory
+- **Platform-Level Control**: Added single initial data fetch in `didFinishLaunching` callback
+- **Eliminated Concurrent Setup**: Accessories now wait for shared data instead of fetching individually
+- **Better Callback Management**: Fixed duplicate `registerDataUpdateCallback()` calls
+- **Proper TypeScript Types**: Added `dataUpdateCallback` property with proper type safety
+
+#### Performance & Reliability
+- **Zero OAuth Spam**: No more concurrent token requests during startup
+- **Faster Startup**: Single API call instead of multiple concurrent calls
+- **Lower Rate Limits**: Dramatic reduction in OAuth endpoint usage
+- **Improved Stability**: Eliminates race conditions during accessory setup
+
+#### Upgrade Notes
+This version completely eliminates the OAuth spam issue. Users will see a clean startup log with only one initial data fetch for all accessories.
+
 ## [2.3.12] - 2025-08-18
 
 ### 🔧 OAuth Token Caching Fix - Eliminate OAuth Spam

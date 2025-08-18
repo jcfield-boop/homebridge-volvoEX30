@@ -66,6 +66,14 @@ export class VolvoEX30Platform implements DynamicPlatformPlugin {
       this.initializeTokensSmartly().then(async () => {
         this.log.info('🔑 Tokens initialized successfully - starting device discovery');
         await this.discoverDevices();
+        
+        // SINGLE INITIAL DATA FETCH: Fetch data once for all accessories after device discovery
+        try {
+          await this.fetchInitialDataOnce();
+          this.log.info('📡 Initial data fetch completed for all accessories');
+        } catch (error) {
+          this.log.error('❌ Failed to fetch initial data:', error);
+        }
       }).catch(async (error) => {
         this.log.error('Failed to initialize tokens:', error);
         this.globalDataFailure = true;

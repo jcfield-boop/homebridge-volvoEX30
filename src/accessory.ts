@@ -32,6 +32,7 @@ export class VolvoEX30Accessory {
   
   private currentUnifiedData: UnifiedVehicleData | null = null;
   private updateInterval?: NodeJS.Timeout;
+  private dataUpdateCallback?: () => void;
   
   // Global authentication failure tracking (uses OAuthHandler.globalAuthFailure)
   private authFailureTime: number = 0;
@@ -729,7 +730,8 @@ export class VolvoEX30Accessory {
       this.onSharedDataUpdate();
     };
     
-    this.platform.registerDataUpdateCallback(updateCallback);
+    // Store the callback for later registration in loadInitialDataShared()
+    this.dataUpdateCallback = updateCallback;
     
     // Start the shared poller (only starts once)
     this.platform.startSharedPolling();
@@ -818,18 +820,18 @@ export class VolvoEX30Accessory {
       return;
     }
     
-    try {
-      // Use shared fetch instead of individual API calls
-      await this.platform.fetchInitialDataOnce();
-      
-      // Get the shared data
-      this.currentUnifiedData = this.platform.getLastVehicleData();
-      
-      if (this.currentUnifiedData) {
-        this.platform.log.debug(`📊 ${this.accessory.displayName}: Initial data loaded from shared fetch`);
-      }
-    } catch (error) {
-      this.platform.log.error(`❌ ${this.accessory.displayName}: Failed to load initial data:`, error);
+    // Register for shared data updates - platform handles the initial fetch once for all accessories
+    if (this.dataUpdateCallback) {
+      this.platform.registerDataUpdateCallback(this.dataUpdateCallback);
+    }
+    
+    // Get any existing shared data immediately if available
+    this.currentUnifiedData = this.platform.getLastVehicleData();
+    
+    if (this.currentUnifiedData) {
+      this.platform.log.debug(`📊 ${this.accessory.displayName}: Initial data loaded from shared fetch`);
+    } else {
+      this.platform.log.debug(`📊 ${this.accessory.displayName}: Waiting for shared data fetch to complete`);
     }
   }
   
