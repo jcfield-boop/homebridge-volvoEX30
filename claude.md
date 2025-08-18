@@ -351,7 +351,52 @@ When adding any new vehicle command API, ALWAYS apply this pattern:
 4. **Add user guidance** to wake vehicle with Volvo Cars app
 5. **Apply to ALL command APIs** - never leave any command without prerequisites validation
 
+## OAuth Spam Resolution History (CRITICAL FIXES)
+
+### v2.3.13 - COMPLETE OAUTH SPAM FIX (2025-08-18)
+**BREAKTHROUGH**: Finally eliminated all OAuth spam by implementing true shared polling architecture.
+
+#### Root Cause Identified
+The persistent OAuth spam was caused by **multiple accessories calling `fetchInitialDataOnce()` during setup**, resulting in 13+ concurrent token requests despite token serialization.
+
+#### Architecture Fix Applied
+```typescript
+// BEFORE (v2.3.12): Each accessory called fetchInitialDataOnce()
+private async loadInitialDataShared(): Promise<void> {
+  await this.platform.fetchInitialDataOnce(); // ❌ CONCURRENT CALLS
+}
+
+// AFTER (v2.3.13): Platform fetches data once for all accessories
+// In platform.ts didFinishLaunching:
+await this.discoverDevices();
+await this.fetchInitialDataOnce(); // ✅ SINGLE CALL
+```
+
+#### Technical Solution
+1. **Removed individual `fetchInitialDataOnce()` calls** from each accessory setup
+2. **Added single platform-level initial fetch** after device discovery in `didFinishLaunching`
+3. **Fixed duplicate `registerDataUpdateCallback()`** calls that caused race conditions
+4. **Implemented proper callback management** with TypeScript type safety
+
+#### Result
+- **Zero OAuth spam** during startup
+- **Single API call** instead of 13+ concurrent calls
+- **Clean startup logs** with proper shared polling
+- **Faster startup** due to eliminated race conditions
+
+### v2.3.12 - Token Caching Improvements (2025-08-18)
+- Enhanced token caching with 30-second expiry buffer instead of 3-minute proactive refresh
+- Added "Reusing valid token" debug logging
+- Fixed overly aggressive token refresh logic
+
+### OAuth Spam Fix Pattern for Future Development
+**CRITICAL**: When adding new accessories or services:
+1. **NEVER call `fetchInitialDataOnce()` from individual accessories**
+2. **Always use shared data from `platform.getLastVehicleData()`**
+3. **Register for callbacks, don't make individual API calls**
+4. **Test startup logs to ensure zero OAuth spam**
+
 ---
 
-*Last Updated: 2025-08-17*
-*Version: 2.3.8*
+*Last Updated: 2025-08-18*
+*Version: 2.3.13*
