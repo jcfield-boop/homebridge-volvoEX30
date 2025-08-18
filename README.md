@@ -2,37 +2,37 @@
 
 A comprehensive Homebridge plugin that integrates your Volvo EX30 with Apple HomeKit using the official Volvo Connected Vehicle API v2. Monitor battery status, control locks and climate, track doors and windows, and access vehicle diagnostics - all from the Home app.
 
-## 🚗 v2.3.10 - Complete Vehicle Command Prerequisites + Documentation
+## 🚗 v2.3.13 - Complete OAuth Spam Fix with True Shared Polling
 
-**COMPREHENSIVE COMMAND VALIDATION + BULLETPROOF WORKFLOW!** This release extends vehicle accessibility checks to ALL command APIs and establishes bulletproof documentation workflow.
+**CRITICAL FIX - OAUTH SPAM ELIMINATED!** This release completely eliminates OAuth spam by implementing true shared polling architecture. Previous versions had multiple accessories triggering concurrent token requests during startup.
 
-### ✅ **All Vehicle Commands Now Respect Vehicle State**
-- **🔒 Lock Commands** - Added accessibility check to prevent "Error returned from car" when vehicle asleep
-- **🔓 Unlock Commands** - Validates vehicle state before unlock attempts  
-- **📍 Locate Commands** - Checks vehicle readiness before honk/flash
-- **🌡️ Climate Commands** - Comprehensive vehicle state validation
-- **🛡️ Consistent Behavior** - All commands have identical prerequisite validation
+### ✅ **Zero OAuth Spam - Finally Fixed**
+- **🔇 All OAuth Spam Eliminated** - Completely removed multiple "Token access already in progress" messages during startup
+- **📡 Single Data Fetch** - Platform now fetches data once for all accessories instead of per-accessory fetching
+- **🏗️ True Shared Polling** - Accessories no longer make individual API calls during setup
+- **⚡ Faster Startup** - Single API call instead of multiple concurrent calls
+- **🛡️ Improved Stability** - Eliminates race conditions during accessory setup
 
-### 🛠️ **Enhanced Error Messages for All Commands**
-- **Sleep Mode Detection** - All commands detect when vehicle is not accessible
-- **User Guidance** - Clear instructions to wake vehicle using Volvo Cars app
-- **Informative Logging** - Added proper logging for all command attempts
-- **Unified Error Handling** - Consistent error messages across all command types
+### 🔧 **Architecture Improvements**
+- **Platform-Level Control** - Added single initial data fetch in `didFinishLaunching` callback
+- **Fixed Callback System** - Eliminated duplicate `registerDataUpdateCallback()` calls that caused concurrent requests
+- **Centralized Fetching** - Moved initial data fetch to platform level after device discovery
+- **Better TypeScript Types** - Added proper type safety for callback management
 
-### 📚 **Bulletproof Documentation Workflow**
-- **Complete CHANGELOG.md Coverage** - Every release now has comprehensive version documentation
-- **Enhanced Development Workflow** - Mandatory documentation steps prevent gaps
-- **Future-Proof Process** - Ensures consistent user experience and version tracking
+### 🚀 **Performance & Reliability**
+- **Lower Rate Limits** - Dramatic reduction in OAuth endpoint usage
+- **Clean Startup Logs** - No more repetitive OAuth messages
+- **Reduced API Calls** - True shared architecture prevents unnecessary API requests
+- **Improved Token Management** - Enhanced token caching with 30-second expiry buffer
 
-### 🔧 **Technical Implementation**
-- **Command Accessibility** - Extended `/command-accessibility` validation to all vehicle commands
-- **Error Handling** - Unified error handling pattern across lock, unlock, climate, and locate
-- **Vehicle State Awareness** - All commands respect EX30 sleep mode and accessibility status
-- **Recovery Guidance** - Consistent messaging for vehicle wake-up procedures
+### 🔄 **Previous OAuth Improvements (v2.3.12)**
+- **Enhanced Token Caching** - Tokens cached and reused for full 5-minute lifetime
+- **Better Token Validation** - Only refresh when actually expired or expiring within 30 seconds
+- **Improved Debug Logging** - Added "Reusing valid token" messages
 
-**Upgrade**: `npm install -g homebridge-volvo-ex30@2.3.10` + restart Homebridge
+**Upgrade**: `npm install -g homebridge-volvo-ex30@2.3.13` + restart Homebridge
 
-**Result**: All vehicle commands work reliably + complete documentation coverage! 🚗💨📚
+**Result**: Zero OAuth spam + true shared polling + faster startup! 🚗💨🔧
 
 ---
 
