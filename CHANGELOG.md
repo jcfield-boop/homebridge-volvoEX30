@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.9] - 2025-08-17
+
+### 📚 Documentation Update & Development Workflow
+
+**DOCUMENTATION COMPLETENESS** - This release updates documentation and adds development workflow to prevent future documentation gaps.
+
+#### Updated - Complete Documentation Coverage
+- **README.md Update**: Updated main section to highlight v2.3.8 comprehensive command validation features
+- **Feature Coverage**: Added coverage of ALL vehicle commands (lock, unlock, climate, locate) in documentation
+- **User Benefits**: Enhanced descriptions showing complete command prerequisites and error handling
+- **Upgrade Instructions**: Updated to reflect latest v2.3.8 capabilities and installation
+
+#### Added - Development Workflow Documentation
+- **CRITICAL Release Checklist**: Added mandatory workflow to CLAUDE.md to prevent forgetting documentation updates
+- **Documentation Reminders**: Explicit requirements for both README.md and CHANGELOG.md updates
+- **Vehicle Command Pattern**: Documented standard pattern for future vehicle command API development
+- **Consequences Warning**: Clear explanation of why documentation is not optional
+
+#### Technical Documentation
+- **Complete Workflow Sequence**: Step-by-step process for all future releases
+- **Mandatory Documentation Steps**: Both README.md and CHANGELOG.md must be updated for every release
+- **Future-Proof Development**: Ensures consistent documentation and user experience
+
+**Result**: Complete documentation coverage + future-proof development workflow that prevents documentation gaps
+
 ## [2.3.8] - 2025-08-17
 
 ### 🚗 Complete Vehicle Command Prerequisites Fix

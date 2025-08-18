@@ -324,9 +324,24 @@ node scripts/token-exchange.js [AUTHORIZATION_CODE]
 6. **Publish Release** - `npm publish` to make available on npm registry
 
 ### REMEMBER: Documentation is NOT Optional
+
+**README.md Updates (MANDATORY)**:
 - Users see README.md first - it MUST reflect the latest version and features
-- CHANGELOG.md provides complete version history - essential for tracking changes
-- Forgetting documentation creates inconsistent user experience
+- Update the main version section with new features and fixes
+- Change version numbers in upgrade instructions
+- Highlight key improvements and benefits
+
+**CHANGELOG.md Updates (MANDATORY)**:
+- Add comprehensive new version section with date
+- Document ALL features, fixes, and technical changes
+- Use consistent formatting with previous entries
+- Provide clear "Result" summary of what users get
+- NEVER release without updating CHANGELOG.md - users rely on it for version history
+
+**Consequences of Forgetting Documentation**:
+- Inconsistent user experience and confusion
+- Users won't know about new features or fixes
+- Missing version history breaks trust and usability
 
 ### Vehicle Command API Pattern
 When adding any new vehicle command API, ALWAYS apply this pattern:
