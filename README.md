@@ -2,15 +2,15 @@
 
 A comprehensive Homebridge plugin that integrates your Volvo EX30 with Apple HomeKit using the official Volvo Connected Vehicle API v2. Monitor battery status, control locks and climate, track doors and windows, and access vehicle diagnostics - all from the Home app.
 
-## 🚗 v2.3.8 - Complete Vehicle Command Prerequisites Fix
+## 🚗 v2.3.10 - Complete Vehicle Command Prerequisites + Documentation
 
-**COMPREHENSIVE COMMAND VALIDATION!** This release extends vehicle accessibility checks to ALL command APIs for consistent behavior.
+**COMPREHENSIVE COMMAND VALIDATION + BULLETPROOF WORKFLOW!** This release extends vehicle accessibility checks to ALL command APIs and establishes bulletproof documentation workflow.
 
 ### ✅ **All Vehicle Commands Now Respect Vehicle State**
 - **🔒 Lock Commands** - Added accessibility check to prevent "Error returned from car" when vehicle asleep
 - **🔓 Unlock Commands** - Validates vehicle state before unlock attempts  
 - **📍 Locate Commands** - Checks vehicle readiness before honk/flash
-- **🌡️ Climate Commands** - Already validated (from v2.3.7)
+- **🌡️ Climate Commands** - Comprehensive vehicle state validation
 - **🛡️ Consistent Behavior** - All commands have identical prerequisite validation
 
 ### 🛠️ **Enhanced Error Messages for All Commands**
@@ -19,15 +19,20 @@ A comprehensive Homebridge plugin that integrates your Volvo EX30 with Apple Hom
 - **Informative Logging** - Added proper logging for all command attempts
 - **Unified Error Handling** - Consistent error messages across all command types
 
+### 📚 **Bulletproof Documentation Workflow**
+- **Complete CHANGELOG.md Coverage** - Every release now has comprehensive version documentation
+- **Enhanced Development Workflow** - Mandatory documentation steps prevent gaps
+- **Future-Proof Process** - Ensures consistent user experience and version tracking
+
 ### 🔧 **Technical Implementation**
 - **Command Accessibility** - Extended `/command-accessibility` validation to all vehicle commands
 - **Error Handling** - Unified error handling pattern across lock, unlock, climate, and locate
 - **Vehicle State Awareness** - All commands respect EX30 sleep mode and accessibility status
 - **Recovery Guidance** - Consistent messaging for vehicle wake-up procedures
 
-**Upgrade**: `npm install -g homebridge-volvo-ex30@2.3.8` + restart Homebridge
+**Upgrade**: `npm install -g homebridge-volvo-ex30@2.3.10` + restart Homebridge
 
-**Result**: All vehicle commands work reliably with helpful error messages! 🚗💨
+**Result**: All vehicle commands work reliably + complete documentation coverage! 🚗💨📚
 
 ---
 
