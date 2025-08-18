@@ -308,8 +308,35 @@ node scripts/token-exchange.js [AUTHORIZATION_CODE]
 - ✅ Error handling for API failures
 - ✅ Command vs polling separation (no automatic commands)
 
+## Development Release Workflow
+
+### CRITICAL: Complete Release Checklist (NEVER FORGET!)
+
+**Always follow this exact sequence for ANY code changes:**
+
+1. **Code Implementation** - Make all necessary code changes
+2. **Build & Test** - Run `npm run build` and `npm run lint` to ensure compilation 
+3. **Version Update** - Update `package.json` version (patch/minor/major as appropriate)
+4. **Documentation Updates** - **MANDATORY** - Update both:
+   - `CHANGELOG.md` - Add comprehensive section for new version with features/fixes
+   - `README.md` - Update main section to highlight latest version and features
+5. **Commit Changes** - `git add .` and `git commit` with detailed message
+6. **Publish Release** - `npm publish` to make available on npm registry
+
+### REMEMBER: Documentation is NOT Optional
+- Users see README.md first - it MUST reflect the latest version and features
+- CHANGELOG.md provides complete version history - essential for tracking changes
+- Forgetting documentation creates inconsistent user experience
+
+### Vehicle Command API Pattern
+When adding any new vehicle command API, ALWAYS apply this pattern:
+1. **Add command accessibility check** using `getCommandAccessibility(vin)`
+2. **Verify vehicle state** is 'AVAILABLE' before sending command
+3. **Provide specific error messages** for sleep mode and accessibility issues
+4. **Add user guidance** to wake vehicle with Volvo Cars app
+5. **Apply to ALL command APIs** - never leave any command without prerequisites validation
+
 ---
 
-*Last Updated: 2025-08-16*
-*Version: 2.0.8*
-- after all updates ensure to update README.md, CHANGELOG.md and commit push, version patch/minor/major and then publish on npm
+*Last Updated: 2025-08-17*
+*Version: 2.3.8*
