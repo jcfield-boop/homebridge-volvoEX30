@@ -2,9 +2,17 @@
 
 A comprehensive Homebridge plugin that integrates your Volvo EX30 with Apple HomeKit using the official Volvo Connected Vehicle API v2. Monitor battery status, control locks and climate, track doors and windows, and access vehicle diagnostics - all from the Home app.
 
-## 🚗 v2.3.13 - Complete OAuth Spam Fix with True Shared Polling
+## 🚗 v2.3.14 - Command API Fixes & OAuth Spam Elimination
 
-**CRITICAL FIX - OAUTH SPAM ELIMINATED!** This release completely eliminates OAuth spam by implementing true shared polling architecture. Previous versions had multiple accessories triggering concurrent token requests during startup.
+**DUAL CRITICAL FIXES!** This release fixes both OAuth spam issues and command API failures by implementing correct API endpoints and comprehensive command validation.
+
+### 🔧 **Command API Fixes (v2.3.14)**
+- **Fixed Honk/Flash 404 Error**: Corrected endpoint from `/commands/honk-flash` to `/commands/honk-and-flash`
+- **Enhanced Command Validation**: Added vehicle-specific command availability checking before execution
+- **Better Error Messages**: Clear feedback when commands aren't supported by specific vehicles
+- **API Specification Compliance**: Updated to match official Connected Vehicle API v2 specification
+
+### ✅ **OAuth Spam Elimination (v2.3.13)**
 
 ### ✅ **Zero OAuth Spam - Finally Fixed**
 - **🔇 All OAuth Spam Eliminated** - Completely removed multiple "Token access already in progress" messages during startup
@@ -30,9 +38,9 @@ A comprehensive Homebridge plugin that integrates your Volvo EX30 with Apple Hom
 - **Better Token Validation** - Only refresh when actually expired or expiring within 30 seconds
 - **Improved Debug Logging** - Added "Reusing valid token" messages
 
-**Upgrade**: `npm install -g homebridge-volvo-ex30@2.3.13` + restart Homebridge
+**Upgrade**: `npm install -g homebridge-volvo-ex30@2.3.14` + restart Homebridge
 
-**Result**: Zero OAuth spam + true shared polling + faster startup! 🚗💨🔧
+**Result**: Fixed command errors + zero OAuth spam + true shared polling! 🚗💨🔧
 
 ---
 

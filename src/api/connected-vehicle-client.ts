@@ -614,10 +614,28 @@ export class ConnectedVehicleClient {
       throw new Error('Command rate limit exceeded. Please wait before sending more commands.');
     }
 
+    // Check available commands for this vehicle
+    try {
+      const availableCommands = await this.getAvailableCommands(vin);
+      const supportsClimatization = availableCommands?.data?.some((cmd: any) => 
+        cmd.command === 'CLIMATIZATION_START' || cmd.command === 'CLIMATIZATION_STOP'
+      );
+      
+      if (!supportsClimatization) {
+        this.logger.warn(`🚫 Vehicle ${vin} does not support climatization commands`);
+        throw new Error('Climatization commands are not supported by this vehicle');
+      }
+    } catch (commandError) {
+      this.logger.error('Failed to check available commands:', commandError);
+      // Continue with accessibility check
+    }
+
     // Check vehicle accessibility before sending climatization command
     try {
       const accessibility = await this.getCommandAccessibility(vin);
       const availabilityStatus = accessibility.data.availabilityStatus?.value;
+      
+      this.logger.info(`🔍 Climate accessibility check: Status=${availabilityStatus}, Reason=${accessibility.data.unavailableReason?.value || 'N/A'}`);
       
       if (availabilityStatus !== 'AVAILABLE') {
         const reason = accessibility.data.unavailableReason?.value || 'Unknown reason';
@@ -682,10 +700,28 @@ export class ConnectedVehicleClient {
       throw new Error('Command rate limit exceeded. Please wait before sending more commands.');
     }
 
+    // Check available commands for this vehicle
+    try {
+      const availableCommands = await this.getAvailableCommands(vin);
+      const supportsHonkFlash = availableCommands?.data?.some((cmd: any) => 
+        cmd.command === 'HONK_AND_FLASH' || cmd.command === 'HONK' || cmd.command === 'FLASH'
+      );
+      
+      if (!supportsHonkFlash) {
+        this.logger.warn(`🚫 Vehicle ${vin} does not support honk/flash commands`);
+        throw new Error('Honk and flash commands are not supported by this vehicle');
+      }
+    } catch (commandError) {
+      this.logger.error('Failed to check available commands:', commandError);
+      // Continue with accessibility check
+    }
+
     // Check vehicle accessibility before sending honk/flash command
     try {
       const accessibility = await this.getCommandAccessibility(vin);
       const availabilityStatus = accessibility.data.availabilityStatus?.value;
+      
+      this.logger.info(`🔍 Honk/flash accessibility check: Status=${availabilityStatus}, Reason=${accessibility.data.unavailableReason?.value || 'N/A'}`);
       
       if (availabilityStatus !== 'AVAILABLE') {
         const reason = accessibility.data.unavailableReason?.value || 'Unknown reason';
@@ -699,7 +735,7 @@ export class ConnectedVehicleClient {
 
     try {
       const response = await this.httpClient.post<CommandInvokeResponse>(
-        `/vehicles/${vin}/commands/honk-flash`, 
+        `/vehicles/${vin}/commands/honk-and-flash`, 
         {} as HonkFlashRequest,
       );
       this.updateCommandRateLimit();

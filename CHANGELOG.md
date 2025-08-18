@@ -5,6 +5,36 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.14] - 2025-08-18
+
+### 🔧 Command API Fixes - Correct Endpoints & Validation
+
+**CRITICAL COMMAND FIXES** - This release fixes 404 and 422 command errors by using correct API endpoints and adding comprehensive command validation based on the official Connected Vehicle API specification.
+
+#### Fixed - API Endpoint Corrections
+- **Fixed Honk/Flash 404 Error**: Changed from incorrect `/commands/honk-flash` to correct `/commands/honk-and-flash` endpoint
+- **Enhanced Command Validation**: Added vehicle-specific command availability checking before execution
+- **Proper API Specification Compliance**: Updated endpoints to match official Connected Vehicle API v2 specification
+- **Better Error Messages**: Enhanced debugging with accessibility status and command availability logging
+
+#### Technical Improvements - Command Validation
+- **Added getAvailableCommands() Check**: Validates if vehicle supports specific commands before execution
+- **Enhanced Accessibility Debugging**: Added detailed logging for command accessibility status and reasons
+- **Command Support Detection**: Checks for CLIMATIZATION_START, HONK_AND_FLASH, etc. before sending commands
+- **Graceful Degradation**: Continues with accessibility checks even if command list fails
+
+#### Enhanced Command Flow
+- **Climate Control**: First checks if vehicle supports climatization, then accessibility, then executes
+- **Honk/Flash**: Validates HONK_AND_FLASH/HONK/FLASH support before attempting command
+- **Better User Feedback**: Clear error messages when commands are not supported by specific vehicles
+- **Improved Debug Logging**: Shows command availability and accessibility status for troubleshooting
+
+#### API Specification Compliance
+Based on official Connected Vehicle API specification analysis:
+- **Correct Endpoint**: `/vehicles/{vin}/commands/honk-and-flash` (not `honk-flash`)
+- **Command Validation**: Uses `/vehicles/{vin}/commands` endpoint to check availability
+- **Accessibility Check**: Proper use of `/vehicles/{vin}/command-accessibility` before execution
+
 ## [2.3.13] - 2025-08-18
 
 ### 🔧 Complete OAuth Spam Fix - True Shared Polling

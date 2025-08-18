@@ -400,3 +400,4 @@ await this.fetchInitialDataOnce(); // ✅ SINGLE CALL
 
 *Last Updated: 2025-08-18*
 *Version: 2.3.13*
+- /Users/jamesfield/Desktop/Homebridge\ stuff/homebridge-volvoEX30/connected-vehicle-c3-specification.json
