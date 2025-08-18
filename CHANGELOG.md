@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.11] - 2025-08-17
+
+### 📚 Complete Documentation Fix with Valid CHANGELOG
+
+**DOCUMENTATION CRISIS RESOLVED** - This release fixes the missing CHANGELOG.md entry and provides complete documentation coverage.
+
+#### Fixed - Missing Documentation Crisis
+- **Added Missing v2.3.10 CHANGELOG Entry**: Retroactively documented v2.3.10 release with comprehensive feature coverage
+- **Updated README.md to Current Version**: README.md now reflects v2.3.10 features instead of outdated v2.3.8
+- **Complete Documentation Coverage**: Both CHANGELOG.md and README.md now have proper v2.3.10+ coverage
+- **GitHub Release Preparation**: Documentation now ready for proper GitHub release notes
+
+#### Enhanced - Documentation Completeness
+- **Unified Feature Documentation**: Combined vehicle command validation + documentation workflow features
+- **Current Version Accuracy**: README.md upgrade instructions now point to correct v2.3.10+ version
+- **Consistent Formatting**: Maintained established CHANGELOG.md formatting patterns
+- **Complete Feature Set**: Documentation covers all vehicle command prerequisites + workflow improvements
+
+#### Technical Documentation
+- **Valid CHANGELOG.md**: Every release now has proper CHANGELOG.md entries
+- **Accurate README.md**: User-facing documentation reflects current capabilities
+- **GitHub Release Ready**: Complete documentation prepared for GitHub release notes
+
+**Result**: Valid CHANGELOG.md + accurate README.md + ready for proper GitHub release with complete release notes
+
 ## [2.3.10] - 2025-08-17
 
 ### 📚 Enhanced CHANGELOG.md Workflow Documentation
