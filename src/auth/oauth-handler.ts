@@ -291,12 +291,13 @@ Generate a new token:
     }
 
     if (this.tokens) {
-      // Check if token is expired or should be proactively refreshed
+      // IMPROVED TOKEN CACHING: Only refresh if token is actually expired or expires within 30 seconds
       const isExpired = this.isTokenExpired(this.tokens);
-      const shouldRefresh = this.shouldProactivelyRefresh(this.tokens);
+      const timeUntilExpiry = this.tokens.expiresAt - Date.now();
+      const isExpiringSoon = timeUntilExpiry <= 30000; // 30 seconds buffer
       
-      if (isExpired || shouldRefresh) {
-        const reason = isExpired ? 'expired' : 'proactive refresh (Volvo tokens are short-lived)';
+      if (isExpired || isExpiringSoon) {
+        const reason = isExpired ? 'expired' : `expiring in ${Math.round(timeUntilExpiry / 1000)}s`;
         this.logger.debug(`🔄 Refreshing token - reason: ${reason}`);
         
         if (!this.tokens.refreshToken && !bestToken) {
@@ -312,11 +313,13 @@ Generate a new token:
             this.logger.debug('🔄 Using stored rotated token for refresh');
           }
           this.tokens = await this.refreshAccessToken(tokenToUse);
-          // Only log once per refresh, not per waiting request
         } catch (error) {
           this.handleAuthFailure(error);
           throw error;
         }
+      } else {
+        // Token is still valid - reuse it
+        this.logger.debug(`🔋 Reusing valid token (expires in ${Math.round(timeUntilExpiry / 1000)}s)`);
       }
     }
 
@@ -332,26 +335,17 @@ Generate a new token:
   }
 
   private isTokenExpired(tokens: OAuthTokens): boolean {
-    // Volvo tokens expire much faster than reported - use aggressive refresh
-    const buffer = 15 * 60 * 1000; // 15 minutes buffer instead of 5
+    // Check if token has actually expired (no buffer for this check)
     const now = Date.now();
-    const expiryWithBuffer = tokens.expiresAt - buffer;
-    const isExpired = now >= expiryWithBuffer;
+    const isExpired = now >= tokens.expiresAt;
     
-    // Only log if token actually expired to reduce verbose output
     if (isExpired) {
-      this.logger.debug('🔍 Token expired - will refresh');
+      this.logger.debug('🔍 Token has expired');
     }
     
     return isExpired;
   }
 
-  private shouldProactivelyRefresh(tokens: OAuthTokens): boolean {
-    // Refresh if token will expire in the next 3 minutes (very aggressive for Volvo)
-    const proactiveRefreshWindow = 3 * 60 * 1000; // 3 minutes before expiry
-    const timeUntilExpiry = tokens.expiresAt - Date.now();
-    return timeUntilExpiry <= proactiveRefreshWindow;
-  }
 
   isAuthenticated(): boolean {
     return this.tokens !== null && !this.isTokenExpired(this.tokens);

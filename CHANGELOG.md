@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.12] - 2025-08-18
+
+### 🔧 OAuth Token Caching Fix - Eliminate OAuth Spam
+
+**MAJOR OAuth IMPROVEMENT** - This release fixes persistent OAuth spam and token refresh issues that caused 50+ "Token access already in progress" messages during startup and command execution.
+
+#### Fixed - OAuth Token Management
+- **Eliminated OAuth Spam**: Fixed excessive "Token access already in progress" messages during startup and command execution
+- **Improved Token Caching**: Tokens now cached and reused for their full 5-minute lifetime instead of constant refreshing
+- **Reduced Token Refreshes**: Changed from aggressive 3-minute proactive refresh to 30-second expiry buffer
+- **Better Token Validation**: Only refresh tokens when actually expired or expiring within 30 seconds
+- **Enhanced Debug Logging**: Added "Reusing valid token" messages to show when caching works correctly
+
+#### Technical Improvements
+- **Fixed Token Expiry Logic**: Removed overly aggressive 15-minute buffer that caused premature refreshes
+- **Eliminated shouldProactivelyRefresh()**: Removed unnecessary proactive refresh logic that caused OAuth spam
+- **Improved doGetValidAccessToken()**: Better token caching with precise expiry timing
+- **Fixed TypeScript Linting**: Resolved unused TokenEntry interface warning
+- **Cleaner Code Structure**: Removed redundant token refresh methods
+
+#### Performance Benefits
+- **Reduced API Calls**: Each command now makes fewer token requests due to proper caching
+- **Faster Command Execution**: Commands reuse valid tokens instead of refreshing every time
+- **Lower OAuth Rate Limits**: Significant reduction in OAuth endpoint usage
+- **Improved Reliability**: Less chance of hitting Volvo's rate limits due to reduced token requests
+
 ## [2.3.11] - 2025-08-17
 
 ### 📚 Complete Documentation Fix with Valid CHANGELOG

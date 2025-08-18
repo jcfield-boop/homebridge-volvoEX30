@@ -92,7 +92,7 @@ export class TokenStorage {
         source: 'stored',
         pluginVersion: this.currentVersion,
         configTokenCleared: existingEntry?.configTokenCleared || false,
-      };
+      } as TokenEntry;
 
       fs.writeFileSync(this.tokenFilePath, JSON.stringify(tokens, null, 2), 'utf8');
       this.logger.debug(`💾 Stored refresh token for VIN ${this.vin.substring(0, 8)}... (${refreshToken.substring(0, 12)}...)`);
@@ -312,7 +312,7 @@ export class TokenStorage {
   /**
    * Read token file safely
    */
-  private readTokenFile(): any {
+  private readTokenFile(): Record<string, TokenEntry> {
     try {
       if (!fs.existsSync(this.tokenFilePath)) {
         return {};
