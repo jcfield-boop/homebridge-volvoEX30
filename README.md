@@ -2,9 +2,21 @@
 
 A comprehensive Homebridge plugin that integrates your Volvo EX30 with Apple HomeKit using the official Volvo Connected Vehicle API v2. Monitor battery status, control locks and climate, track doors and windows, and access vehicle diagnostics - all from the Home app.
 
-## 🚀 v3.0.0 - MAJOR RELEASE - Enhanced Vehicle Monitoring & Command Polling
+## 🏠 v3.1.0 - HOMEKIT REORGANIZATION - Multi-Accessory Structure
 
-**MAJOR VERSION RELEASE!** This transformative update introduces real-time command status polling, advanced HomeKit services (Motion, Occupancy, Security), and a unified OAuth setup experience with functional QR codes.
+**MAJOR HOMEKIT IMPROVEMENT!** This release restructures the plugin into logical, specialized HomeKit accessories for intuitive vehicle control. Instead of one complex accessory, you now get four focused accessories with proper HomeKit service implementations.
+
+### 🆕 **NEW: Multi-Accessory Architecture**
+- **🔒 Volvo Security** (Security System) - Lock/unlock, alarm status, intrusion alerts
+- **🌡️ Volvo Climate** (Thermostat) - Temperature control, pre-conditioning interface
+- **🔋 Volvo Battery** (Window Covering) - Charge level visualization, charging status
+- **📍 Locate Vehicle** (Switch) - One-touch honk & flash with auto-reset
+
+### 🏠 **Enhanced HomeKit Experience**
+- **Logical Service Grouping**: Each accessory focuses on specific vehicle functions
+- **Intuitive Controls**: Real thermostat for climate, security system for locks
+- **Clean Home App Display**: No more service overcrowding in single accessory
+- **Professional Categories**: Proper HomeKit service types and characteristics
 
 ### 🆕 **NEW: Command Status Polling System**
 - **Real-Time Command Feedback**: Instant status updates for lock/unlock, climate control, and honk/flash commands
@@ -36,9 +48,15 @@ A comprehensive Homebridge plugin that integrates your Volvo EX30 with Apple Hom
 - **Enhanced HomeKit Services**: May require HomeKit database reset for full functionality
 - **Updated OAuth Flow**: All setup now uses unified tool
 
-**Upgrade**: `npm install -g homebridge-volvo-ex30@3.0.0` + restart Homebridge
+**Upgrade**: `npm install -g homebridge-volvo-ex30@3.1.0` + restart Homebridge
 
-**Result**: Professional-grade vehicle integration with real-time command feedback and comprehensive monitoring! 🚗🔄🏠
+**Result**: Intuitive multi-accessory HomeKit integration with professional service organization! 🏠🔒🌡️🔋📍
+
+---
+
+## 🚀 v3.0.0 - Enhanced Vehicle Monitoring & Command Polling (Previous Release)
+
+The v3.0.0 foundation includes real-time command status polling, unified OAuth setup with functional QR codes, strict TypeScript implementation, and comprehensive testing infrastructure.
 
 ---
 

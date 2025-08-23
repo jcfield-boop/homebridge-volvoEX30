@@ -5,6 +5,62 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.0] - 2025-08-23
+
+### 🏠 HOMEKIT REORGANIZATION - Multi-Accessory Structure
+
+**MAJOR HOMEKIT IMPROVEMENT** - This release restructures the plugin into logical, specialized HomeKit accessories for intuitive vehicle control and monitoring.
+
+#### 🆕 NEW: Multi-Accessory Architecture
+- **Volvo Security** (Security System) - Lock/unlock, alarm status, intrusion alerts
+- **Volvo Climate** (Thermostat) - Temperature control, pre-conditioning with real thermostat interface
+- **Volvo Battery** (Window Covering) - Charge level visualization, charging status, range info
+- **Locate Vehicle** (Switch) - One-touch honk & flash with auto-reset functionality
+
+#### 🏠 Enhanced HomeKit Experience
+- **Logical Service Grouping**: Each accessory focuses on specific vehicle functions
+- **Intuitive Controls**: Security system for locks, thermostat for climate, window covering for battery visualization
+- **Clean Home App Display**: Separate accessories eliminate service overcrowding
+- **Professional Categories**: Proper HomeKit categories (Security System, Thermostat, Window Covering, Switch)
+
+#### 🔧 Technical Architecture
+- **Base Accessory Class**: Shared functionality with authentication checks and data updates
+- **Specialized Accessories**: Each accessory implements specific HomeKit services with proper characteristics
+- **Command Status Polling**: Integrated real-time command feedback for all control operations
+- **Enhanced Error Handling**: Graceful degradation during authentication failures
+
+#### ⚡ Battery Visualization Innovation
+- **Window Covering as Battery Display**: Charge level shown as window position percentage (0-100%)
+- **Charging Status Indication**: Position state shows INCREASING (charging) or STOPPED (idle)
+- **Dual Service Support**: Battery service provides detailed info, Window Covering provides intuitive visualization
+- **Range Calculation**: Estimated range display based on current charge level
+
+#### 🌡️ Professional Climate Control
+- **Real Thermostat Service**: Proper temperature control interface in Home app
+- **Configurable Temperature Range**: 16-28°C with 0.5°C precision
+- **Pre-conditioning Logic**: Intelligent heating/cooling state determination
+- **Enhanced Command Feedback**: Real-time climatization status with polling
+
+#### 🔒 Advanced Security System
+- **Complete Lock Management**: Away Armed (locked), Disarmed (unlocked), Night Armed (partially locked)
+- **Intrusion Detection**: Alarm triggered when doors/windows open while locked
+- **Security Warnings Integration**: Vehicle warnings trigger alarm state
+- **Enhanced Command Execution**: Lock/unlock with comprehensive status polling
+
+#### 🎯 Smart Locate Function
+- **One-Touch Operation**: Simple switch activation for honk & flash
+- **Auto-Reset Design**: Switch automatically resets after 3 seconds
+- **Command Availability Check**: Validates honk/flash support for specific vehicle
+- **Enhanced User Feedback**: Success/failure notifications with troubleshooting guidance
+
+#### 🛠️ Backward Compatibility
+- **Configuration Compatibility**: Existing configurations continue working unchanged
+- **Automatic Migration**: Platform automatically creates new accessory structure
+- **Legacy Support**: Unified accessory mode still available via configuration
+
+### Result
+Version 3.1.0 transforms vehicle interaction from a single complex accessory into four intuitive, specialized accessories that integrate naturally with HomeKit's design principles. Users get professional-grade vehicle control with logical service organization and enhanced functionality.
+
 ## [3.0.0] - 2025-08-23
 
 ### 🚀 MAJOR RELEASE - Enhanced Vehicle Monitoring & Command Polling

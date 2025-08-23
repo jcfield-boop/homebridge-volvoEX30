@@ -2,6 +2,12 @@ import { API, DynamicPlatformPlugin, Logger, PlatformAccessory, PlatformConfig, 
 import { VolvoEX30Config } from './types/config';
 import { VolvoApiClient } from './api/volvo-api-client';
 import { VolvoEX30Accessory } from './accessory';
+import { 
+  VolvoSecurityAccessory, 
+  VolvoClimateAccessory, 
+  VolvoBatteryAccessory, 
+  VolvoLocateAccessory 
+} from './accessories';
 
 export class VolvoEX30Platform implements DynamicPlatformPlugin {
   public readonly Service: typeof Service = this.api.hap.Service;
@@ -150,16 +156,42 @@ export class VolvoEX30Platform implements DynamicPlatformPlugin {
   }
 
   private createIndividualAccessories() {
+    // NEW: Multi-Accessory Structure with specialized HomeKit services
     const accessories = [
-      { name: 'EX30 Battery', type: 'battery', category: this.api.hap.Categories.SENSOR },
-      { name: 'EX30 Lock', type: 'lock', category: this.api.hap.Categories.SECURITY_SYSTEM },
-      { name: 'EX30 Climate', type: 'climate', category: this.api.hap.Categories.THERMOSTAT },
+      { 
+        name: 'Volvo Security', 
+        type: 'security', 
+        category: this.api.hap.Categories.SECURITY_SYSTEM,
+        description: 'Lock/unlock, alarm status, intrusion alerts'
+      },
+      { 
+        name: 'Volvo Climate', 
+        type: 'climate', 
+        category: this.api.hap.Categories.THERMOSTAT,
+        description: 'Temperature control, pre-conditioning'
+      },
+      { 
+        name: 'Volvo Battery', 
+        type: 'battery', 
+        category: this.api.hap.Categories.WINDOW_COVERING,
+        description: 'Charge level, charging status, range info'
+      },
     ];
 
-    // Add locate accessory if enabled
+    // Add locate accessory if enabled (default: enabled)
     if (this.config.enableHonkFlash !== false) {
-      accessories.push({ name: 'EX30 Locate', type: 'locate', category: this.api.hap.Categories.SWITCH });
+      accessories.push({ 
+        name: 'Locate Vehicle', 
+        type: 'locate', 
+        category: this.api.hap.Categories.SWITCH,
+        description: 'Honk & flash to find your vehicle'
+      });
     }
+
+    this.log.info('🏠 Creating Multi-Accessory HomeKit Structure:');
+    accessories.forEach(config => {
+      this.log.info(`   • ${config.name}: ${config.description}`);
+    });
 
     accessories.forEach(accessoryConfig => {
       const uuid = this.api.hap.uuid.generate(`${this.config.vin}-${accessoryConfig.type}`);
@@ -176,9 +208,9 @@ export class VolvoEX30Platform implements DynamicPlatformPlugin {
           type: accessoryConfig.type,
         };
         
-        new VolvoEX30Accessory(this, existingAccessory);
+        this.createSpecializedAccessory(accessoryConfig.type, existingAccessory);
       } else {
-        this.log.info('Adding new individual accessory:', accessoryConfig.name);
+        this.log.info('Adding new specialized accessory:', accessoryConfig.name);
         const accessory = new this.api.platformAccessory(accessoryConfig.name, uuid, accessoryConfig.category);
         
         // Set proper accessory context
@@ -196,10 +228,46 @@ export class VolvoEX30Platform implements DynamicPlatformPlugin {
           this.log.debug('Note: Could not set default room (this is normal)');
         }
         
-        new VolvoEX30Accessory(this, accessory);
+        this.createSpecializedAccessory(accessoryConfig.type, accessory);
         this.api.registerPlatformAccessories('homebridge-volvo-ex30', 'VolvoEX30', [accessory]);
       }
     });
+  }
+
+  /**
+   * Create specialized accessory based on type
+   */
+  private createSpecializedAccessory(type: string, accessory: PlatformAccessory): void {
+    switch (type) {
+      case 'security':
+        new VolvoSecurityAccessory(this, accessory, this.log);
+        this.log.debug('✅ Created Volvo Security accessory (lock/unlock, intrusion alerts)');
+        break;
+        
+      case 'climate':
+        new VolvoClimateAccessory(this, accessory, this.log);
+        this.log.debug('✅ Created Volvo Climate accessory (temperature control, pre-conditioning)');
+        break;
+        
+      case 'battery':
+        new VolvoBatteryAccessory(this, accessory, this.log);
+        this.log.debug('✅ Created Volvo Battery accessory (charge level, charging status)');
+        break;
+        
+      case 'locate':
+        const locateAccessory = new VolvoLocateAccessory(this, accessory, this.log);
+        // Initialize availability check
+        locateAccessory.initialize().catch(error => {
+          this.log.warn('Failed to initialize locate accessory:', error);
+        });
+        this.log.debug('✅ Created Volvo Locate accessory (honk & flash)');
+        break;
+        
+      default:
+        this.log.warn(`Unknown specialized accessory type: ${type}`);
+        // Fallback to legacy unified accessory
+        new VolvoEX30Accessory(this, accessory);
+    }
   }
 
   getApiClient(): VolvoApiClient {
