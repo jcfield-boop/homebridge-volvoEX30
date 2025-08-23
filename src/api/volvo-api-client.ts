@@ -193,10 +193,15 @@ export class VolvoApiClient {
 
   private handleApiError(error: AxiosError): void {
     if (error.response?.data) {
-      const errorData = error.response.data as any;
+      const errorData = error.response.data as { 
+        error?: { 
+          message?: string; 
+          details?: Array<{ code?: string; message?: string }> 
+        } 
+      };
       this.logger.error(`Volvo API Error [${error.response.status}]:`, errorData?.error?.message || 'Unknown error');
       
-      if (errorData?.error?.details) {
+      if (errorData?.error?.details && Array.isArray(errorData.error.details)) {
         for (const detail of errorData.error.details) {
           this.logger.error(`  - ${detail.code}: ${detail.message}`);
         }
@@ -322,17 +327,18 @@ export class VolvoApiClient {
   /**
    * Check if error indicates authentication failure to prevent duplicate failures
    */
-  private isAuthenticationError(error: any): boolean {
+  private isAuthenticationError(error: Error | { message?: string }): boolean {
     const errorMessage = error?.message || error?.toString() || '';
+    const axiosError = error as { response?: { status?: number }; code?: string };
     
     return errorMessage.includes('refresh token has expired') ||
            errorMessage.includes('Authentication failed') ||
            errorMessage.includes('invalid_grant') ||
            errorMessage.includes('401') ||
            errorMessage.includes('403') ||
-           (error?.response?.status === 401) ||
-           (error?.response?.status === 403) ||
-           (error?.code === 'invalid_grant');
+           (axiosError?.response?.status === 401) ||
+           (axiosError?.response?.status === 403) ||
+           (axiosError?.code === 'invalid_grant');
   }
   
   // Connected Vehicle API methods passthrough

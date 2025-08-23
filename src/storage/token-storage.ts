@@ -6,6 +6,21 @@ import * as os from 'os';
 // Import package.json to get current version
 const packageJson = require('../../package.json');
 
+// Token storage info interface
+interface TokenInfo {
+  hasTokens: boolean;
+  tokenCount?: number;
+  configTokenCleared?: boolean;
+  lastUpdated?: string;
+  error?: string;
+  exists?: boolean;
+  vin?: string;
+  updatedAt?: string;
+  source?: string;
+  tokenLength?: number;
+  tokenPreview?: string;
+}
+
 /**
  * Token storage entry with version tracking
  */
@@ -129,7 +144,7 @@ export class TokenStorage {
   /**
    * Get token storage info for debugging
    */
-  async getTokenInfo(): Promise<any> {
+  async getTokenInfo(): Promise<TokenInfo> {
     await this.ensureInitialized();
 
     try {
@@ -139,6 +154,7 @@ export class TokenStorage {
 
       if (tokenData) {
         return {
+          hasTokens: true,
           exists: true,
           vin: tokenData.vin,
           updatedAt: tokenData.updatedAt,
@@ -148,10 +164,10 @@ export class TokenStorage {
         };
       }
 
-      return { exists: false };
+      return { hasTokens: false, exists: false };
     } catch (error) {
       this.logger.error('❌ Failed to get token info:', error);
-      return { exists: false, error: error instanceof Error ? error.message : String(error) };
+      return { hasTokens: false, exists: false, error: error instanceof Error ? error.message : String(error) };
     }
   }
 

@@ -5,6 +5,64 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.0] - 2025-08-23
+
+### 🚀 MAJOR RELEASE - Enhanced Vehicle Monitoring & Command Polling
+
+**MAJOR VERSION** - This release introduces comprehensive enhancements including real-time command status polling, advanced HomeKit services, and a unified OAuth setup experience. Breaking changes include removal of deprecated OAuth scripts.
+
+#### 🆕 Added - Command Status Polling System
+- **Real-Time Command Tracking**: New `CommandStatusPollingService` provides real-time feedback on lock/unlock, climate, and honk/flash commands
+- **Command Status Monitoring**: Automatically polls command execution status with configurable intervals and timeouts
+- **Enhanced User Experience**: Users get immediate feedback when commands succeed, fail, or timeout
+- **Intelligent Retry Logic**: Configurable retry counts and timeout handling for robust command execution
+- **Command Queue Management**: Manages multiple concurrent commands with individual polling strategies
+
+#### 🏠 Added - Enhanced HomeKit Services
+- **Motion Sensor**: Detects vehicle activity based on door states, engine status, and movement indicators
+- **Occupancy Sensor**: Intelligent occupancy detection using engine status, door activity, and climatization
+- **Security System**: Comprehensive vehicle security monitoring with lock status integration
+- **Leak Sensor**: Monitors fluid level warnings (washer fluid, coolant, oil, brake fluid) as leak detection
+- **Smoke Sensor**: Repurposed as critical warning monitor for service alerts and multiple active warnings
+
+#### ✨ Added - Unified OAuth Setup Tool
+- **Single OAuth Script**: Consolidated 4 separate OAuth scripts into one comprehensive tool (`volvo-oauth.js`)
+- **Interactive Menu System**: User-friendly menu with 6 setup options including complete flow, manual exchange, and troubleshooting
+- **Real QR Code Generation**: Functional QR codes for mobile device OAuth setup using `qrcode-terminal`
+- **Enhanced Error Handling**: Better error messages, troubleshooting guidance, and scope validation
+- **Configuration Generation**: Automatic Homebridge configuration creation with proper token management
+
+#### 🔧 Enhanced - TypeScript & Code Quality
+- **Strict Type Safety**: Eliminated all TypeScript `any` types with proper interfaces (`OAuthError`, `TokenStorageInfo`)
+- **Enhanced ESLint Rules**: Stricter linting with security and code quality improvements
+- **Jest Testing Framework**: Complete testing infrastructure setup with TypeScript support
+- **Command Type Safety**: Fixed missing `HONK_AND_FLASH` enum value and proper interface extensions
+
+#### ⚠️ BREAKING CHANGES
+- **Removed Deprecated Scripts**: Deleted `working-oauth.js`, `minimal-oauth.js`, `token-exchange.js`, and `oauth-setup.js`
+- **Updated OAuth Flow**: All OAuth setup now uses unified `volvo-oauth.js` tool
+- **Enhanced Service Configuration**: New HomeKit services may require HomeKit database reset for full functionality
+
+#### 🛠️ Technical Improvements
+- **Command Execution Patterns**: New `executeCommandWithPolling()` method for enhanced command management
+- **Service State Management**: Intelligent service state updates based on comprehensive vehicle data analysis
+- **Enhanced Error Reporting**: Better error messages with specific guidance for different failure scenarios
+- **Improved Resource Management**: Proper cleanup and disposal methods for all enhanced services
+
+#### 📚 Documentation Updates
+- **Complete OAuth Documentation**: Updated README.md and CLAUDE.md with unified OAuth setup instructions
+- **Enhanced Feature Documentation**: Comprehensive documentation of all new HomeKit services and capabilities
+- **Migration Guide**: Clear instructions for upgrading from v2.x to v3.0.0
+- **API Usage Examples**: Enhanced examples showing command polling and service integration
+
+#### 📊 Configuration Changes
+- **Simplified npm Scripts**: Updated `package.json` to use unified OAuth tool
+- **Enhanced Dependencies**: Added `qrcode-terminal` for QR code generation
+- **Jest Configuration**: Complete test framework setup with proper TypeScript integration
+
+### Result
+Version 3.0.0 transforms the Volvo EX30 plugin from basic vehicle monitoring to a comprehensive smart vehicle integration platform with real-time command feedback, enhanced HomeKit services, and professional-grade OAuth setup tools.
+
 ## [2.3.14] - 2025-08-18
 
 ### 🔧 Command API Fixes - Correct Endpoints & Validation

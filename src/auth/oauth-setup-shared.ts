@@ -6,6 +6,18 @@
 import axios, { AxiosInstance } from 'axios';
 import crypto from 'crypto';
 
+// Type definitions for OAuth error handling
+interface OAuthSetupError extends Error {
+  response?: {
+    status?: number;
+    statusText?: string;
+    data?: {
+      error?: string;
+      error_description?: string;
+    };
+  };
+}
+
 export interface OAuthConfig {
   clientId: string;
   clientSecret?: string;
@@ -117,9 +129,10 @@ export class SharedOAuthHandler {
         refresh_token: response.data.refresh_token,
         expires_in: response.data.expires_in,
       };
-    } catch (error: any) {
-      if (error.response) {
-        const errorData = error.response.data;
+    } catch (error: unknown) {
+      if (error && typeof error === 'object' && 'response' in error) {
+        const setupError = error as OAuthSetupError;
+        const errorData = setupError.response?.data;
         if (errorData?.error === 'invalid_grant') {
           throw new Error('Invalid or expired authorization code. Please try the authorization process again.');
         } else if (errorData?.error === 'invalid_client') {
@@ -127,7 +140,8 @@ export class SharedOAuthHandler {
         }
         throw new Error(`OAuth error: ${errorData?.error_description || errorData?.error || 'Unknown error'}`);
       }
-      throw new Error(`Network error during token exchange: ${error.message}`);
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      throw new Error(`Network error during token exchange: ${errorMsg}`);
     }
   }
 
@@ -142,7 +156,7 @@ export class SharedOAuthHandler {
         token_endpoint: response.data.token_endpoint,
         issuer: response.data.issuer,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Fallback to default endpoints if discovery fails
       const baseURL = this.httpClient.defaults.baseURL || 'https://volvoid.eu.volvocars.com';
       return {

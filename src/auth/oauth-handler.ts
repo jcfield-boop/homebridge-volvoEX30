@@ -4,6 +4,25 @@ import { OAuthTokens, VolvoApiConfig } from '../types/config';
 import { TokenStorage } from '../storage/token-storage';
 import * as crypto from 'crypto';
 
+// Type definitions for better error handling
+interface OAuthError extends Error {
+  response?: {
+    status?: number;
+    statusText?: string;
+    data?: {
+      error?: string;
+      error_description?: string;
+    };
+  };
+  code?: string;
+}
+
+interface TokenStorageInfo {
+  hasTokens: boolean;
+  tokenCount?: number;
+  error?: string;
+}
+
 export class OAuthHandler {
   private readonly httpClient: AxiosInstance;
   private tokens: OAuthTokens | null = null;
@@ -18,8 +37,8 @@ export class OAuthHandler {
   private pendingState: string | null = null;
   
   // EMERGENCY: Global authentication failure flag - blocks ALL OAuth operations
-  private static globalAuthFailure: boolean = false;
-  private static authErrorLogged: boolean = false;
+  private static globalAuthFailure = false;
+  private static authErrorLogged = false;
   
   // Public getter for global auth failure state
   public static get isGlobalAuthFailure(): boolean {
@@ -200,23 +219,24 @@ export class OAuthHandler {
       this.logger.debug('✅ Successfully refreshed OAuth tokens');
       
       return tokens;
-    } catch (error: any) {
+    } catch (error: unknown) {
       // EMERGENCY: Handle authentication failure at the source
       this.handleAuthFailure(error);
       
       // Log minimal error information to avoid spam
-      if (error.response) {
+      if (error && typeof error === 'object' && 'response' in error) {
+        const oauthError = error as OAuthError;
         this.logger.debug('OAuth refresh failed with HTTP error:', {
-          status: error.response.status,
-          statusText: error.response.statusText,
-          data: error.response.data,
+          status: oauthError.response?.status,
+          statusText: oauthError.response?.statusText,
+          data: oauthError.response?.data,
           refreshTokenLength: refreshToken?.length || 0,
           refreshTokenPrefix: refreshToken?.substring(0, 8) + '...',
         });
 
         // Handle specific OAuth error cases
-        if (error.response.status === 400) {
-          const errorData = error.response.data;
+        if (oauthError.response?.status === 400) {
+          const errorData = oauthError.response.data;
           if (errorData?.error === 'invalid_grant') {
             // Check if this was a config token that failed
             const tokenAge = this.getTokenAge(refreshToken);
@@ -232,20 +252,24 @@ This happens when Homebridge is offline for 7+ consecutive days or when old toke
           } else if (errorData?.error === 'invalid_client') {
             throw new Error('🔒 Invalid client credentials. Check your Client ID and Client Secret in your Homebridge config.');
           }
-        } else if (error.response.status === 401) {
+        } else if (oauthError.response?.status === 401) {
           throw new Error(`🔒 Authentication failed - refresh token has expired or is invalid.
 Generate a new token:
 1. Run: node scripts/working-oauth.js  
 2. Run: node scripts/token-exchange.js [AUTH_CODE]
 3. Update your Homebridge config with the new initialRefreshToken`);
         }
-      } else if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
-        throw new Error('Unable to connect to Volvo OAuth server. Check your internet connection.');
-      } else {
-        this.logger.debug('OAuth refresh failed with network error:', error.message);
       }
       
-      throw new Error(`OAuth token refresh failed: ${error.message || 'Unknown error'}`);
+      // Handle network errors
+      const errorWithCode = error as Error & { code?: string };
+      if (errorWithCode.code === 'ECONNREFUSED' || errorWithCode.code === 'ENOTFOUND') {
+        throw new Error('Unable to connect to Volvo OAuth server. Check your internet connection.');
+      }
+      
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      this.logger.debug('OAuth refresh failed with network error:', errorMessage);
+      throw new Error(`OAuth token refresh failed: ${errorMessage}`);
     }
   }
 
@@ -417,7 +441,7 @@ Generate a new token:
   /**
    * EMERGENCY AUTH FAILURE HANDLER - Sets global failure flag at OAuth level
    */
-  private handleAuthFailure(error: any): void {
+  private handleAuthFailure(error: OAuthError | Error | unknown): void {
     if (this.isAuthenticationError(error)) {
       if (!OAuthHandler.globalAuthFailure) {
         // FIRST AUTH ERROR - Log once and shut down ALL OAuth operations
@@ -436,8 +460,11 @@ Generate a new token:
   /**
    * Detect authentication/OAuth errors
    */
-  private isAuthenticationError(error: any): boolean {
-    const errorMessage = error?.message || error?.toString() || '';
+  private isAuthenticationError(error: OAuthError | Error | unknown): boolean {
+    if (!error) return false;
+    
+    const errorMessage = (error as Error)?.message || error?.toString() || '';
+    const oauthError = error as OAuthError;
     
     return errorMessage.includes('refresh token has expired') ||
            errorMessage.includes('Authentication failed') ||
@@ -445,22 +472,28 @@ Generate a new token:
            errorMessage.includes('7-day limit') ||
            errorMessage.includes('401') ||
            errorMessage.includes('403') ||
-           (error?.response?.status === 401) ||
-           (error?.response?.status === 403) ||
-           (error?.code === 'invalid_grant');
+           (oauthError?.response?.status === 401) ||
+           (oauthError?.response?.status === 403) ||
+           (oauthError?.code === 'invalid_grant');
   }
   
   /**
    * Get token storage info for debugging
    */
-  async getTokenStorageInfo(): Promise<any> {
+  async getTokenStorageInfo(): Promise<TokenStorageInfo> {
     if (this.tokenStorage) {
       try {
         return await this.tokenStorage.getTokenInfo();
       } catch (error) {
-        return { error: error instanceof Error ? error.message : String(error) };
+        return { 
+          hasTokens: false, 
+          error: error instanceof Error ? error.message : String(error), 
+        };
       }
     }
-    return { storage: 'not_available' };
+    return { 
+      hasTokens: false, 
+      error: 'Token storage not available', 
+    };
   }
 }

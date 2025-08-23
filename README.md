@@ -2,6 +2,46 @@
 
 A comprehensive Homebridge plugin that integrates your Volvo EX30 with Apple HomeKit using the official Volvo Connected Vehicle API v2. Monitor battery status, control locks and climate, track doors and windows, and access vehicle diagnostics - all from the Home app.
 
+## 🚀 v3.0.0 - MAJOR RELEASE - Enhanced Vehicle Monitoring & Command Polling
+
+**MAJOR VERSION RELEASE!** This transformative update introduces real-time command status polling, advanced HomeKit services (Motion, Occupancy, Security), and a unified OAuth setup experience with functional QR codes.
+
+### 🆕 **NEW: Command Status Polling System**
+- **Real-Time Command Feedback**: Instant status updates for lock/unlock, climate control, and honk/flash commands
+- **Smart Retry Logic**: Configurable timeout and retry handling for robust command execution
+- **Command Queue Management**: Handle multiple concurrent commands with individual polling strategies
+- **Enhanced User Experience**: Know immediately when commands succeed, fail, or timeout
+
+### 🏠 **NEW: Enhanced HomeKit Services**
+- **Motion Sensor**: Detects vehicle activity (door states, engine status, movement indicators)
+- **Occupancy Sensor**: Intelligent occupancy detection using engine status and door activity
+- **Security System**: Comprehensive vehicle security with lock status integration
+- **Leak Sensor**: Monitors fluid warnings (washer fluid, coolant, oil, brake fluid)
+- **Smoke Sensor**: Critical warning monitor for service alerts and multiple warnings
+
+### ✨ **NEW: Unified OAuth Setup Tool**
+- **Single OAuth Script**: Consolidated 4 scripts into one comprehensive tool (`npm run oauth`)
+- **Interactive Menu**: 6 setup options including complete flow, troubleshooting, and help
+- **Functional QR Codes**: Real QR codes for mobile OAuth setup (not placeholder ASCII art!)
+- **Enhanced Error Handling**: Better messages, scope validation, and configuration generation
+
+### 🔧 **Enhanced: Code Quality & TypeScript**
+- **Eliminated All 'any' Types**: Strict TypeScript with proper interfaces (`OAuthError`, `TokenStorageInfo`)
+- **Enhanced ESLint Rules**: Security and code quality improvements
+- **Jest Testing Framework**: Complete testing infrastructure setup
+- **Fixed Missing Enum Values**: Added `HONK_AND_FLASH` and proper interface extensions
+
+### ⚠️ **BREAKING CHANGES**
+- **Removed Deprecated OAuth Scripts**: Only `volvo-oauth.js` remains (old scripts deleted)
+- **Enhanced HomeKit Services**: May require HomeKit database reset for full functionality
+- **Updated OAuth Flow**: All setup now uses unified tool
+
+**Upgrade**: `npm install -g homebridge-volvo-ex30@3.0.0` + restart Homebridge
+
+**Result**: Professional-grade vehicle integration with real-time command feedback and comprehensive monitoring! 🚗🔄🏠
+
+---
+
 ## 🚗 v2.3.14 - Command API Fixes & OAuth Spam Elimination
 
 **DUAL CRITICAL FIXES!** This release fixes both OAuth spam issues and command API failures by implementing correct API endpoints and comprehensive command validation.
@@ -107,7 +147,7 @@ A comprehensive Homebridge plugin that integrates your Volvo EX30 with Apple Hom
 ### ⚡ **Fresh Token Strategy**
 ```bash
 cd /usr/local/lib/node_modules/homebridge-volvo-ex30
-node scripts/easy-oauth.js
+npm run oauth
 # Follow prompts → Copy token → Update config → Restart
 ```
 
@@ -219,28 +259,37 @@ npm install -g homebridge-volvo-ex30
 
 🚀 🚀 **NEW in v2.0.0**: **Connected Vehicle API Integration** - Complete EX30 monitoring and control!
 
-🔑 **Simple Token Generation**: Easy OAuth script generates tokens automatically
+🔑 **Advanced OAuth Setup Tool**: New comprehensive OAuth setup with multiple options and troubleshooting
 
 ⚡ **Fresh Token Strategy**: Generate new tokens on major updates due to Volvo's security rotation
 
 ### Quick Setup (Recommended)
 
-**Generate fresh token on each major plugin update**
+**🚀 NEW in v2.4.0**: Use the enhanced OAuth setup tool
 
 1. **Install the plugin** via Homebridge Config UI X or command line
-2. **Generate OAuth token**:
+2. **Run the OAuth setup tool**:
    ```bash
    cd /usr/local/lib/node_modules/homebridge-volvo-ex30
-   node scripts/easy-oauth.js
+   npm run oauth
    ```
-3. **Follow the prompts**:
-   - Enter your Volvo Developer Portal credentials
-   - Open the generated URL in your browser
-   - Sign in with your Volvo ID
-   - Copy the authorization code from the redirect URL
-   - Paste it back into the script
-4. **Copy the refresh token** to your Homebridge configuration
-5. **Restart Homebridge**
+3. **Choose from 6 options**:
+   - **🎯 Complete OAuth Flow** (Recommended) - Full guided setup
+   - **🔗 Generate OAuth URL Only** - For manual workflows  
+   - **🔄 Manual Token Exchange** - If you have an authorization code
+   - **🧪 Minimal Scope Test** - Troubleshooting with basic permissions
+   - **🔍 Troubleshooting Tools** - Network tests and diagnostics
+   - **❓ Help & Documentation** - Comprehensive usage guide
+
+4. **Follow the interactive prompts**:
+   - Select scope configuration (Full/Minimal/Testing)
+   - Open the generated OAuth URL in your browser
+   - Sign in with your Volvo ID and authorize
+   - Paste the complete redirect URL back into the tool
+   - Tool automatically tests API access and generates configuration
+
+5. **Copy the configuration** to your Homebridge config.json
+6. **Restart Homebridge**
 
 ### Alternative: Manual Setup
 
@@ -280,19 +329,18 @@ npm install -g homebridge-volvo-ex30
    cd /usr/local/lib/node_modules/homebridge-volvo-ex30
    ```
 
-3. **Run the OAuth setup**:
+3. **Run the new OAuth setup tool**:
    ```bash
-   npm run oauth-setup
+   npm run oauth
    ```
 
-4. **Follow the interactive prompts**:
-   - Enter your **Client ID** from Volvo Developer Portal
-   - Enter your **Client Secret** from Volvo Developer Portal  
-   - Enter your **region** (`eu` for Europe/Middle East/Africa, `na` for North America/Latin America)
-   - Enter your **Redirect URI** (default: `http://localhost:3000/callback`, or your custom URI from the developer portal)
+4. **Follow the interactive menu**:
+   - Choose option **1** (Complete OAuth Flow) for guided setup
+   - Select **Full scopes** for complete functionality
+   - The tool uses pre-configured credentials (no manual entry needed)
 
 5. **Complete browser authorization**:
-   - The setup will display an authorization URL
+   - The tool will display an OAuth authorization URL
    - **Copy this URL** and open it in your browser (on your computer/phone)
    - **Sign in** with your Volvo ID account
    - **Authorize** the application
@@ -313,10 +361,55 @@ npm install -g homebridge-volvo-ex30
 ```bash
 # Navigate to your plugin installation directory
 cd /path/to/homebridge-volvo-ex30
-npm run oauth-setup
+npm run oauth
 ```
 
 ⚠️ **Important**: Keep your refresh token secure and do not share it. It provides access to your vehicle data.
+
+## 🛠️ OAuth Setup Tool Features
+
+The new `npm run oauth` command provides a comprehensive OAuth setup experience:
+
+### **🎯 Complete OAuth Flow (Recommended)**
+- Full interactive setup from URL generation to token exchange
+- Automatic API testing and vehicle discovery
+- Ready-to-use Homebridge configuration generation
+- Support for Full (25), Minimal (6), or Testing (2) scope configurations
+
+### **🔗 Generate OAuth URL Only**
+- Creates PKCE-compliant OAuth URLs for manual workflows
+- Saves code verifier and state parameters for later token exchange
+- Useful for debugging or custom integration processes
+
+### **🔄 Manual Token Exchange** 
+- Exchange authorization codes for refresh tokens
+- Supports codes generated from any OAuth URL
+- Includes automatic API validation and configuration output
+
+### **🧪 Minimal Scope Test**
+- Quick testing with basic scopes only (battery, doors, locks)
+- Ideal for troubleshooting permission issues
+- Faster setup for basic functionality validation
+
+### **🔍 Troubleshooting Tools**
+- **Network Connectivity Test** - Validates connection to Volvo servers
+- **Credentials Validation** - Confirms API keys and client settings
+- **Scope Permissions Check** - Reviews available permission configurations
+- **Common Issues Guide** - Solutions for frequent setup problems
+
+### **❓ Help & Documentation**
+- Comprehensive usage instructions
+- Technical implementation details
+- Support and contact information
+
+### **✅ Legacy Script Migration (v3.0.0)**
+All previous OAuth scripts have been replaced with the unified solution:
+- ✅  `easy-oauth.js` → **REMOVED** - Use `npm run oauth` (option 1)
+- ✅  `working-oauth.js` → **REMOVED** - Use `npm run oauth` (option 2) 
+- ✅  `token-exchange.js` → **REMOVED** - Use `npm run oauth` (option 3)
+- ✅  `oauth-setup.js` → **REMOVED** - Use `npm run oauth`
+
+*All legacy scripts removed in v3.0.0 - unified tool is the only supported method*
 
 ## 🔄 Token Management Strategy
 
@@ -336,7 +429,7 @@ Due to Volvo's aggressive token rotation and security policies, we recommend **g
 ### **Quick Token Generation**
 ```bash
 cd /usr/local/lib/node_modules/homebridge-volvo-ex30
-node scripts/easy-oauth.js
+npm run oauth
 # Follow prompts → Get token → Update config → Restart
 ```
 
@@ -616,7 +709,8 @@ sudo systemctl restart homebridge
 
 **Error: "No tokens available. Please complete OAuth flow first."**
 - You're missing the `initialRefreshToken` field in your configuration
-- Run `npm run oauth-setup` in the plugin directory
+- Run `npm run oauth` in the plugin directory
+- Choose option 1 (Complete OAuth Flow) for guided setup
 - Copy the initial refresh token to your Homebridge config
 
 **OAuth setup command not found:**
@@ -756,7 +850,9 @@ npm run build
 - `npm run watch` - Watch for changes and recompile
 - `npm run typecheck` - Run TypeScript type checking
 - `npm run lint` - Run ESLint
-- `npm run oauth-setup` - Run OAuth setup helper
+- `npm run oauth` - Run OAuth setup tool
+- `npm run test` - Run Jest unit tests
+- `npm run test:coverage` - Run tests with coverage report
 
 ## Supported Regions
 

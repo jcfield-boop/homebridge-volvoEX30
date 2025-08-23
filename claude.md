@@ -18,11 +18,9 @@ Create a custom Homebridge plugin specifically for the Volvo EX30 using the mode
 
 **Working OAuth Flow**:
 ```bash
-# 1. Generate OAuth URL with PKCE
-node scripts/working-oauth.js
-
-# 2. Complete token exchange
-node scripts/token-exchange.js [AUTHORIZATION_CODE]
+# Use the new unified OAuth tool (replaces both steps)
+npm run oauth
+# Choose option 1 (Complete OAuth Flow) for guided setup
 ```
 
 #### Required Dependencies
@@ -176,29 +174,59 @@ POST /vehicles/{vin}/commands/climatization-start
 
 ### Phase 4: Production OAuth ✅ COMPLETED
 - ✅ OAuth2 flow with mandatory PKCE compliance
-- ✅ Working OAuth scripts (working-oauth.js, token-exchange.js)
+- ✅ **NEW**: Unified OAuth tool (volvo-oauth.js) replaces 4 legacy scripts
 - ✅ All 25 Connected Vehicle scopes validated
-- ✅ Production-ready authentication flow
+- ✅ Production-ready authentication flow with troubleshooting tools
 
 ## OAuth Setup Instructions
 
-### ✅ Working Setup (2 steps) - v2.0.4 Fixed
+### ✅ New Unified OAuth Tool (v2.4.0+)
 ```bash
-# 1. Generate OAuth URL with correct scopes and PKCE
-node scripts/working-oauth.js
+# Single comprehensive OAuth setup tool
+npm run oauth
 
-# 2. Exchange authorization code for refresh token
-node scripts/token-exchange.js [AUTHORIZATION_CODE]
+# Interactive menu with 6 options:
+# 1. 🎯 Complete OAuth Flow (Recommended)
+# 2. 🔗 Generate OAuth URL Only  
+# 3. 🔄 Manual Token Exchange
+# 4. 🧪 Minimal Scope Test
+# 5. 🔍 Troubleshooting Tools
+# 6. ❓ Help & Documentation
 ```
 
-### 🧪 Troubleshooting Setup (if issues persist)
+### ⚠️ Legacy Scripts (DEPRECATED - Use `npm run oauth` instead)
 ```bash
-# Fallback test with minimal scopes
-node scripts/minimal-oauth.js
-
-# Then exchange the code
-node scripts/token-exchange.js [AUTHORIZATION_CODE]
+# DEPRECATED: Will be removed in v3.0.0
+node scripts/working-oauth.js        # → Use npm run oauth (option 2)
+node scripts/token-exchange.js       # → Use npm run oauth (option 3)  
+node scripts/easy-oauth.js           # → Use npm run oauth (option 1)
+node scripts/oauth-setup.js          # → Use npm run oauth
 ```
+
+## ✨ Unified OAuth Tool Features (v2.4.0+)
+
+The new `npm run oauth` tool consolidates 4 previous scripts into a comprehensive setup experience:
+
+### **Core Features**
+- **Menu-Driven Interface**: 6 interactive options for different use cases
+- **PKCE Compliance**: Automatic PKCE parameter generation and validation
+- **Scope Management**: Full (25), Minimal (6), or Testing (2) scope configurations
+- **API Validation**: Automatic testing of Connected Vehicle API access
+- **Configuration Generation**: Ready-to-use Homebridge config.json output
+- **Error Recovery**: Built-in troubleshooting and diagnostic tools
+
+### **Replaced Legacy Scripts**
+- `easy-oauth.js` → Option 1 (Complete OAuth Flow)
+- `working-oauth.js` → Option 2 (Generate OAuth URL Only)
+- `token-exchange.js` → Option 3 (Manual Token Exchange)
+- `oauth-setup.js` → Option 1 (Complete OAuth Flow)
+
+### **Advanced Features**
+- **Network Connectivity Testing**: Validates connection to Volvo endpoints
+- **Credential Validation**: Confirms API keys and client configuration
+- **QR Code Generation**: Mobile-friendly OAuth URL sharing (placeholder)
+- **Configuration File Export**: Optional JSON config file generation
+- **Comprehensive Help System**: Built-in documentation and usage guides
 
 ### Manual Setup Process
 1. **Application Credentials**: Use new Connected Vehicle API application
@@ -401,3 +429,4 @@ await this.fetchInitialDataOnce(); // ✅ SINGLE CALL
 *Last Updated: 2025-08-18*
 *Version: 2.3.13*
 - /Users/jamesfield/Desktop/Homebridge\ stuff/homebridge-volvoEX30/connected-vehicle-c3-specification.json
+- New releases should have git releases with release notes, CHANGELOG.md entries and and updates to README.md with any new user impact.  Releases should be patched and published with npm. (my goal is to publish on a Raspberry Pi so they cannot be installed locally).

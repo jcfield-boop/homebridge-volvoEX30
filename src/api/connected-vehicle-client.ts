@@ -617,8 +617,8 @@ export class ConnectedVehicleClient {
     // Check available commands for this vehicle
     try {
       const availableCommands = await this.getAvailableCommands(vin);
-      const supportsClimatization = availableCommands?.data?.some((cmd: any) => 
-        cmd.command === 'CLIMATIZATION_START' || cmd.command === 'CLIMATIZATION_STOP'
+      const supportsClimatization = availableCommands?.data?.some((cmd) => 
+        cmd.command === 'CLIMATIZATION_START' || cmd.command === 'CLIMATIZATION_STOP',
       );
       
       if (!supportsClimatization) {
@@ -703,8 +703,8 @@ export class ConnectedVehicleClient {
     // Check available commands for this vehicle
     try {
       const availableCommands = await this.getAvailableCommands(vin);
-      const supportsHonkFlash = availableCommands?.data?.some((cmd: any) => 
-        cmd.command === 'HONK_AND_FLASH' || cmd.command === 'HONK' || cmd.command === 'FLASH'
+      const supportsHonkFlash = availableCommands?.data?.some((cmd) => 
+        cmd.command === 'HONK_AND_FLASH' || cmd.command === 'HONK' || cmd.command === 'FLASH',
       );
       
       if (!supportsHonkFlash) {

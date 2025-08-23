@@ -210,7 +210,8 @@ export enum CommandType {
   ENGINE_STOP = 'ENGINE_STOP',
   HONK = 'HONK',
   FLASH = 'FLASH',
-  HONK_FLASH = 'HONK_FLASH'
+  HONK_FLASH = 'HONK_FLASH',
+  HONK_AND_FLASH = 'HONK_AND_FLASH'
 }
 
 export enum InvokeStatus {
